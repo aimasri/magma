@@ -1,0 +1,153 @@
+<?xml version="1.0" ?>
+<reviews>
+    <review>
+        <name>Leti</name>
+        <rating>5</rating>
+        <product>Custom Cake</product>
+        <comment>The mascarpone cream is a game changer. Not too sweet, just perfect!</comment>
+    </review>
+    <review>
+        <name>Angela</name>
+        <rating>5</rating>
+        <product>Brownies</product>
+        <comment>Best brownies in Croydon. So fudgy and rich.</comment>
+    </review>
+    <review>
+        <name>Maria</name>
+        <rating>5</rating>
+        <product>8-inch Celebration Cake</product>
+        <comment>The sponge was incredibly moist. I didn't miss the buttercream at all!</comment>
+    </review>
+    <review>
+        <name>Joao</name>
+        <rating>5</rating>
+        <product>Azerbaijani Baklava</product>
+        <comment>Authentic, crispy, and delicious. Reminded me of my travels.</comment>
+    </review>
+    <review>
+        <name>Mary</name>
+        <rating>4</rating>
+        <product>Cupcakes</product>
+        <comment>Finally a bakery that doesn't use heavy buttercream. The whipped cream cheese frosting is divine.</comment>
+    </review>
+    <review>
+        <name>Yonna</name>
+        <rating>5</rating>
+        <product>12-inch Celebration Cake</product>
+        <comment>Got a custom cake for my daughter's birthday. Looked beautiful and tasted even better.</comment>
+    </review>
+    <review>
+        <name>Marianna</name>
+        <rating>5</rating>
+        <product>Macaroons</product>
+        <comment>The macaroons are so delicate and coconutty. Absolutely love them.</comment>
+    </review>
+    <review>
+        <name>Thiago</name>
+        <rating>5</rating>
+        <product>Tray Bakes</product>
+        <comment>Great local bakery on Church Street. The tray bakes are a weekend staple for my family.</comment>
+    </review>
+    <review>
+        <name>Yara</name>
+        <rating>5</rating>
+        <product>Mango Cake</product>
+        <comment>The cake wasn't cloyingly sweet, which is exactly what I look for. The flavor essences really shine through.</comment>
+    </review>
+    <review>
+        <name>Sam</name>
+        <rating>5</rating>
+        <product>Loaves</product>
+        <comment>Lovely young family running this place. Their loaves are fresh and perfect for breakfast.</comment>
+    </review>
+    <review>
+        <name>Emma</name>
+        <rating>5</rating>
+        <product>Custom Cake</product>
+        <comment>I despise standard buttercream, so finding Fussy Baby Cakes was a dream come true.</comment>
+    </review>
+    <review>
+        <name>Liam</name>
+        <rating>5</rating>
+        <product>Mango Cake</product>
+        <comment>The mango cake was a masterpiece. Fresh, fruity, and incredibly light.</comment>
+    </review>
+    <review>
+        <name>Sophia</name>
+        <rating>4</rating>
+        <product>Vegan Cupcakes</product>
+        <comment>Bought a box of cupcakes. The vegan cream alternative is indistinguishable from the real thing!</comment>
+    </review>
+    <review>
+        <name>Noah</name>
+        <rating>5</rating>
+        <product>8-inch Cake</product>
+        <comment>Unbelievable texture on the cakes. Whatever their secret technique is, it works perfectly.</comment>
+    </review>
+    <review>
+        <name>Olivia</name>
+        <rating>5</rating>
+        <product>Chocolate Sponge Cake</product>
+        <comment>The soft cheese cream frosting pairs perfectly with their rich chocolate sponge.</comment>
+    </review>
+    <review>
+        <name>James</name>
+        <rating>5</rating>
+        <product>Tray Bakes</product>
+        <comment>Excellent customer service and the tray bakes are top notch.</comment>
+    </review>
+    <review>
+        <name>Chloe</name>
+        <rating>5</rating>
+        <product>12-inch Celebration Cake</product>
+        <comment>It fed the whole party and everyone asked where it was from. Highly recommend!</comment>
+    </review>
+    <review>
+        <name>Daniel</name>
+        <rating>5</rating>
+        <product>Brownies</product>
+        <comment>The brownies have the perfect crinkly top and gooey center.</comment>
+    </review>
+    <review>
+        <name>Mia</name>
+        <rating>5</rating>
+        <product>Muffins</product>
+        <comment>Such a beautiful addition to Croydon. Their bakes always feel made with love.</comment>
+    </review>
+    <review>
+        <name>Lucas</name>
+        <rating>5</rating>
+        <product>Vegan Custom Cake</product>
+        <comment>The vegan options are incredible. Best vegan cake I've had in South London.</comment>
+    </review>
+    <review>
+        <name>Ava</name>
+        <rating>5</rating>
+        <product>Custom Cake</product>
+        <comment>The mascarpone finish on the cake makes it feel so luxurious and premium.</comment>
+    </review>
+    <review>
+        <name>Benjamin</name>
+        <rating>4</rating>
+        <product>Muffins</product>
+        <comment>Delicious muffins! Perfect with my morning coffee.</comment>
+    </review>
+    <review>
+        <name>Isabella</name>
+        <rating>5</rating>
+        <product>Azerbaijani Baklava</product>
+        <comment>Tried the Azerbaijani baklava at their stall. So nutty, syrupy, and crisp.</comment>
+    </review>
+    <review>
+        <name>Henry</name>
+        <rating>5</rating>
+        <product>Bespoke Cake</product>
+        <comment>No heavy sugar syrups, just pure flavor. Highly recommend their bespoke cakes.</comment>
+    </review>
+    <review>
+        <name>Grace</name>
+        <rating>5</rating>
+        <product>Custom Cake</product>
+        <comment>A wonderful family business. The custom cake we got was the highlight of the event.</comment>
+    </review>
+</reviews>
