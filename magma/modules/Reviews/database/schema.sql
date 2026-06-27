@@ -3,6 +3,12 @@
 -- Purpose:
 -- - Define the data structures for managing customer ratings and reviews.
 -- - Extract reviews into a separate module for clean reusability.
+--
+-- Why / Why this design:
+-- - Decouples the reviews module from the core framework, adhering to Domain-Driven Design principles.
+--
+-- Teaching notes:
+-- - Status tracking and moderation sorting are natively indexed to optimize queries.
 
 -- Section: 1. Site Reviews
 

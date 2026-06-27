@@ -3,6 +3,12 @@
 -- Purpose:
 -- - Define the core data structures for identity, multi-tenant branding, and global lookups.
 -- - Serve as the pure, underlying framework architecture for the Magma platform.
+--
+-- Why / Why this design:
+-- - Centralizes authentication and multi-tenancy rules at the lowest level, ensuring modular domains (like Inventory) can plug in without redefining foundational auth logic.
+--
+-- Teaching notes:
+-- - Framework Purity: Notice how there are no domain-specific tables (like products or reviews) in this file. This strict separation teaches developers how to avoid monolithic coupling.
 
 CREATE OR REPLACE FUNCTION trigger_set_updated_at()
 RETURNS TRIGGER AS $$

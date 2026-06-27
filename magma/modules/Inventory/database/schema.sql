@@ -4,6 +4,13 @@
 -- - Define the data structures for global catalog, event-sourced inventory, and manufacturing workflows.
 -- - Used by specific applications requiring catering and inventory capabilities.
 --
+-- Why / Why this design:
+-- - Decouples the physical domain (stock, recipes, manufacturing) from the core framework. This adheres to Domain-Driven Design principles.
+--
+-- Teaching notes:
+-- - Event Sourcing: Inventory uses a ledger (transactions) instead of just updating totals, ensuring an immutable audit trail.
+-- - Manufacturing: Labor is tracked as a primary cost alongside ingredients.
+--
 -- Dependencies:
 -- - Requires magma_core schema (users, vendors)
 
