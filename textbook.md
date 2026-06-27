@@ -7,7 +7,7 @@
 #### Subject & Intent: Understanding the "Why" Before the "How"
 In software engineering, code is simply a tool used to solve a specific human problem. Before we write a single line of PHP, we must intimately understand the **Domain**—the business environment in which our software will operate. If we build an elegant architecture that solves the wrong business problem, we have failed as engineers.
 
-In our case, the domain is "Magma," an generic software platform located in the cloud. They specialize in various domain entities, specifically distinguishing themselves with a "no magic" approach. 
+In our case, the domain is "Sandbox," a generic software platform located in the cloud. They specialize in various domain entities, specifically distinguishing themselves with a "no magic" approach. 
 
 This gives us immediate clues about our domain entities and data structures:
 *   **Products:** We aren't selling generic widgets. We have specific attributes like ingredients, allergens, and preparation lead times.
@@ -16,7 +16,7 @@ This gives us immediate clues about our domain entities and data structures:
 
 However, the defining characteristic of our architecture is the **Platform Vision**.
 
-While Magma is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct vendors in the future. This concept is known as **Multi-Tenancy**.
+While Sandbox Corp is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct vendors in the future. This concept is known as **Multi-Tenancy**.
 
 #### Analyzing the Principles: Designing for Multi-Tenancy from Day One
 It is a common trap in software development to hardcode business logic for a single client, assuming you can "generalize it later." Generalizing a massive, tightly-coupled codebase later is incredibly expensive and error-prone. As we established, hardcoding rules for one vendor means they will inevitably be incorrectly applied to future vendors.
@@ -28,12 +28,12 @@ Instead, we are adopting a platform-first mindset.
 To achieve this in the Magma Framework framework, we apply the following principles:
 
 1.  **Strict Data Isolation at the Repository Layer:** By establishing the Repository Pattern early, we ensure that every database query can eventually be scoped to a specific `vendor_id`. A controller will never accidentally query `SELECT * FROM orders`; it will always ask the repository for `Orders for Vendor X`. This mitigates the massive risk of cross-tenant data leakage—the most critical danger in a shared database environment.
-2.  **Agnostic Core Domain:** The core application doesn't care that Magma makes modules. It only understands abstract concepts: `Vendors`, `Products`, `Orders`, and `Inventory`. The specifics are data, not code.
+2.  **Agnostic Core Domain:** The core application doesn't care that Sandbox Corp makes modules. It only understands abstract concepts: `Vendors`, `Products`, `Orders`, and `Inventory`. The specifics are data, not code.
 3.  **Configuration over Hardcoding:** If a vendor has a specific rule, we abstract this into a configurable business rule associated with the vendor's profile, rather than burying it in `if/else` statements within our services.
 
 **Code Example: Hardcoding vs. Abstraction**
 
-Imagine Magma does not allow orders to be placed on Sundays. 
+Imagine Sandbox Corp does not allow orders to be placed on Sundays. 
 
 *The Wrong Way (Hardcoded Logic):*
 ```php
@@ -44,7 +44,7 @@ class OrderService
         // BAD: Hardcoding a specific tenant's rule into the core platform!
         $dayOfWeek = date('l', strtotime($order->deliveryDate));
         if ($dayOfWeek === 'Sunday') {
-            throw new Exception("Magma is closed on Sundays.");
+            throw new Exception("Sandbox Corp is closed on Sundays.");
         }
         
         // ... proceed with order
@@ -79,7 +79,7 @@ Many popular frameworks (like Laravel) offer multi-tenancy packages. These packa
 
 While convenient, this **hidden complexity is dangerous for learning**. If a developer doesn't understand *how* the query is being scoped, they cannot debug it when it breaks or optimize it when it scales. They become reliant on the "magic." Furthermore, as we discussed, explicit passing of context leaves far less room for error. 
 
-In the Fussy Baby framework, we reject this magic. Our multi-tenancy preparation is explicit. When we load a tenant's context, we inject it directly into our services. The developer can trace the exact flow of execution from the HTTP request down to the SQL statement, fostering a deep, unbreakable understanding of the system's architecture.
+In the Magma framework, we reject this magic. Our multi-tenancy preparation is explicit. When we load a tenant's context, we inject it directly into our services. The developer can trace the exact flow of execution from the HTTP request down to the SQL statement, fostering a deep, unbreakable understanding of the system's architecture.
 
 ---
 
@@ -130,7 +130,7 @@ This looks clean! But what is `Cache`? It's a static proxy. Behind the scenes, t
 In the Magma Framework architecture, we demand **Explicit Dependencies**. If your class needs a cache, you must ask for it in the constructor.
 
 ```php
-// The Explicit "Fussy Baby" Way
+// The Explicit "Magma" Way
 class ProductService 
 {
     private CacheInterface $cache;
@@ -212,7 +212,7 @@ public function calculatePrice($amount, $taxRate) {
     return $amount * $taxRate; 
 }
 
-// The Fussy Baby Way (Safe & Predictable)
+// The Magma Way (Safe & Predictable)
 public function calculatePrice(float $amount, float $taxRate): float {
     return $amount * $taxRate;
 }
@@ -528,7 +528,7 @@ Reflection is an API that allows PHP code to "look in the mirror" and analyze it
 #### The Theory: How Auto-Wiring Works
 In the Magma Framework framework, we use an advanced container technique called **Auto-Wiring**. We don't manually tell the container how to build every single class. Instead, the container uses Reflection to figure it out on the fly.
 
-Here is a simplified example of what the Fussy Baby Container is doing inside its `get()` method when you ask it for a class:
+Here is a simplified example of what the Magma Container is doing inside its `get()` method when you ask it for a class:
 
 ```php
 // You ask the container for the OrderController
@@ -648,7 +648,7 @@ By separating the *request* for an object (in the constructor) from the *configu
 
 This is the very essence of the **Open/Closed Principle (OCP)**. 
 
-Imagine Magma wants to switch their cache system from Redis to Memcached. 
+Imagine Sandbox Corp wants to switch their cache system from Redis to Memcached. 
 1. We write a new `MemcachedCache` class that implements `CacheInterface`.
 2. We go to our `CoreServiceProvider` and change one line of code:
    `$container->bind(CacheInterface::class, MemcachedCache::class);`
@@ -677,7 +677,7 @@ Why? Because PHP code can be statically analyzed by your IDE. If you have a typo
 ### Chapter 4.1: The Router - Mapping URLs to Controllers
 
 #### Subject & Intent: The Traffic Cop
-When a user types `magma.local/products` into their browser, an HTTP `GET` request is sent to our server. As we know from Module 2, this request hits our Front Controller (`www/index.php`) and triggers `$app->run()`.
+When a user types `sandbox.local/products` into their browser, an HTTP `GET` request is sent to our server. As we know from Module 2, this request hits our Front Controller (`www/index.php`) and triggers `$app->run()`.
 
 But how does the application know that `/products` should execute the code that fetches modules from the database, while `/checkout` should execute the payment code?
 
@@ -744,7 +744,7 @@ Here, the Router is smart enough to extract `{id}` from the URL (like `/products
 
 > **Q: We map URLs using specific HTTP methods (`GET` vs `POST`). What would go horribly wrong if the framework didn't care about the HTTP method, and allowed a user to trigger the `CheckoutController::process()` method (which charges a card) via a simple GET request in the browser?**
 > 
-> **A:** The site's code could be hacked to perform actions not requested! `GET` requests are intended to be "safe" (read-only). If a destructive action like charging a card was allowed via `GET`, an attacker could simply trick a user into clicking a link (`magma.local/checkout`) or embed an invisible image tag that loads the URL, instantly charging the user's card without their consent. Enforcing `POST` for destructive actions is a fundamental security requirement.
+> **A:** The site's code could be hacked to perform actions not requested! `GET` requests are intended to be "safe" (read-only). If a destructive action like charging a card was allowed via `GET`, an attacker could simply trick a user into clicking a link (`sandbox.local/checkout`) or embed an invisible image tag that loads the URL, instantly charging the user's card without their consent. Enforcing `POST` for destructive actions is a fundamental security requirement.
 
 ---
 
@@ -762,7 +762,7 @@ We can visualize Middleware as an **Onion**.
 * The resulting HTTP Response must pass *outward* through every layer before returning to the user's browser.
 
 #### The Theory: The Contract of Middleware
-Every single Middleware class in the Fussy Baby framework follows a strict contract. It receives the incoming Request, and a special function called `$next`.
+Every single Middleware class in the Magma framework follows a strict contract. It receives the incoming Request, and a special function called `$next`.
 
 The Middleware has absolute power to decide what to do:
 1. **Pass:** It can inspect the Request, decide everything is fine, and call `$next($request)` to pass the request deeper into the onion.
@@ -833,7 +833,7 @@ In raw, native PHP, when you want to see what the user typed into a form or chec
 
 When you want to send data back to the user, you use functions like `echo "Hello";` or `header('Location: /login');`.
 
-In the Fussy Baby framework, **we absolutely forbid the use of these raw global variables and functions.** 
+In the Magma framework, **we absolutely forbid the use of these raw global variables and functions.** 
 
 Instead, we encapsulate everything into two strict objects: the `HttpRequest` object and the `HttpResponse` object.
 
@@ -941,7 +941,7 @@ To prevent "Fat Controllers," we enforce three absolute rules for any Controller
 2. **Never query the Database:** A controller should never contain SQL or interact directly with a database connection.
 3. **Always return a Response:** The controller's only purpose is to take the incoming `Request`, give the data to a "Service," and wrap the result in a `Response`.
 
-#### File Walkthrough: A Fussy Baby Controller
+#### File Walkthrough: A Magma Controller
 Let's look at what a perfectly clean Controller looks like when a customer submits an order:
 
 ```php
@@ -991,7 +991,7 @@ By pushing the complex logic down into the `OrderService` (which we will cover n
 
 #### Common Questions and Answers
 
-> **Q: Imagine Magma decides to launch a mobile app next year that communicates with our server via an API, not a web browser. If we had written all of our tax calculation and database logic directly inside the `CheckoutController`, why would building this new API be incredibly painful?**
+> **Q: Imagine Sandbox Corp decides to launch a mobile app next year that communicates with our server via an API, not a web browser. If we had written all of our tax calculation and database logic directly inside the `CheckoutController`, why would building this new API be incredibly painful?**
 > 
 > **A:** Because we would have to rewrite and duplicate every single business rule (like calculating taxes) for the API! By keeping the Controller as just a "Traffic Cop" and pushing the logic into a Service, our new `ApiController` can simply inject the exact same `OrderService` and reuse 100% of the business logic.
 
@@ -1006,7 +1006,7 @@ By pushing the complex logic down into the `OrderService` (which we will cover n
 #### Subject & Intent: The Brain of the Application (The Evolutionary Starting Point)
 If the Controller is the Traffic Cop, the **Service** is the highly-trained mechanic inside the garage. 
 
-*A Historical Note on Architecture:* When the Fussy Baby framework was first built, the Service Layer was where 100% of your business rules lived. If a developer asked, *"How does Magma calculate tax?"*, they would open the relevant Service class. This pattern is known as the **Transaction Script**. 
+*A Historical Note on Architecture:* When the initial framework was first built, the Service Layer was where 100% of your business rules lived. If a developer asked, *"How does Sandbox Corp calculate tax?"*, they would open the relevant Service class. This pattern is known as the **Transaction Script**. 
 
 We teach this pattern here because it is crucial to understand *how* logic is isolated from Controllers and Databases. However, as you will see in **Module 10 (Domain-Driven Design)**, this approach eventually breaks down as an application grows into an enterprise platform. The code examples below represent the *starting point* of our framework's evolution, not its final destination.
 
@@ -1112,7 +1112,7 @@ This creates three massive problems:
 2. **Duplication:** You will inevitably write the same "Find user by ID" query in dozens of different places.
 3. **Security (Our biggest concern):** If SQL is everywhere, it is incredibly easy for a developer to accidentally forget to add a critical `WHERE` clause, exposing data they shouldn't.
 
-In the Fussy Baby framework, we use the **Repository Pattern**. 
+In the Magma framework, we use the **Repository Pattern**. 
 
 A Repository acts as an intermediary collection. To the `OrderService`, the `OrderRepository` just looks like an array in memory. The Service says *"Give me Order #5"*, and the Repository goes and gets it. The Service has no idea if the order came from a MySQL database, a JSON file, or an external API.
 
@@ -1170,7 +1170,7 @@ class PostgresOrderRepository implements OrderRepositoryInterface
 ```
 
 #### Analyzing the Principles: The Multi-Tenancy Shield
-Let's return to the most critical business requirement of the Fussy Baby framework: **Multi-Tenancy** (supporting multiple vendors on one platform).
+Let's return to the most critical business requirement of the Magma framework: **Multi-Tenancy** (supporting multiple vendors on one platform).
 
 If we share one database table for *all* vendors, the biggest risk is that "Vendor A" logs in and accidentally sees "Vendor B's" orders. This is a catastrophic failure.
 
@@ -1197,14 +1197,14 @@ The developer writing the `OrderService` literally cannot make a mistake and que
 #### Subject & Intent: The Greatest Risk in SaaS
 As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many vendors share one database) is **Cross-Tenant Data Leakage**.
 
-If "Magma" logs into their dashboard, and due to a coding error, they see "Client B's" orders, you have a massive legal and security breach on your hands. 
+If "Sandbox Corp" logs into their dashboard, and due to a coding error, they see "Client B's" orders, you have a massive legal and security breach on your hands. 
 
 If we rely on developers to manually type `WHERE vendor_id = X` in every single repository method they ever write, human error *will* eventually cause a data leak. We need a systematic, invisible shield that protects the data automatically.
 
 #### The Theory: The Context Object
 To build this shield, we use a concept called a **Context Object**.
 
-When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., `magma.ourplatform.com`), our early Middleware creates a `TenantContext` object.
+When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., `client.sandboxplatform.com`), our early Middleware creates a `TenantContext` object.
 
 This object holds the immutable ID of the current vendor.
 
@@ -1296,7 +1296,7 @@ If you look at PHP written 15 years ago, you will almost certainly find files th
 <body>
     <h1>Latest Modules</h1>
     <?php
-        $db = new PDO("mysql:host=localhost;dbname=fussy", "root", "password");
+        $db = new PDO("mysql:host=localhost;dbname=sandbox", "root", "password");
         $stmt = $db->query("SELECT * FROM modules");
         while ($module = $stmt->fetch()) {
             if ($module['price'] > 20) {
@@ -1348,7 +1348,7 @@ class StorefrontController
         // 2. Render the View, passing the data as a clean array!
         $html = $this->view->render('storefront/index.html.php', [
             'modules' => $modules,
-            'pageTitle' => 'Welcome to Magma'
+            'pageTitle' => 'Welcome to Sandbox'
         ]);
 
         // 3. Return the fully baked HTML inside the HTTP Response
@@ -1395,7 +1395,7 @@ By wrapping every variable in `htmlspecialchars()`, we neutralize the threat. It
 
 #### Common Questions and Answers
 
-> **Q: Imagine Magma hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
+> **Q: Imagine Sandbox Corp hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
 > 
 > **A:** The data received is sanitized and empty of any logic that might harm or break the app. It provides simply the necessary information, ready for the view. The designer can just write HTML without worrying about accidentally deleting a database table or breaking complex backend routines.
 
@@ -1561,7 +1561,7 @@ The data itself (the modules, the orders) were just "dumb" arrays or basic objec
 
 While Transaction Scripts are excellent for medium-sized applications, as Magma Framework scaled into an enterprise platform, we hit a breaking point. The Services became bloated "God Classes" because they held *all* the rules. We needed to evolve the architecture.
 
-To solve this, our framework migrated to the current standard: **Domain-Driven Design (DDD)** and the creation of **Rich Domain Models**. This is how the Fussy Baby framework operates today.
+To solve this, our framework migrated to the current standard: **Domain-Driven Design (DDD)** and the creation of **Rich Domain Models**. This is how the Magma framework operates today.
 
 #### The Theory: Behavior Belongs to the Data
 In a Rich Domain Model, the objects that represent your business (Entities) are no longer "dumb." They contain the business logic that directly pertains to them.
@@ -1624,7 +1624,7 @@ Rich Domain Models perfectly embody the Object-Oriented principle of **Encapsula
 An `Order` object shouldn't let a random `Service` change its `total` property manually. If the `total` changes, the `Order` needs to ensure taxes are recalculated and statuses are updated. By forcing the outside world to call `$order->applyLoyaltyDiscount()`, the `Order` object protects its internal state from becoming corrupted by a buggy Service.
 
 #### The Migration Path: "Pragmatic DDD" (The Hybrid Approach)
-Why didn't we start with a full, strict Rich Domain Model in the Fussy Baby framework?
+Why didn't we start with a full, strict Rich Domain Model in the Magma framework?
 
 Because strict Enterprise DDD requires you to completely and perfectly map your business rules (the Ubiquitous Language) *before* you write the code. When a project is young, business rules are still evolving. Trying to build a rigid Domain Model too early leads to Analysis Paralysis.
 
@@ -1708,7 +1708,7 @@ We placed testing at the very end of this textbook because true, robust automate
 
 If you write "Spaghetti Code" where controllers contain `new SmtpMailer()` or direct `$_POST` references, unit testing is nearly impossible because you cannot isolate the code from the real world. 
 
-Because we built the Fussy Baby framework using strict **Dependency Injection (Module 3)** and **Encapsulated Requests (Module 4)**, testing becomes trivial. 
+Because we built the Magma framework using strict **Dependency Injection (Module 3)** and **Encapsulated Requests (Module 4)**, testing becomes trivial. 
 
 #### The Theory: Mocks and Fakes
 If you want to test the `OrderService`, you do not need a database. You simply write a test script that injects a fake `InMemoryOrderRepository` into the service. You can instantly verify the logic is flawless without ever booting up PostgreSQL. This is the ultimate validation of our architectural choices!
