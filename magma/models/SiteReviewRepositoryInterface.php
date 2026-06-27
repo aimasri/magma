@@ -9,7 +9,7 @@ namespace Magma\models;
  * - Defines the contract for fetching and submitting site reviews.
  *
  * Why / Why this design:
- * - Dependency Inversion Principle: Ensures services like `ReviewAggregatorService` depend 
+ * - Dependency Inversion Principle: Ensures controllers and services depend 
  *   on an abstraction rather than the concrete SQL implementation, enabling easy mocking 
  *   during unit testing.
  *

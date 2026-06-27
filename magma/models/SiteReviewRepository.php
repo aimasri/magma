@@ -12,8 +12,8 @@ use Magma\dto\ReviewDTO;
  * - Manage SQL operations against the `site_reviews` table.
  *
  * Why / Why this design:
- * - Centralizing these queries prevents SQL from leaking into the `ReviewAggregatorService` 
- *   or the controllers, ensuring that data validation and moderation statuses are consistently 
+ * - Centralizing these queries prevents SQL from leaking into the controllers, 
+ *   ensuring that data validation and moderation statuses are consistently 
  *   applied application-wide.
  *
  * Teaching notes:

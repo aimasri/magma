@@ -11,7 +11,7 @@ use Magma\validation\Validator;
 use Magma\models\VendorRepositoryInterface;
 use Magma\models\UserRepositoryInterface;
 
-use Magma\services\ReviewAggregatorService;
+use Magma\models\SiteReviewRepositoryInterface;
 use Magma\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
 use Magma\services\RegistrationService;
@@ -85,7 +85,7 @@ class HttpServiceProvider implements ServiceProviderInterface
             return new HomeController(
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
-                $c->get(ReviewAggregatorService::class),
+                $c->get(\Magma\models\SiteReviewRepositoryInterface::class),
                 $c->get(ReviewSubmissionService::class),
                 $c->get(Request::class),
                 $c->get(Validator::class),

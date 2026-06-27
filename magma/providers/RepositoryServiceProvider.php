@@ -12,7 +12,6 @@ use Magma\models\VendorRepository;
 use Magma\models\VendorRepositoryInterface;
 use Magma\models\CachedVendorRepository;
 use Magma\models\SiteReviewRepository;
-use Magma\models\XmlReviewRepository;
 use Magma\models\UserRepository;
 use Magma\models\UserRepositoryInterface;
 use Magma\models\UserTokenRepository;
@@ -74,10 +73,6 @@ class RepositoryServiceProvider implements ServiceProviderInterface
 
         $container->set(\Magma\models\SiteReviewRepositoryInterface::class, function ($c) {
             return new SiteReviewRepository($c->get('db.write'), $c->get('db.read'));
-        });
-
-        $container->set(XmlReviewRepository::class, function ($c) {
-            return new XmlReviewRepository();
         });
 
         $container->set(UserRepositoryInterface::class, function ($c) {

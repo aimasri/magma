@@ -16,14 +16,10 @@ use Magma\models\UserTokenRepository;
 use Magma\models\UserTokenRepositoryInterface;
 use Magma\models\SiteReviewRepository;
 use Magma\models\SiteReviewRepositoryInterface;
-use Magma\models\XmlReviewRepository;
-
-
 use Magma\services\MailerService;
 use Magma\services\AuthenticationService;
 use Magma\services\RegistrationService;
 use Magma\services\PasswordResetService;
-use Magma\services\ReviewAggregatorService;
 use Magma\services\RememberMeService;
 use Magma\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
@@ -103,13 +99,6 @@ class DomainServiceProvider implements ServiceProviderInterface
                 $c->get(UserRepositoryInterface::class),
                 $c->get(\Magma\interfaces\EventDispatcherInterface::class),
                 $c->get(TransactionManagerInterface::class)
-            );
-        });
-
-        $container->set(ReviewAggregatorService::class, function ($c) {
-            return new ReviewAggregatorService(
-                $c->get(SiteReviewRepositoryInterface::class),
-                $c->get(XmlReviewRepository::class)
             );
         });
 
