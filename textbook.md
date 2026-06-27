@@ -7,7 +7,7 @@
 #### Subject & Intent: Understanding the "Why" Before the "How"
 In software engineering, code is simply a tool used to solve a specific human problem. Before we write a single line of PHP, we must intimately understand the **Domain**—the business environment in which our software will operate. If we build an elegant architecture that solves the wrong business problem, we have failed as engineers.
 
-In our case, the domain is "Sandbox," a generic software platform located in the cloud. They specialize in various domain entities, specifically distinguishing themselves with a "no magic" approach. 
+In our case, the domain is "TSP," a generic software platform located in the cloud. They specialize in various domain entities, specifically distinguishing themselves with a "no magic" approach. 
 
 This gives us immediate clues about our domain entities and data structures:
 *   **Products:** We aren't selling generic widgets. We have specific attributes like ingredients, allergens, and preparation lead times.
@@ -1348,7 +1348,7 @@ class StorefrontController
         // 2. Render the View, passing the data as a clean array!
         $html = $this->view->render('storefront/index.html.php', [
             'modules' => $modules,
-            'pageTitle' => 'Welcome to Sandbox'
+            'pageTitle' => 'Welcome to Sandbox Corp'
         ]);
 
         // 3. Return the fully baked HTML inside the HTTP Response

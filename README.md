@@ -22,9 +22,9 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 
 ## 01. Introduction & Philosophy
 
-**The Sandbox Platform:** Sandbox is a generic software platform based in the cloud, specializing in various domain entities. The architecture is designed from the ground up to be highly adaptable, built to seamlessly support both massive, multi-tenant environments and isolated, single-tenant applications depending on the specific project requirements.
+**TSP, The Sandbox Platform:** TSP is a generic software platform based in the cloud, specializing in various domain entities. The architecture is designed from the ground up to be highly adaptable, built to seamlessly support both massive, multi-tenant environments and isolated, single-tenant applications depending on the specific project requirements.
 
-**The Core Framework Ecosystem (Magma, Lava, Basalt):** The Sandbox platform is powered by a foundational, pure PHP framework currently known as **Magma**. Magma represents the pure, "no magic" core codebase. As the platform evolves—if fundamental structural changes are ever required (such as introducing monolithic functions or "magic" classes)—the framework will branch into new, distinct evolutionary states such as **Lava** or **Basalt**, rather than bloating Magma with feature sets. Secondary ecosystem tools remain agnostic and compatible across all states.
+**The Core Framework Ecosystem (Magma, Lava, Basalt):** TSP is powered by a foundational, pure PHP framework currently known as **Magma**. Magma represents the pure, "no magic" core codebase. As the platform evolves—if fundamental structural changes are ever required (such as introducing monolithic functions or "magic" classes)—the framework will branch into new, distinct evolutionary states such as **Lava** or **Basalt**, rather than bloating Magma with feature sets. Secondary ecosystem tools remain agnostic and compatible across all states.
 
 **The Engineering Philosophy:** Modern frameworks hide a massive amount of complexity behind "magic" static methods and facades. This project intentionally removes the magic at the Magma level. Every action is explicitly wired together using clean architecture principles:
 
