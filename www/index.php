@@ -11,7 +11,7 @@
 /**
  * Load the application bootstrap.
  * This moves the execution from the public 'www' directory into 
- * the private 'fussy_app' container.
+ * the private 'magma' container.
  */
 require_once __DIR__ . '/../magma/config/bootstrap.php';
 

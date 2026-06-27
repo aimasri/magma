@@ -1,6 +1,6 @@
-# Fussy Baby Cakes: The Educational Architecture Core
+# Magma Framework: The Educational Architecture Core
 
-Welcome to the Fussy Baby Cakes source code. This repository is intentionally designed as an **instructional codebase**. It demonstrates how to build a robust, scalable, and secure web application using vanilla PHP **without relying on heavy, black-box frameworks** like Laravel or Symfony. 
+Welcome to the Magma Framework source code. This repository is intentionally designed as an **instructional codebase**. It demonstrates how to build a robust, scalable, and secure web application using vanilla PHP **without relying on heavy, black-box frameworks** like Laravel or Symfony. 
 
 By exploring this codebase, you will learn the fundamental architectural patterns that power all modern web frameworks, with thorough, docblock-level explanations of *how* and *why* the components interact. This README serves as the ultimate syllabus and overview for understanding the framework's design.
 
@@ -22,7 +22,7 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 
 ## 01. Introduction & Philosophy
 
-**The Business Context:** FussyBaby is an artisanal home-baking business based in Croydon, specializing in cakes, traybakes, and macaroons with a signature "no buttercream" approach. While the current codebase is actively being built specifically for this single vendor (Fussy Baby), the core architecture is being designed from the ground up as a platform. The ultimate goal is to open these functionalities up to support multiple vendors in the future using multi-tenancy.
+**The Business Context:** Magma is an generic software platform based in the cloud, specializing in various domain entities with a signature "no magic" approach. While the current codebase is actively being built specifically for this single vendor (Fussy Baby), the core architecture is being designed from the ground up as a platform. The ultimate goal is to open these functionalities up to support multiple vendors in the future using multi-tenancy.
 
 **The Engineering Philosophy:** Modern frameworks hide a massive amount of complexity behind "magic" static methods and facades. This project intentionally removes the magic. Every action is explicitly wired together using clean architecture principles:
 
@@ -43,7 +43,7 @@ The application utilizes the **Front Controller** pattern. Every HTTP request ma
 3. **Execution:** The `Application->run()` method is called. It resolves the incoming HTTP request, passes it through the Middleware pipeline, and hands it to the Router.
 
 **Why this design?**
-By funneling all requests through one file, we guarantee that critical security checks (like session initialization and CSRF validation) can never be accidentally bypassed. The `www/` directory is the only folder exposed to the web server; all application logic sits safely outside the document root in `fussy_app/`.
+By funneling all requests through one file, we guarantee that critical security checks (like session initialization and CSRF validation) can never be accidentally bypassed. The `www/` directory is the only folder exposed to the web server; all application logic sits safely outside the document root in `magma/`.
 
 ---
 
@@ -157,7 +157,7 @@ To provide instant HTTP response times to users, heavy tasks (like sending email
 
 ## 11. High-Performance Optimization Techniques
 
-FussyBaby is designed to remain highly responsive under heavy load. Advanced optimization techniques include:
+Magma is designed to remain highly responsive under heavy load. Advanced optimization techniques include:
 
 * **Keyset (Cursor-Based) Pagination:** Deep pagination using `OFFSET` causes linear CPU degradation in SQL databases. We use Keyset Pagination (`WHERE id > :cursor_id ORDER BY id ASC LIMIT X`) to leverage B-Tree indexes, guaranteeing O(1) fetch times regardless of how deep the user paginates.
 * **PHP Generators (`yield`):** Repositories returning multiple records use the `yield` keyword instead of `fetchAll()`. This streams records one-by-one, maintaining a near-zero memory footprint.

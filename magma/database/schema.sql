@@ -3,7 +3,7 @@
 -- Purpose:
 -- - Define the core data structures for identity, multi-tenant branding, global catalog, 
 --   event-sourced inventory, and manufacturing workflows.
--- - Serve as the single source of truth for the database architecture of the Fussy Baby Cakes application.
+-- - Serve as the single source of truth for the database architecture of the Magma Framework application.
 --
 -- Teaching notes:
 -- - Event Sourcing: Inventory uses a ledger (transactions) instead of just updating totals, 

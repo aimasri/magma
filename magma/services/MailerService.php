@@ -42,7 +42,7 @@ class MailerService
      */
     public function sendPasswordResetEmail(string $toEmail, string $toName, string $resetLink): bool
     {
-        $subject = 'Password Reset Request for Fussy Baby Cakes';
+        $subject = 'Password Reset Request for Magma Framework';
 
         /**
          * HTML Email Body
@@ -72,7 +72,7 @@ class MailerService
      */
     public function sendWelcomeEmail(string $toEmail, string $toName): bool
     {
-        $subject = 'Welcome to FussyBaby!';
+        $subject = 'Welcome to Magma!';
 
         $body = $this->templateEngine->render('emails/welcome', [
             'toName' => $toName

@@ -1,4 +1,4 @@
-# Fussy Baby Cakes: The Masterclass Textbook
+# Magma Framework: The Masterclass Textbook
 
 ## Module 1: Introduction & Philosophy
 
@@ -7,7 +7,7 @@
 #### Subject & Intent: Understanding the "Why" Before the "How"
 In software engineering, code is simply a tool used to solve a specific human problem. Before we write a single line of PHP, we must intimately understand the **Domain**—the business environment in which our software will operate. If we build an elegant architecture that solves the wrong business problem, we have failed as engineers.
 
-In our case, the domain is "FussyBaby," an artisanal home-baking business located in Croydon. They specialize in cakes, traybakes, and macaroons, specifically distinguishing themselves with a "no buttercream" approach. 
+In our case, the domain is "Magma," an generic software platform located in the cloud. They specialize in various domain entities, specifically distinguishing themselves with a "no magic" approach. 
 
 This gives us immediate clues about our domain entities and data structures:
 *   **Products:** We aren't selling generic widgets. We have specific attributes like ingredients, allergens, and preparation lead times.
@@ -16,7 +16,7 @@ This gives us immediate clues about our domain entities and data structures:
 
 However, the defining characteristic of our architecture is the **Platform Vision**.
 
-While FussyBaby is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct vendors in the future. This concept is known as **Multi-Tenancy**.
+While Magma is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct vendors in the future. This concept is known as **Multi-Tenancy**.
 
 #### Analyzing the Principles: Designing for Multi-Tenancy from Day One
 It is a common trap in software development to hardcode business logic for a single client, assuming you can "generalize it later." Generalizing a massive, tightly-coupled codebase later is incredibly expensive and error-prone. As we established, hardcoding rules for one vendor means they will inevitably be incorrectly applied to future vendors.
@@ -25,15 +25,15 @@ Instead, we are adopting a platform-first mindset.
 
 > **Historical Context:** In the early days of SaaS (Software as a Service), companies often stood up a completely separate database and codebase for every new client (Single-Tenant). While secure, this became a nightmare to maintain and deploy. The industry shifted toward Multi-Tenant architectures, where a single instance of the application and database serves multiple clients, using a `tenant_id` to strictly separate data.
 
-To achieve this in the Fussy Baby Cakes framework, we apply the following principles:
+To achieve this in the Magma Framework framework, we apply the following principles:
 
 1.  **Strict Data Isolation at the Repository Layer:** By establishing the Repository Pattern early, we ensure that every database query can eventually be scoped to a specific `vendor_id`. A controller will never accidentally query `SELECT * FROM orders`; it will always ask the repository for `Orders for Vendor X`. This mitigates the massive risk of cross-tenant data leakage—the most critical danger in a shared database environment.
-2.  **Agnostic Core Domain:** The core application doesn't care that FussyBaby makes cakes. It only understands abstract concepts: `Vendors`, `Products`, `Orders`, and `Inventory`. The specifics are data, not code.
+2.  **Agnostic Core Domain:** The core application doesn't care that Magma makes modules. It only understands abstract concepts: `Vendors`, `Products`, `Orders`, and `Inventory`. The specifics are data, not code.
 3.  **Configuration over Hardcoding:** If a vendor has a specific rule, we abstract this into a configurable business rule associated with the vendor's profile, rather than burying it in `if/else` statements within our services.
 
 **Code Example: Hardcoding vs. Abstraction**
 
-Imagine FussyBaby does not allow orders to be placed on Sundays. 
+Imagine Magma does not allow orders to be placed on Sundays. 
 
 *The Wrong Way (Hardcoded Logic):*
 ```php
@@ -44,7 +44,7 @@ class OrderService
         // BAD: Hardcoding a specific tenant's rule into the core platform!
         $dayOfWeek = date('l', strtotime($order->deliveryDate));
         if ($dayOfWeek === 'Sunday') {
-            throw new Exception("FussyBaby is closed on Sundays.");
+            throw new Exception("Magma is closed on Sundays.");
         }
         
         // ... proceed with order
@@ -97,7 +97,7 @@ While magic allows junior developers to ship features quickly, it becomes a seve
 2.  **Performance bottlenecks emerge:** If the framework is eagerly loading data behind the scenes, you can't easily optimize it.
 3.  **You are trying to *learn* architecture:** A framework teaches you how to use *that specific framework*. It does not necessarily teach you underlying software engineering principles.
 
-Our philosophy for Fussy Baby Cakes is to entirely strip away the magic. We want you to see the plumbing. 
+Our philosophy for Magma Framework is to entirely strip away the magic. We want you to see the plumbing. 
 
 #### Analyzing the Principles: The Facade Anti-Pattern
 Let's look at a specific principle: **Dependency Inversion** (the 'D' in SOLID). This principle states that high-level modules should not depend on low-level modules; both should depend on abstractions (interfaces).
@@ -127,7 +127,7 @@ This looks clean! But what is `Cache`? It's a static proxy. Behind the scenes, t
 3.  **Testing Nightmare:** Mocking static methods for unit tests requires complex reflection or specialized testing libraries (like Mockery), rather than simply passing a fake object into a constructor.
 
 #### The "Why" & Framework Comparison: The Explicit Alternative
-In the Fussy Baby Cakes architecture, we demand **Explicit Dependencies**. If your class needs a cache, you must ask for it in the constructor.
+In the Magma Framework architecture, we demand **Explicit Dependencies**. If your class needs a cache, you must ask for it in the constructor.
 
 ```php
 // The Explicit "Fussy Baby" Way
@@ -170,7 +170,7 @@ By forcing ourselves to be explicit, we are forced to think about the design of 
 #### Subject & Intent: The Rules of Engagement
 If we are stripping away the "magic" of frameworks, what replaces it? The answer is **Discipline**. 
 
-When you don't have a framework automatically policing where you put your database queries or how you validate your forms, you must rely on strict architectural principles. In the Fussy Baby Cakes architecture, every single file we write is governed by four core pillars.
+When you don't have a framework automatically policing where you put your database queries or how you validate your forms, you must rely on strict architectural principles. In the Magma Framework architecture, every single file we write is governed by four core pillars.
 
 #### Analyzing the Principles
 
@@ -182,7 +182,7 @@ While we will see these in action constantly, here is a brief overview tailored 
 2.  **Open/Closed Principle (OCP):** Software entities should be open for extension but closed for modification. If we add a new Payment Gateway (Stripe vs PayPal), we shouldn't have to rewrite the `CheckoutService`. We simply create a new class that implements the `PaymentGatewayInterface`.
 3.  **Liskov Substitution Principle (LSP):** If you swap a parent class for its child class (or an interface for an implementation), the application shouldn't break or behave unexpectedly. 
     > [!TIP]
-    > **The FussyBaby LSP Analogy:** Imagine you have an `OvenInterface` with a `bake(Cake $cake)` method. Your `StandardGasOven` implements this perfectly. If you substitute it with a `MicrowaveOven` class, and calling `bake()` causes the cake to instantly explode instead of baking, you have violated LSP. The substitute failed to honor the fundamental contract of the parent!
+    > **The Magma LSP Analogy:** Imagine you have an `ServiceInterface` with a `execute(Module $module)` method. Your `StandardService` implements this perfectly. If you substitute it with a `FastService` class, and calling `execute()` causes the module to instantly explode instead of executing, you have violated LSP. The substitute failed to honor the fundamental contract of the parent!
 4.  **Interface Segregation Principle (ISP):** Don't force a class to implement methods it doesn't need. Better to have many small, specific interfaces than one massive, general-purpose one.
 5.  **Dependency Inversion Principle (DIP):** Depend upon abstractions (interfaces), not concretions (specific classes). We covered this heavily in Chapter 1.2.
 
@@ -238,7 +238,7 @@ While simple, this "Page Controller" pattern created massive duplication. Every 
 
 To solve this, modern applications use the **Front Controller Pattern**.
 
-In the Fussy Baby Cakes architecture, every single HTTP request—whether it's asking for an HTML page, an API JSON response, or submitting a form—is funneled through one single entry point.
+In the Magma Framework architecture, every single HTTP request—whether it's asking for an HTML page, an API JSON response, or submitting a form—is funneled through one single entry point.
 
 #### File Walkthrough: `www/index.php`
 Let's look at the actual code for our Front Controller. This is pulled directly from our workspace (`www/index.php`):
@@ -255,7 +255,7 @@ Let's look at the actual code for our Front Controller. This is pulled directly 
  */
 
 // 1. Leave the public directory immediately
-require __DIR__ . '/../fussy_app/core/config/bootstrap.php';
+require __DIR__ . '/../magma/core/config/bootstrap.php';
 
 // 2. Define our environment
 define('ENVIRONMENT', \core\config\Config::get('APP_ENV', 'production'));
@@ -279,9 +279,9 @@ $app->run();
 
 #### Analyzing the Principles: The Public Boundary
 The most crucial line in this file is the very first one:
-`require __DIR__ . '/../fussy_app/core/config/bootstrap.php';`
+`require __DIR__ . '/../magma/core/config/bootstrap.php';`
 
-Notice the directory structure. The web server (like Nginx or Apache) is configured to serve files *only* from the `www/` directory. However, all of our actual code, business logic, and configuration files live in `fussy_app/`, which sits completely outside the document root.
+Notice the directory structure. The web server (like Nginx or Apache) is configured to serve files *only* from the `www/` directory. However, all of our actual code, business logic, and configuration files live in `magma/`, which sits completely outside the document root.
 
 By executing that `require` statement, we immediately "jump" out of the public folder and into our secure application container. 
 
@@ -294,9 +294,9 @@ Because we add our `SessionTimeoutMiddleware` and `CsrfMiddleware` directly into
 
 #### Common Questions and Answers
 
-> **Q: What is the security risk of having the core application folder (e.g. `fussy_app/`, which contains the `.env` file) inside the public `www/` directory?**
+> **Q: What is the security risk of having the core application folder (e.g. `magma/`, which contains the `.env` file) inside the public `www/` directory?**
 > 
-> **A:** If those files are in the public domain, the database credentials and secret keys become easily accessible. If a web server misconfiguration occurs, an attacker could navigate directly to `website.com/fussy_app/.env` and download your passwords as plain text. Keeping them strictly outside the document root eliminates this vector entirely.
+> **A:** If those files are in the public domain, the database credentials and secret keys become easily accessible. If a web server misconfiguration occurs, an attacker could navigate directly to `website.com/magma/.env` and download your passwords as plain text. Keeping them strictly outside the document root eliminates this vector entirely.
 
 > **Q: Looking at `index.php`, why does it make sense to attach "global" middleware (like CSRF and Session checks) here at the entrance, rather than waiting until the Router decides which Controller to execute?**
 > 
@@ -309,7 +309,7 @@ Because we add our `SessionTimeoutMiddleware` and `CsrfMiddleware` directly into
 #### Subject & Intent: Waking Up the Application
 If `index.php` is the front door, `bootstrap.php` is the process of turning on the lights, booting up the computers, and unlocking the cash register before the customers arrive. 
 
-When execution jumps out of the `www/` directory via that `require` statement, it lands in `/home/ahmed/projects/FussyBaby/fussy_app/core/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
+When execution jumps out of the `www/` directory via that `require` statement, it lands in `/home/ahmed/projects/Magma/magma/core/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
 
 #### File Walkthrough: `bootstrap.php`
 
@@ -389,7 +389,7 @@ The final responsibility of the Front Controller phase is to **build the Depende
 If we look back at the final lines of our `bootstrap.php` file, we see this:
 
 ```php
-// fussy_app/core/config/bootstrap.php
+// magma/core/config/bootstrap.php
 
 // The Container is instantiated
 $container = new Container();
@@ -431,7 +431,7 @@ When we finally call `$app->run()`, the kernel takes over. It captures the incom
 #### The "Why" & Framework Comparison
 In some older or highly "magical" frameworks, simply including the bootstrap file implicitly executes the application. 
 
-In the Fussy Baby Cakes architecture, the `Application` object is passive until we explicitly call `run()`. 
+In the Magma Framework architecture, the `Application` object is passive until we explicitly call `run()`. 
 Why is this explicit execution better? Because it gives us control. For instance, in our testing environment, we might bootstrap the application, but instead of calling `run()` to process a web request, we manually trigger a specific service to test its output. We control the execution flow, not the framework.
 
 #### Common Questions and Answers
@@ -473,15 +473,15 @@ class Chef
 ```
 
 **The Good Way (Injecting Dependencies):**
-Instead, you buy a commercial oven, install it in the kitchen, and tell the Chef, *"Here is an oven. Use it."* The Chef doesn't care who built the oven or how it works, only that it has a `bake()` button. This is Dependency Injection:
+Instead, you buy a commercial oven, install it in the kitchen, and tell the Chef, *"Here is an oven. Use it."* The Chef doesn't care who built the oven or how it works, only that it has a `execute()` button. This is Dependency Injection:
 
 ```php
 class Chef 
 {
-    private OvenInterface $oven;
+    private ServiceInterface $oven;
 
     // Good: The Chef demands an oven is provided to him!
-    public function __construct(OvenInterface $oven) 
+    public function __construct(ServiceInterface $oven) 
     {
         $this->oven = $oven;
     }
@@ -492,7 +492,7 @@ class Chef
 
 Dependency Injection forces our classes to be honest about what they need to function. It perfectly aligns with the **Single Responsibility Principle (SRP)**: The Chef's only responsibility is cooking. It is *not* his responsibility to construct ovens or establish database connections.
 
-It also aligns perfectly with **Testability**. If we want to test the Chef class to make sure his recipe works, we don't need to hook him up to a real, expensive gas oven. Because he accepts any `OvenInterface`, we can pass him a fake `EasyBakeOven` just for the test. 
+It also aligns perfectly with **Testability**. If we want to test the Chef class to make sure his recipe works, we don't need to hook him up to a real, expensive gas oven. Because he accepts any `ServiceInterface`, we can pass him a fake `EasyBakeOven` just for the test. 
 
 #### The Problem the Container Solves
 
@@ -526,7 +526,7 @@ The answer is an incredibly powerful, native PHP feature called **Reflection**.
 Reflection is an API that allows PHP code to "look in the mirror" and analyze itself at runtime. With Reflection, you can write code that asks questions like: *"Hey PHP, what methods does this class have? What parameters does its constructor require? What types are those parameters?"*
 
 #### The Theory: How Auto-Wiring Works
-In the Fussy Baby Cakes framework, we use an advanced container technique called **Auto-Wiring**. We don't manually tell the container how to build every single class. Instead, the container uses Reflection to figure it out on the fly.
+In the Magma Framework framework, we use an advanced container technique called **Auto-Wiring**. We don't manually tell the container how to build every single class. Instead, the container uses Reflection to figure it out on the fly.
 
 Here is a simplified example of what the Fussy Baby Container is doing inside its `get()` method when you ask it for a class:
 
@@ -615,9 +615,9 @@ The Container needs to know *which specific concrete class* to use when someone 
 #### File Walkthrough: The Service Providers
 To solve this, we give the Container a manual "map." We say: *"Hey Container, whenever someone asks for `DatabaseInterface`, I want you to give them an instance of `PostgresConnection`."*
 
-We call this **Binding**. In Fussy Baby Cakes, we organize our bindings into **Service Providers**.
+We call this **Binding**. In Magma Framework, we organize our bindings into **Service Providers**.
 
-Let's look at `fussy_app/core/providers/CoreServiceProvider.php`:
+Let's look at `magma/core/providers/CoreServiceProvider.php`:
 
 ```php
 namespace core\providers;
@@ -648,7 +648,7 @@ By separating the *request* for an object (in the constructor) from the *configu
 
 This is the very essence of the **Open/Closed Principle (OCP)**. 
 
-Imagine FussyBaby wants to switch their cache system from Redis to Memcached. 
+Imagine Magma wants to switch their cache system from Redis to Memcached. 
 1. We write a new `MemcachedCache` class that implements `CacheInterface`.
 2. We go to our `CoreServiceProvider` and change one line of code:
    `$container->bind(CacheInterface::class, MemcachedCache::class);`
@@ -677,16 +677,16 @@ Why? Because PHP code can be statically analyzed by your IDE. If you have a typo
 ### Chapter 4.1: The Router - Mapping URLs to Controllers
 
 #### Subject & Intent: The Traffic Cop
-When a user types `fussybaby.com/products` into their browser, an HTTP `GET` request is sent to our server. As we know from Module 2, this request hits our Front Controller (`www/index.php`) and triggers `$app->run()`.
+When a user types `magma.local/products` into their browser, an HTTP `GET` request is sent to our server. As we know from Module 2, this request hits our Front Controller (`www/index.php`) and triggers `$app->run()`.
 
-But how does the application know that `/products` should execute the code that fetches cakes from the database, while `/checkout` should execute the payment code?
+But how does the application know that `/products` should execute the code that fetches modules from the database, while `/checkout` should execute the payment code?
 
 The answer is the **Router**. 
 
 The Router is the "Traffic Cop" of the application. Its sole responsibility is to look at the incoming URL (the URI) and the HTTP Method (GET, POST, PUT, DELETE), and match it against a predefined list of "Routes" to determine which **Controller** should handle the request.
 
 #### The Theory: Defining Routes
-Before the Router can route traffic, we have to give it a map. In the Fussy Baby Cakes framework, we explicitly define this map in a dedicated routes file.
+Before the Router can route traffic, we have to give it a map. In the Magma Framework framework, we explicitly define this map in a dedicated routes file.
 
 A typical route definition looks like this:
 
@@ -744,7 +744,7 @@ Here, the Router is smart enough to extract `{id}` from the URL (like `/products
 
 > **Q: We map URLs using specific HTTP methods (`GET` vs `POST`). What would go horribly wrong if the framework didn't care about the HTTP method, and allowed a user to trigger the `CheckoutController::process()` method (which charges a card) via a simple GET request in the browser?**
 > 
-> **A:** The site's code could be hacked to perform actions not requested! `GET` requests are intended to be "safe" (read-only). If a destructive action like charging a card was allowed via `GET`, an attacker could simply trick a user into clicking a link (`fussybaby.com/checkout`) or embed an invisible image tag that loads the URL, instantly charging the user's card without their consent. Enforcing `POST` for destructive actions is a fundamental security requirement.
+> **A:** The site's code could be hacked to perform actions not requested! `GET` requests are intended to be "safe" (read-only). If a destructive action like charging a card was allowed via `GET`, an attacker could simply trick a user into clicking a link (`magma.local/checkout`) or embed an invisible image tag that loads the URL, instantly charging the user's card without their consent. Enforcing `POST` for destructive actions is a fundamental security requirement.
 
 ---
 
@@ -933,7 +933,7 @@ The word "Controller" in the MVC (Model-View-Controller) pattern is somewhat dan
 
 This historically led to what developers call "Fat Controllers." A fat controller is a file with 1,000 lines of code that handles file uploads, writes to the database, calculates taxes, and sends emails all in one giant method.
 
-In the Fussy Baby Cakes architecture, we view the Controller strictly as a **Delegator**. It is a middle-manager. It does not do the hard work; it simply organizes the work.
+In the Magma Framework architecture, we view the Controller strictly as a **Delegator**. It is a middle-manager. It does not do the hard work; it simply organizes the work.
 
 #### The Theory: The Three Rules of a Controller
 To prevent "Fat Controllers," we enforce three absolute rules for any Controller class:
@@ -945,11 +945,11 @@ To prevent "Fat Controllers," we enforce three absolute rules for any Controller
 Let's look at what a perfectly clean Controller looks like when a customer submits an order:
 
 ```php
-namespace fussy_app\controllers;
+namespace magma\controllers;
 
 use core\http\Request;
 use core\http\Response;
-use fussy_app\services\OrderService;
+use magma\services\OrderService;
 
 class CheckoutController 
 {
@@ -991,11 +991,11 @@ By pushing the complex logic down into the `OrderService` (which we will cover n
 
 #### Common Questions and Answers
 
-> **Q: Imagine FussyBaby decides to launch a mobile app next year that communicates with our server via an API, not a web browser. If we had written all of our tax calculation and database logic directly inside the `CheckoutController`, why would building this new API be incredibly painful?**
+> **Q: Imagine Magma decides to launch a mobile app next year that communicates with our server via an API, not a web browser. If we had written all of our tax calculation and database logic directly inside the `CheckoutController`, why would building this new API be incredibly painful?**
 > 
 > **A:** Because we would have to rewrite and duplicate every single business rule (like calculating taxes) for the API! By keeping the Controller as just a "Traffic Cop" and pushing the logic into a Service, our new `ApiController` can simply inject the exact same `OrderService` and reuse 100% of the business logic.
 
-> **Q: In our example, the Controller asks the `OrderService` to do the work. If the `OrderService` discovers that a cake is out of stock, should the `OrderService` be the one to generate the `new Response("Out of stock", 400)` object?**
+> **Q: In our example, the Controller asks the `OrderService` to do the work. If the `OrderService` discovers that a module is out of stock, should the `OrderService` be the one to generate the `new Response("Out of stock", 400)` object?**
 > 
 > **A:** No! This is a critical distinction in Separation of Concerns. A `Response` is an HTTP concept (it belongs to the web layer). The `OrderService` is pure business logic; it doesn't know what the internet is. If it's out of stock, the Service should throw an `OutOfStockException` (or return a boolean/result object). The *Controller* catches that exception and builds the HTTP `Response`. This keeps the Service layer perfectly isolated from the web layer!
 
@@ -1006,7 +1006,7 @@ By pushing the complex logic down into the `OrderService` (which we will cover n
 #### Subject & Intent: The Brain of the Application (The Evolutionary Starting Point)
 If the Controller is the Traffic Cop, the **Service** is the highly-trained mechanic inside the garage. 
 
-*A Historical Note on Architecture:* When the Fussy Baby framework was first built, the Service Layer was where 100% of your business rules lived. If a developer asked, *"How does FussyBaby calculate tax?"*, they would open the relevant Service class. This pattern is known as the **Transaction Script**. 
+*A Historical Note on Architecture:* When the Fussy Baby framework was first built, the Service Layer was where 100% of your business rules lived. If a developer asked, *"How does Magma calculate tax?"*, they would open the relevant Service class. This pattern is known as the **Transaction Script**. 
 
 We teach this pattern here because it is crucial to understand *how* logic is isolated from Controllers and Databases. However, as you will see in **Module 10 (Domain-Driven Design)**, this approach eventually breaks down as an application grows into an enterprise platform. The code examples below represent the *starting point* of our framework's evolution, not its final destination.
 
@@ -1014,7 +1014,7 @@ We teach this pattern here because it is crucial to understand *how* logic is is
 A Service's job is **Orchestration**. It rarely does everything by itself. Instead, it coordinates other specialized classes.
 
 For example, when a user places an order, the `OrderService` must:
-1. Ask the `InventoryRepository` if the cake is in stock.
+1. Ask the `InventoryRepository` if the module is in stock.
 2. Ask the `PricingService` to calculate the tax and total.
 3. Ask the `PaymentGateway` to charge the credit card.
 4. Ask the `OrderRepository` to save the final receipt to the database.
@@ -1023,16 +1023,16 @@ For example, when a user places an order, the `OrderService` must:
 Because the Service is doing all this heavy lifting, it is *heavily* dependent on Dependency Injection.
 
 #### File Walkthrough: The `OrderService`
-Let's look at what the `placeOrder` method actually looks like inside `fussy_app/services/OrderService.php`:
+Let's look at what the `placeOrder` method actually looks like inside `magma/services/OrderService.php`:
 
 ```php
-namespace fussy_app\services;
+namespace magma\services;
 
-use fussy_app\repositories\InventoryRepository;
-use fussy_app\repositories\OrderRepository;
+use magma\repositories\InventoryRepository;
+use magma\repositories\OrderRepository;
 use core\interfaces\PaymentGatewayInterface;
 use core\interfaces\MailerInterface;
-use fussy_app\exceptions\OutOfStockException;
+use magma\exceptions\OutOfStockException;
 
 class OrderService 
 {
@@ -1050,7 +1050,7 @@ class OrderService
         // 1. Check Inventory (Business Logic!)
         if (!$this->inventoryRepo->hasStock($productId, $quantity)) {
             // Notice: We throw an exception, NOT an HTTP Response!
-            throw new OutOfStockException("Cake is sold out.");
+            throw new OutOfStockException("Module is sold out.");
         }
 
         // 2. Charge the card
@@ -1134,12 +1134,12 @@ interface OrderRepositoryInterface
 By defining this contract, our `OrderService` knows *what* it can ask for, without caring *how* it gets done.
 
 #### File Walkthrough: The Concrete Implementation
-Now, let's look at the actual class that executes the SQL, located in `fussy_app/repositories/PostgresOrderRepository.php`.
+Now, let's look at the actual class that executes the SQL, located in `magma/repositories/PostgresOrderRepository.php`.
 
 Notice how we inject the generic `DatabaseInterface` into the Repository!
 
 ```php
-namespace fussy_app\repositories;
+namespace magma\repositories;
 
 use core\interfaces\OrderRepositoryInterface;
 use core\interfaces\DatabaseInterface;
@@ -1197,14 +1197,14 @@ The developer writing the `OrderService` literally cannot make a mistake and que
 #### Subject & Intent: The Greatest Risk in SaaS
 As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many vendors share one database) is **Cross-Tenant Data Leakage**.
 
-If "FussyBaby" logs into their dashboard, and due to a coding error, they see "The Croydon Bakery's" orders, you have a massive legal and security breach on your hands. 
+If "Magma" logs into their dashboard, and due to a coding error, they see "Client B's" orders, you have a massive legal and security breach on your hands. 
 
 If we rely on developers to manually type `WHERE vendor_id = X` in every single repository method they ever write, human error *will* eventually cause a data leak. We need a systematic, invisible shield that protects the data automatically.
 
 #### The Theory: The Context Object
 To build this shield, we use a concept called a **Context Object**.
 
-When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., `fussybaby.ourplatform.com`), our early Middleware creates a `TenantContext` object.
+When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., `magma.ourplatform.com`), our early Middleware creates a `TenantContext` object.
 
 This object holds the immutable ID of the current vendor.
 
@@ -1233,7 +1233,7 @@ The magic happens when we combine this `TenantContext` with the Dependency Injec
 Instead of passing the vendor ID around manually to every function, we inject the `TenantContext` directly into the Repository's constructor.
 
 ```php
-namespace fussy_app\repositories;
+namespace magma\repositories;
 
 use core\interfaces\OrderRepositoryInterface;
 use core\interfaces\DatabaseInterface;
@@ -1294,15 +1294,15 @@ If you look at PHP written 15 years ago, you will almost certainly find files th
 <!-- The Bad Old Days (Spaghetti Code) -->
 <html>
 <body>
-    <h1>Latest Cakes</h1>
+    <h1>Latest Modules</h1>
     <?php
         $db = new PDO("mysql:host=localhost;dbname=fussy", "root", "password");
-        $stmt = $db->query("SELECT * FROM cakes");
-        while ($cake = $stmt->fetch()) {
-            if ($cake['price'] > 20) {
-                echo "<div class='expensive'>" . $cake['name'] . "</div>";
+        $stmt = $db->query("SELECT * FROM modules");
+        while ($module = $stmt->fetch()) {
+            if ($module['price'] > 20) {
+                echo "<div class='expensive'>" . $module['name'] . "</div>";
             } else {
-                echo "<div class='cheap'>" . $cake['name'] . "</div>";
+                echo "<div class='cheap'>" . $module['name'] . "</div>";
             }
         }
     ?>
@@ -1314,24 +1314,24 @@ This is called **Spaghetti Code** because the HTML (View), the Database Connecti
 
 If a front-end designer wants to change the CSS class from `expensive` to `premium`, they have to open a file full of SQL queries and risk breaking the entire application.
 
-In the Fussy Baby Cakes framework, we fiercely enforce **Separation of Concerns**. The View layer is the absolute final boundary. 
+In the Magma Framework framework, we fiercely enforce **Separation of Concerns**. The View layer is the absolute final boundary. 
 
 #### The Theory: Dumb Views
 Our philosophy is that **Views should be incredibly "dumb".** 
 
 A View is simply an HTML template with "holes" cut out of it. It does not calculate anything. It does not query the database. It is entirely passive. It simply waits for the Controller to hand it a pre-packaged array of variables, and then it blindly loops through those variables and outputs them into the HTML holes.
 
-If there is a business rule (e.g., "Is this cake considered expensive?"), that rule belongs in the `PricingService` or the `CakeEntity` itself, *never* in the View.
+If there is a business rule (e.g., "Is this module considered expensive?"), that rule belongs in the `PricingService` or the `CakeEntity` itself, *never* in the View.
 
 #### File Walkthrough: Passing Data to the View
 Let's trace how data actually reaches the View. Remember our Controller from Module 5? Let's look at it again, focusing on the return statement:
 
 ```php
-namespace fussy_app\controllers;
+namespace magma\controllers;
 
 use core\http\Response;
 use core\view\ViewRenderer;
-use fussy_app\services\OrderService;
+use magma\services\OrderService;
 
 class StorefrontController 
 {
@@ -1343,12 +1343,12 @@ class StorefrontController
     public function index(): Response 
     {
         // 1. Ask the Service for the data
-        $cakes = $this->orderService->getAvailableCakes();
+        $modules = $this->orderService->getAvailableCakes();
 
         // 2. Render the View, passing the data as a clean array!
         $html = $this->view->render('storefront/index.html.php', [
-            'cakes' => $cakes,
-            'pageTitle' => 'Welcome to FussyBaby'
+            'modules' => $modules,
+            'pageTitle' => 'Welcome to Magma'
         ]);
 
         // 3. Return the fully baked HTML inside the HTTP Response
@@ -1365,7 +1365,7 @@ What does that `storefront/index.html.php` file actually look like?
 In our framework, we use a basic, native PHP templating engine. We intentionally limit what PHP functions can be used inside these template files.
 
 ```php
-<!-- fussy_app/views/storefront/index.html.php -->
+<!-- magma/views/storefront/index.html.php -->
 <html>
 <head>
     <title><?= htmlspecialchars($pageTitle) ?></title>
@@ -1375,10 +1375,10 @@ In our framework, we use a basic, native PHP templating engine. We intentionally
     
     <ul>
         <!-- The view only loops and displays. No logic! -->
-        <?php foreach ($cakes as $cake): ?>
+        <?php foreach ($modules as $module): ?>
             <li>
-                <?= htmlspecialchars($cake->getName()) ?> - 
-                £<?= number_format($cake->getPrice(), 2) ?>
+                <?= htmlspecialchars($module->getName()) ?> - 
+                £<?= number_format($module->getPrice(), 2) ?>
             </li>
         <?php endforeach; ?>
     </ul>
@@ -1395,13 +1395,13 @@ By wrapping every variable in `htmlspecialchars()`, we neutralize the threat. It
 
 #### Common Questions and Answers
 
-> **Q: Imagine FussyBaby hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
+> **Q: Imagine Magma hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
 > 
 > **A:** The data received is sanitized and empty of any logic that might harm or break the app. It provides simply the necessary information, ready for the view. The designer can just write HTML without worrying about accidentally deleting a database table or breaking complex backend routines.
 
-> **Q: The business wants to display a red "SALE!" badge next to any cake that costs less than £10. A developer wants to write `<?php if ($cake->getPrice() < 10) { echo "<span class='sale'>SALE!</span>"; } ?>` directly into the `index.html.php` View file. Why does this violate the "Dumb View" philosophy, and where *should* that "less than 10" logic actually live?**
+> **Q: The business wants to display a red "SALE!" badge next to any module that costs less than £10. A developer wants to write `<?php if ($module->getPrice() < 10) { echo "<span class='sale'>SALE!</span>"; } ?>` directly into the `index.html.php` View file. Why does this violate the "Dumb View" philosophy, and where *should* that "less than 10" logic actually live?**
 > 
-> **A:** Business logic should not be in the View. However, it shouldn't be in the Controller either! (Controllers are just Traffic Cops). That logic belongs deep in the **Service Layer** or the **Domain Model**. For instance, the `Cake` object itself should have a method `$cake->isOnSale()`. The View simply asks `if ($cake->isOnSale())`—keeping the actual calculation ("is it less than £10?") safely hidden in the backend.
+> **A:** Business logic should not be in the View. However, it shouldn't be in the Controller either! (Controllers are just Traffic Cops). That logic belongs deep in the **Service Layer** or the **Domain Model**. For instance, the `Module` object itself should have a method `$module->isOnSale()`. The View simply asks `if ($module->isOnSale())`—keeping the actual calculation ("is it less than £10?") safely hidden in the backend.
 
 ---
 
@@ -1414,7 +1414,7 @@ In default PHP, when a fatal error occurs (like trying to connect to a database 
 
 Both of these are unacceptable in a professional application. 
 
-In the Fussy Baby Cakes framework, we enforce a global **Exception Handler**.
+In the Magma Framework framework, we enforce a global **Exception Handler**.
 
 #### The Theory: Catching Everything
 Instead of sprinkling `try/catch` blocks randomly throughout every single file, we register a global listener at the very start of the application lifecycle (inside `bootstrap.php`).
@@ -1488,10 +1488,10 @@ We need a translator.
 A Data Transfer Object (DTO) is a simple, dumb class. Its only job is to take the messy, untyped data from the outside world, validate it, and convert it into a strict, strongly-typed object that our core business logic can safely consume.
 
 #### File Walkthrough: The Bouncer
-Let's look at `fussy_app/dto/OrderRequestDTO.php`:
+Let's look at `magma/dto/OrderRequestDTO.php`:
 
 ```php
-namespace fussy_app\dto;
+namespace magma\dto;
 
 class OrderRequestDTO 
 {
@@ -1557,9 +1557,9 @@ By using DTOs, our `OrderService` never has to worry about receiving a string wh
 #### Subject & Intent: The Breaking Point of Services
 In Module 5, we introduced the **Service Layer** and the **Transaction Script Pattern**. We built an `OrderService` that was incredibly smart: it pulled primitive data from the database, performed all calculations, and saved data back. 
 
-The data itself (the cakes, the orders) were just "dumb" arrays or basic objects without any methods. They were purely structural.
+The data itself (the modules, the orders) were just "dumb" arrays or basic objects without any methods. They were purely structural.
 
-While Transaction Scripts are excellent for medium-sized applications, as Fussy Baby Cakes scaled into an enterprise platform, we hit a breaking point. The Services became bloated "God Classes" because they held *all* the rules. We needed to evolve the architecture.
+While Transaction Scripts are excellent for medium-sized applications, as Magma Framework scaled into an enterprise platform, we hit a breaking point. The Services became bloated "God Classes" because they held *all* the rules. We needed to evolve the architecture.
 
 To solve this, our framework migrated to the current standard: **Domain-Driven Design (DDD)** and the creation of **Rich Domain Models**. This is how the Fussy Baby framework operates today.
 

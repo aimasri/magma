@@ -164,7 +164,7 @@ class Config
             'password'    => self::getRequired('MAIL_PASSWORD'),
             'encryption'  => self::get('MAIL_ENCRYPTION', 'tls'),
             'from_email'  => self::getRequired('MAIL_FROM_ADDRESS'),
-            'from_name'   => self::get('MAIL_FROM_NAME', 'Fussy Baby Cakes'),
+            'from_name'   => self::get('MAIL_FROM_NAME', 'Magma Framework'),
         ];
     }
 }

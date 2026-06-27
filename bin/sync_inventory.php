@@ -5,7 +5,7 @@ if (php_sapi_name() !== 'cli') {
     die("This script must be run from the command line.");
 }
 
-require __DIR__ . '/../fussy_app/core/config/bootstrap.php';
+require __DIR__ . '/../magma/core/config/bootstrap.php';
 
 use core\database\Database;
 
