@@ -61,6 +61,11 @@ class Response
         return $this;
     }
 
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
     /**
      * Attaches a cookie to be sent with the response.
      * 

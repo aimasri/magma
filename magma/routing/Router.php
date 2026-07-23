@@ -35,6 +35,7 @@ class Router implements RouterInterface
     private MiddlewareResolver $middlewareResolver;
     private array $routes;
     private array $staticRoutes;
+    private array $compiledMegaRegexes;
 
     public function __construct(Container $container, MiddlewareResolver $middlewareResolver, array $routes)
     {
@@ -52,6 +53,25 @@ class Router implements RouterInterface
             } else {
                 $this->routes[$method][] = $route;
             }
+        }
+
+        $this->compiledMegaRegexes = [];
+        foreach ($this->routes as $method => $routes) {
+            $regexes = [];
+            foreach ($routes as $index => $route) {
+                $path = $route[1];
+                $constraints = $route[3] ?? [];
+                
+                $pattern = preg_quote($path, '#');
+                $pattern = preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
+                    $name = $matches[1];
+                    $regex = $constraints[$name] ?? '[^/]+';
+                    return "(?P<$name>$regex)";
+                }, $pattern);
+                
+                $regexes[] = $pattern . '(*MARK:' . $index . ')';
+            }
+            $this->compiledMegaRegexes[$method] = '#^(?:' . implode('|', $regexes) . ')$#';
         }
     }
 
@@ -131,32 +151,40 @@ class Router implements RouterInterface
      */
     private function matchDynamicRoute(string $requestMethod, string $requestPath, RequestInterface $request, array $globalMiddleware): ?Response
     {
-        $methodRoutes = $this->routes[$requestMethod] ?? [];
+        if (!isset($this->compiledMegaRegexes[$requestMethod])) {
+            return null;
+        }
 
-        foreach ($methodRoutes as $route) {
-            $path           = $route[1];
+        $megaRegex = $this->compiledMegaRegexes[$requestMethod];
+
+        if (preg_match($megaRegex, $requestPath, $matches)) {
+            if (!isset($matches['MARK'])) {
+                return null;
+            }
+
+            $routeIndex = (int)$matches['MARK'];
+            $route = $this->routes[$requestMethod][$routeIndex];
+            
             $handler        = $route[2];
             $constraints    = $route[3] ?? [];
             $redirectOnFail = $route[4] ?? null;
             $routeMiddleware= $route[5] ?? [];
 
-            $structuralPattern = $route[6] ?? self::compilePattern($path, $constraints);
+            $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+            unset($params['MARK']);
 
-            if (preg_match($structuralPattern, $requestPath, $matches)) {
-                $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-
-                foreach ($constraints as $name => $regex) {
-                    if (isset($params[$name]) && !preg_match('#^' . $regex . '$#', $params[$name])) {
-                        if ($redirectOnFail) {
-                            return new RedirectResponse($redirectOnFail);
-                        }
-                        continue 2;
+            foreach ($constraints as $name => $regex) {
+                if (isset($params[$name]) && !preg_match('#^' . $regex . '$#', $params[$name])) {
+                    if ($redirectOnFail) {
+                        return new RedirectResponse($redirectOnFail);
                     }
+                    return null;
                 }
-                
-                return $this->executeHandler($handler, $params, $routeMiddleware, $request, $globalMiddleware);
             }
+            
+            return $this->executeHandler($handler, $params, $routeMiddleware, $request, $globalMiddleware);
         }
+
         return null;
     }
 
@@ -240,6 +268,8 @@ class Router implements RouterInterface
         return $compiled;
     }
 
+    private static array $reflectionCache = [];
+
     /**
      * Executes the matched handler wrapped in a unified middleware pipeline.
      * 
@@ -263,9 +293,48 @@ class Router implements RouterInterface
                 if (is_array($handler)) {
                     [$controllerClass, $action] = $handler;
                     $controller = $this->container->get($controllerClass);
-                    return $controller->$action(...array_values($params));
+                    
+                    $cacheKey = $controllerClass . '@' . $action;
+                    if (!isset(self::$reflectionCache[$cacheKey])) {
+                        $ref = new \ReflectionMethod($controller, $action);
+                        $meta = [];
+                        foreach ($ref->getParameters() as $param) {
+                            $meta[] = [
+                                'name' => $param->getName(),
+                                'hasDefault' => $param->isDefaultValueAvailable(),
+                                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
+                            ];
+                        }
+                        self::$reflectionCache[$cacheKey] = $meta;
+                    }
+                    
+                    $args = [];
+                    foreach (self::$reflectionCache[$cacheKey] as $meta) {
+                        $name = $meta['name'];
+                        if (array_key_exists($name, $params)) {
+                            $args[] = $params[$name];
+                        } elseif ($meta['hasDefault']) {
+                            $args[] = $meta['default'];
+                        } else {
+                            $args[] = null;
+                        }
+                    }
+                    return $controller->$action(...$args);
                 }
-                return $handler(...array_values($params));
+                
+                $ref = new \ReflectionFunction($handler);
+                $args = [];
+                foreach ($ref->getParameters() as $param) {
+                    $name = $param->getName();
+                    if (array_key_exists($name, $params)) {
+                        $args[] = $params[$name];
+                    } elseif ($param->isDefaultValueAvailable()) {
+                        $args[] = $param->getDefaultValue();
+                    } else {
+                        $args[] = null;
+                    }
+                }
+                return $handler(...$args);
             } catch (HttpResponseException $e) {
                 return $e->getResponse();
             }

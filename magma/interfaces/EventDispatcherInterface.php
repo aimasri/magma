@@ -21,4 +21,5 @@ interface EventDispatcherInterface
 {
     public function listen(string $eventName, callable|string $listener): void;
     public function dispatch(object $event): void;
+    public function clear(): void;
 }

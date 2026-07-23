@@ -95,6 +95,9 @@ class ErrorHandler implements ErrorHandlerInterface
      */
     public function renderNotFound(): Response
     {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         return $this->renderError(404, "Page Not Found");
     }
 
@@ -108,6 +111,10 @@ class ErrorHandler implements ErrorHandlerInterface
      */
     public function handleException(\Throwable $e, ?RequestInterface $request = null): Response
     { 
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
         // Validation exceptions are typically caught and handled within 
         // Controller logic to trigger redirects. If one reaches this handler, 
         // it is treated as an unhandled application error.

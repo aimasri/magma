@@ -55,4 +55,9 @@ class EventDispatcher implements EventDispatcherInterface
             }
         }
     }
+
+    public function clear(): void
+    {
+        $this->listeners = [];
+    }
 }

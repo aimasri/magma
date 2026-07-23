@@ -115,7 +115,20 @@ class DatabaseConnectionManager
                 PDO::ATTR_EMULATE_PREPARES   => $this->emulatePrepares,
             ]);
         } catch (PDOException $e) {
-            throw new RuntimeException("Database connection failed: " . $e->getMessage());
+            throw new RuntimeException("Database connection failed: " . $e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * Closes the active database connections.
+     * 
+     * Setting the PDO instances to null forces PHP to decrement the reference count,
+     * which implicitly closes the underlying socket connections to the database.
+     * Essential for long-lived workers to prevent connection pool exhaustion.
+     */
+    public function disconnect(): void
+    {
+        $this->writeInstance = null;
+        $this->readInstance = null;
     }
 }

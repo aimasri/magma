@@ -32,11 +32,13 @@ use Magma\view\TemplateEngine;
 class Application
 {
     private Container $container;
+    private ErrorHandlerInterface $errorHandler;
     private array $middleware = [];
 
-    public function __construct(Container $container)
+    public function __construct(Container $container, ErrorHandlerInterface $errorHandler)
     {
         $this->container = $container;
+        $this->errorHandler = $errorHandler;
     }
 
     /**
@@ -81,29 +83,26 @@ class Application
             // 3. Send headers and body to the client
             $response->send();
 
-        } catch (\Magma\routing\RouteNotFoundException $e) {
-            while (ob_get_level() > 0) {
-                ob_end_clean();
-            }
+        } catch (\Throwable $e) {
+            $this->handleKernelError($e, $request ?? null);
+        }
+    }
+
+    private function handleKernelError(\Throwable $e, ?RequestInterface $request): void
+    {
+        if ($e instanceof \Magma\routing\RouteNotFoundException) {
             try {
-                $errorHandler = $this->container->get(ErrorHandlerInterface::class);
-                $errorHandler->renderNotFound()->send();
+                $this->errorHandler->renderNotFound()->send();
             } catch (\Throwable $fatal) {
                 http_response_code(404);
             }
-        } catch (\Throwable $e) {
-            // Safety measure: discard any partially rendered content (e.g., from a crash inside a view)
-            // so we can render a clean error page.
-            while (ob_get_level() > 0) {
-                ob_end_clean();
-            }
+            return;
+        }
 
-            try {
-                $errorHandler = $this->container->get(ErrorHandlerInterface::class);
-                $errorHandler->handleException($e, $request ?? null)->send();
-            } catch (\Throwable $fatal) {
-                http_response_code(500);
-            }
+        try {
+            $this->errorHandler->handleException($e, $request)->send();
+        } catch (\Throwable $fatal) {
+            http_response_code(500);
         }
     }
 
