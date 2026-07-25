@@ -21,7 +21,9 @@ namespace Magma\http;
  */
 class Session
 {
-    public function __construct(?\SessionHandlerInterface $handler = null)
+    private array $storage;
+
+    public function __construct(?\SessionHandlerInterface $handler = null, array &$storage = null)
     {
         if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE && !headers_sent()) {
             if ($handler !== null) {
@@ -36,33 +38,42 @@ class Session
             ]);
             session_start();
         }
+
+        if ($storage !== null) {
+            $this->storage = &$storage;
+        } else {
+            if (!isset($_SESSION)) {
+                $_SESSION = [];
+            }
+            $this->storage = &$_SESSION;
+        }
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
-        return $_SESSION[$key] ?? $default;
+        return $this->storage[$key] ?? $default;
     }
 
     public function set(string $key, mixed $value): void
     {
-        $_SESSION[$key] = $value;
+        $this->storage[$key] = $value;
     }
 
     public function has(string $key): bool
     {
-        return isset($_SESSION[$key]);
+        return isset($this->storage[$key]);
     }
 
     public function remove(string $key): void
     {
         if ($this->has($key)) {
-            unset($_SESSION[$key]);
+            unset($this->storage[$key]);
         }
     }
 
     public function all(): array
     {
-        return $_SESSION;
+        return $this->storage;
     }
 
     public function regenerate(bool $deleteOldSession = true): bool
@@ -101,7 +112,7 @@ class Session
      */
     public function destroy(): void
     {
-        $_SESSION = [];
+        $this->storage = [];
 
         if (ini_get("session.use_cookies")) {
             $params = session_get_cookie_params();

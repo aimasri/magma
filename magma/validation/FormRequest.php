@@ -47,10 +47,7 @@ abstract class FormRequest
      */
     public function validate(): bool
     {
-        if (!$this->validator->validate($this->request->request(), $this->rules())) {
-            throw new ValidationException($this->validator->getErrors());
-        }
-
+        $this->validator->validateOrFail($this->request->request(), $this->rules());
         return true;
     }
 

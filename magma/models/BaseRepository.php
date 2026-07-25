@@ -49,30 +49,47 @@ abstract class BaseRepository
      * @param string $table The table name.
      * @param array $columns An array of column names.
      * @param array $rows A multi-dimensional array of row values corresponding to the columns.
+     * @param int $chunkSize The number of rows to insert per statement.
      */
-    public function insertBulk(string $table, array $columns, array $rows): void
+    public function insertBulk(string $table, array $columns, array $rows, int $chunkSize = 500): void
     {
         if (empty($rows) || empty($columns)) {
             return;
         }
 
         $colCount = count($columns);
-        $rowCount = count($rows);
-
-        $rowPlaceholders = '(' . implode(',', array_fill(0, $colCount, '?')) . ')';
-        $allPlaceholders = implode(',', array_fill(0, $rowCount, $rowPlaceholders));
         $columnList = implode(', ', $columns);
 
-        $sql = "INSERT INTO {$table} ({$columnList}) VALUES {$allPlaceholders}";
-        $stmt = $this->dbWrite->prepare($sql);
+        $this->dbWrite->beginTransaction();
 
-        $flatValues = [];
-        foreach ($rows as $row) {
-            foreach ($row as $val) {
-                $flatValues[] = $val;
+        try {
+            $maxAllowedChunk = (int) floor(65000 / $colCount);
+            $safeChunkSize = min($chunkSize, $maxAllowedChunk);
+            
+            $chunks = array_chunk($rows, $safeChunkSize);
+            
+            foreach ($chunks as $chunk) {
+                $rowCount = count($chunk);
+                $rowPlaceholders = '(' . implode(',', array_fill(0, $colCount, '?')) . ')';
+                $allPlaceholders = implode(',', array_fill(0, $rowCount, $rowPlaceholders));
+                
+                $sql = "INSERT INTO {$table} ({$columnList}) VALUES {$allPlaceholders}";
+                $stmt = $this->dbWrite->prepare($sql);
+                
+                $flatValues = [];
+                foreach ($chunk as $row) {
+                    foreach ($row as $val) {
+                        $flatValues[] = $val;
+                    }
+                }
+                
+                $stmt->execute($flatValues);
             }
-        }
 
-        $stmt->execute($flatValues);
+            $this->dbWrite->commit();
+        } catch (\Throwable $e) {
+            $this->dbWrite->rollBack();
+            throw clone $e; // Rethrow while preserving stack trace
+        }
     }
 }

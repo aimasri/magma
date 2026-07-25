@@ -55,10 +55,11 @@ At the heart of the framework is `core/container/Container.php`.
 Instead of using `new ClassName()` scattered across the codebase (which creates tight coupling and makes unit testing impossible), classes declare their dependencies in their constructor. The Container uses PHP's **Reflection API** to inspect the constructor, automatically instantiate any required dependencies, and inject them recursively.
 
 **Key Educational Concepts:**
-* **Autowiring:** You rarely need to manually bind classes; the container figures out the dependency graph automatically. If Class A needs Class B, and Class B needs Class C, the container builds C, injects it into B, and injects B into A.
+* **Autowiring & Reflection Caching:** The container figures out the dependency graph automatically. To maximize speed in long-running applications, it caches reflection data in memory, avoiding the massive CPU overhead of repeated `ReflectionClass` instantiations.
+* **Memory Leak Protection:** The container employs a guarded caching strategy, ensuring that negative lookups (requests for non-existent classes) are never cached, protecting the worker from OOM errors when processing malicious inputs.
 * **Service Providers:** Complex bindings are grouped into logical providers (e.g., `HttpServiceProvider`, `RepositoryServiceProvider`) to keep the bootstrapping phase clean and modular.
 * **Inversion of Control:** By injecting dependencies, it becomes trivial to swap out implementations (e.g., swapping a `MemoryCache` for a `RedisCache`) without rewriting the underlying business logic.
-* **Configuration Isolation:** Even global configuration settings are wrapped in a `ConfigInterface` and injected. Domain services never interact with global static state or `.env` files directly, guaranteeing testability across different environments.
+* **Configuration Isolation:** Global configuration settings are wrapped in a `ConfigInterface` and injected, guaranteeing testability across different environments without relying on `.env` globals.
 
 ---
 
@@ -83,8 +84,8 @@ It strictly decouples cross-cutting concerns from Controllers. A Controller shou
 
 The `Router` (`core/routing/Router.php`) maps URL patterns to Controller methods. 
 
-**Static OPcache Routing:** 
-To maximize performance, routes are defined in a serializable array format and compiled into a static `routes.cache.php` file using a build script (`bin/cache_routes.php`). This allows PHP's OPcache to load the entire routing table directly from shared memory, bypassing the CPU overhead of evaluating closures and compiling regex strings on every request.
+**O(1) "Mega-Regex" Routing:** 
+To achieve maximum performance without relying on external packages, the router compiles all registered dynamic routes into a single, massive Regular Expression (using native PCRE `(*MARK:name)` verbs). This completely eliminates the O(N) penalty of sequential regex matching, ensuring that matching the 1st route or the 1000th route takes exactly the same amount of time.
 
 **The "Thin Controller" Pattern:**
 Controllers in this application act purely as traffic cops. They:
@@ -103,7 +104,8 @@ Data access is entirely encapsulated using the **Repository Pattern**.
 
 * **BaseRepository:** An abstract class centralizes the injection of the `PDO` instances, eliminating boilerplate.
 * **Read/Write Splitting:** The application leverages two distinct PDO connections: `$dbRead` and `$dbWrite`. This allows horizontal scaling (directing heavy `SELECT` queries to read-replicas, while routing `INSERT/UPDATE/DELETE` statements to the master node).
-* **Strict Isolation:** Repositories isolate all SQL statements. If the database schema changes, you only update the repository. We actively avoid `SELECT *` in favor of explicitly naming required columns to enable database Index-Only scans.
+* **Chunked Bulk Inserts:** The repository abstracts chunking and transaction management for massive bulk inserts, protecting against maximum parameter exhaustion errors native to PDO drivers.
+* **Strict Isolation:** Repositories isolate all SQL statements. We actively avoid `SELECT *` in favor of explicitly naming required columns to enable database Index-Only scans.
 * **Data Mappers:** Repositories focus strictly on data access. Transforming raw SQL rows into domain objects or arrays is explicitly delegated to separate Mapper classes (like `VendorMapper`).
 
 **Transactions:** Complex operations spanning multiple tables are wrapped in an explicit `TransactionManagerInterface` (`transactional(callable $callback)`) to guarantee ACID compliance.
@@ -131,7 +133,8 @@ For highly complex domain areas like Inventory Management, the architecture is s
 
 The frontend is rendered using a custom `TemplateEngine` (`core/view/TemplateEngine.php`). 
 
-* **Dependency Inversion & File I/O:** The engine relies on a `ViewLoaderInterface` to manage filesystem operations. This decouples the engine from the physical disk, simplifying unit testing.
+* **Dependency Inversion:** The engine relies on a `ViewLoaderInterface` to manage filesystem operations, decoupling the engine from the physical disk.
+* **In-Memory Path Caching:** To prevent severe I/O degradation during large loops (e.g. rendering 500 product cards via partials), the engine caches path existence checks in memory, hitting the disk exactly once per unique view file.
 * **Strict Scope Decoupling:** The engine avoids internal scope pollution (`extract()`); variables are strictly accessed via the `$data['var']` array. Security components (like CSRF tokens) are explicitly injected into this `$data` context via composition (`$data['engine']`), completely decoupling the engine from the global HTTP state.
 * **XSS Prevention:** Views utilize explicit `htmlspecialchars()` encoding (or the `$data['engine']->escape()` helper) to sanitize all user-generated content before rendering it into the DOM.
 
@@ -160,9 +163,10 @@ To provide instant HTTP response times to users, heavy tasks (like sending email
 
 Magma is designed to remain highly responsive under heavy load. Advanced optimization techniques include:
 
+* **Lazy JSON Payload Parsing:** The `Request` object defers the deserialization of `application/json` payloads until the data is explicitly accessed. This saves massive CPU and memory overhead if a request is dropped early by rate-limiting or authentication middleware.
 * **Keyset (Cursor-Based) Pagination:** Deep pagination using `OFFSET` causes linear CPU degradation in SQL databases. We use Keyset Pagination (`WHERE id > :cursor_id ORDER BY id ASC LIMIT X`) to leverage B-Tree indexes, guaranteeing O(1) fetch times regardless of how deep the user paginates.
 * **PHP Generators (`yield`):** Repositories returning multiple records use the `yield` keyword instead of `fetchAll()`. This streams records one-by-one, maintaining a near-zero memory footprint.
-* **Table Partitioning:** Heavy append-only ledgers use PostgreSQL Declarative Partitioning by date, ensuring that insert speeds do not degrade as the table grows to millions of rows.
+* **Explicit Socket Management:** To support long-running CLI workers without leaking resources, components like the `DatabaseConnectionManager` feature explicit disconnection routines, preventing dangling connections to database servers.
 
 ---
 

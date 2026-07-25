@@ -107,6 +107,16 @@ class Validator
         return empty($this->errors);
     }
 
+    /**
+     * Executes validation and throws a ValidationException if it fails.
+     */
+    public function validateOrFail(array $data, array $rules): void
+    {
+        if (!$this->validate($data, $rules)) {
+            throw new ValidationException($this->getErrors());
+        }
+    }
+
     public function getErrors(): array
     {
         return $this->errors;

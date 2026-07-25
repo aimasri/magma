@@ -32,8 +32,9 @@ class Container
     private array $definitions = [];
     private array $instances = [];
     private array $resolving = [];
-    private array $reflectionCache = [];
-    private array $classExistsCache = [];
+    private static array $reflectionCache = [];
+    private static array $classExistsCache = [];
+    private array $aliases = [];
 
     /**
      * Manually registers a service definition.
@@ -41,6 +42,14 @@ class Container
     public function set(string $id, callable $concrete): void
     {
         $this->definitions[$id] = $concrete;
+    }
+
+    /**
+     * Binds an interface or alias to a concrete class.
+     */
+    public function bind(string $alias, string $concrete): void
+    {
+        $this->aliases[$alias] = $concrete;
     }
 
     /**
@@ -52,15 +61,21 @@ class Container
      */
     public function has(string $id): bool
     {
+        $id = $this->aliases[$id] ?? $id;
+
         if (isset($this->definitions[$id])) {
             return true;
         }
 
-        if (!array_key_exists($id, $this->classExistsCache)) {
-            $this->classExistsCache[$id] = class_exists($id, false);
+        if (!array_key_exists($id, self::$classExistsCache)) {
+            if (class_exists($id, false)) {
+                self::$classExistsCache[$id] = true;
+            } else {
+                return false;
+            }
         }
 
-        return $this->classExistsCache[$id];
+        return self::$classExistsCache[$id];
     }
 
     /**
@@ -71,6 +86,8 @@ class Container
      */
     public function get(string $id): mixed
     {
+        $id = $this->aliases[$id] ?? $id;
+
         if (isset($this->instances[$id])) {
             return $this->instances[$id];
         }
@@ -108,9 +125,9 @@ class Container
         $this->resolving[$id] = true;
 
         try {
-            if (isset($this->reflectionCache[$id])) {
+            if (isset(self::$reflectionCache[$id])) {
                 $dependencies = [];
-                foreach ($this->reflectionCache[$id] as $param) {
+                foreach (self::$reflectionCache[$id] as $param) {
                     if (array_key_exists('default', $param)) {
                         $dependencies[] = $param['default'];
                     } else {
@@ -133,7 +150,7 @@ class Container
             $constructor = $reflectionClass->getConstructor();
 
             if ($constructor === null) {
-                $this->reflectionCache[$id] = [];
+                self::$reflectionCache[$id] = [];
                 return new $id();
             }
 
@@ -159,7 +176,7 @@ class Container
                 $cacheEntry[] = ['class' => $typeName];
             }
 
-            $this->reflectionCache[$id] = $cacheEntry;
+            self::$reflectionCache[$id] = $cacheEntry;
 
             return $reflectionClass->newInstanceArgs($dependencies);
         } finally {

@@ -40,6 +40,9 @@ class TemplateEngine
     /** @var array Global data injected by middleware (e.g., vendor theme). */
     private array $sharedData = [];
 
+    /** @var array Cache for file existence checks to prevent redundant I/O. */
+    private static array $pathCache = [];
+
     /**
      * Initializes the engine with paths for templates and layouts.
      * 
@@ -113,7 +116,12 @@ class TemplateEngine
 
         $this->viewData = $data;
         $templateFile = $this->viewsPath . $template . '.php';
-        if (!$this->loader->exists($templateFile)) {
+        
+        if (!isset(self::$pathCache[$templateFile])) {
+            self::$pathCache[$templateFile] = $this->loader->exists($templateFile);
+        }
+
+        if (!self::$pathCache[$templateFile]) {
             throw new \RuntimeException("View file not found: {$templateFile}");
         }
 
@@ -122,7 +130,12 @@ class TemplateEngine
 
         if ($layout && !empty($this->layoutPath)) {
             $layoutFile = $this->layoutPath . $layout . '.php';
-            if (!$this->loader->exists($layoutFile)) {
+            
+            if (!isset(self::$pathCache[$layoutFile])) {
+                self::$pathCache[$layoutFile] = $this->loader->exists($layoutFile);
+            }
+
+            if (!self::$pathCache[$layoutFile]) {
                 throw new \RuntimeException("Layout file not found: {$layoutFile}");
             }
             
@@ -159,7 +172,11 @@ class TemplateEngine
         $path = !empty($this->layoutPath) ? $this->layoutPath : $this->viewsPath;
         $templateFile = $path . $template . '.php';
 
-        if (!$this->loader->exists($templateFile)) {
+        if (!isset(self::$pathCache[$templateFile])) {
+            self::$pathCache[$templateFile] = $this->loader->exists($templateFile);
+        }
+
+        if (!self::$pathCache[$templateFile]) {
             throw new \RuntimeException("Partial view file not found: {$templateFile}");
         }
 

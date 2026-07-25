@@ -47,15 +47,18 @@ class Request implements RequestInterface
     private string $uri;
     private string $path;
 
-    /** @var array Data extracted from application/json payloads */
-    private array $parsedJson = []; 
+    /** @var array|null Data extracted from application/json payloads */
+    private ?array $parsedJson = null; 
     
     /** @var array Internal storage for data passed between middlewares (e.g., 'user_id') */
     private array $attributes = []; 
     
-    /** @var array Merged set of POST and JSON data for unified access */
-    private array $requestData = []; 
+    /** @var array|null Merged set of POST and JSON data for unified access */
+    private ?array $requestData = null; 
     
+    /** @var array|null Cached path segments to avoid redundant string parsing */
+    private ?array $segments = null;
+
     private ?string $rawBody = null;
 
     public function __construct(
@@ -114,27 +117,7 @@ class Request implements RequestInterface
         $this->uri = $this->server['REQUEST_URI'] ?? '/';
         $this->path = parse_url($this->uri, PHP_URL_PATH) ?? '/';
 
-        // Automatically parse JSON if the Content-Type header indicates application/json.
-        // This allows $request->request('key') to work regardless of whether the
-        // payload arrived as form data or JSON.
-        $contentType = strtolower($this->server('CONTENT_TYPE', ''));
-        if (str_contains($contentType, 'json')) {
-            if ($this->rawBody === null) {
-                $this->rawBody = (string) file_get_contents('php://input');
-            }
 
-            if ($this->rawBody !== '') {
-                try {
-                    $decoded = json_decode($this->rawBody, true, 512, JSON_THROW_ON_ERROR);
-                    $this->parsedJson = is_array($decoded) ? $decoded : [];
-                } catch (\JsonException $e) {
-                    throw new \RuntimeException("Invalid JSON payload: " . $e->getMessage(), 400, $e);
-                }
-            }
-        }
-
-        // Merged data set for convenient access to both POST and JSON data.
-        $this->requestData = array_merge($this->parsedJson, $this->post);
     }
 
     /**
@@ -189,11 +172,15 @@ class Request implements RequestInterface
      */
     public function pathSegments(): array
     {
+        if ($this->segments !== null) {
+            return $this->segments;
+        }
+
         $cleanPath = trim($this->path, " /");
         if ($cleanPath === '') {
-            return [];
+            return $this->segments = [];
         }
-        return array_values(array_filter(explode('/', $cleanPath), 'strlen'));
+        return $this->segments = array_values(array_filter(explode('/', $cleanPath), 'strlen'));
     }
 
     /**
@@ -213,6 +200,7 @@ class Request implements RequestInterface
 
     /**
      * Retrieve data from the merged request data (POST + JSON).
+     * Parses JSON lazily on first access.
      * 
      * @param string|null $key
      * @param mixed $default
@@ -220,10 +208,43 @@ class Request implements RequestInterface
      */
     public function request(?string $key = null, mixed $default = null): mixed
     {
+        if ($this->requestData === null) {
+            $this->parseJsonPayload();
+            $this->requestData = !empty($this->parsedJson) ? $this->parsedJson : $this->post;
+        }
+
         if ($key === null) {
             return $this->requestData;
         }
         return $this->requestData[$key] ?? $default;
+    }
+
+    /**
+     * Lazily parses the JSON payload if the Content-Type header indicates application/json.
+     */
+    private function parseJsonPayload(): void
+    {
+        if ($this->parsedJson !== null) {
+            return;
+        }
+
+        $this->parsedJson = [];
+        $contentType = strtolower($this->server('CONTENT_TYPE', ''));
+        
+        if (str_contains($contentType, 'json')) {
+            if ($this->rawBody === null) {
+                $this->rawBody = (string) file_get_contents('php://input');
+            }
+
+            if ($this->rawBody !== '') {
+                try {
+                    $decoded = json_decode($this->rawBody, true, 512, JSON_THROW_ON_ERROR);
+                    $this->parsedJson = is_array($decoded) ? $decoded : [];
+                } catch (\JsonException $e) {
+                    throw new \RuntimeException("Invalid JSON payload: " . $e->getMessage(), 400, $e);
+                }
+            }
+        }
     }
     
     /**

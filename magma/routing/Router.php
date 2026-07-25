@@ -36,6 +36,7 @@ class Router implements RouterInterface
     private array $routes;
     private array $staticRoutes;
     private array $compiledMegaRegexes;
+    private static array $workerCachedRegexes = [];
 
     public function __construct(Container $container, MiddlewareResolver $middlewareResolver, array $routes)
     {
@@ -56,6 +57,11 @@ class Router implements RouterInterface
         }
 
         $this->compiledMegaRegexes = [];
+        if (!empty(self::$workerCachedRegexes)) {
+            $this->compiledMegaRegexes = self::$workerCachedRegexes;
+            return;
+        }
+
         foreach ($this->routes as $method => $routes) {
             $regexes = [];
             foreach ($routes as $index => $route) {
@@ -73,6 +79,7 @@ class Router implements RouterInterface
             }
             $this->compiledMegaRegexes[$method] = '#^(?:' . implode('|', $regexes) . ')$#';
         }
+        self::$workerCachedRegexes = $this->compiledMegaRegexes;
     }
 
     /**
@@ -173,13 +180,11 @@ class Router implements RouterInterface
             $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
             unset($params['MARK']);
 
-            foreach ($constraints as $name => $regex) {
-                if (isset($params[$name]) && !preg_match('#^' . $regex . '$#', $params[$name])) {
-                    if ($redirectOnFail) {
-                        return new RedirectResponse($redirectOnFail);
-                    }
-                    return null;
+            if (!$this->parametersSatisfyConstraints($params, $constraints)) {
+                if ($redirectOnFail) {
+                    return new RedirectResponse($redirectOnFail);
                 }
+                return null;
             }
             
             return $this->executeHandler($handler, $params, $routeMiddleware, $request, $globalMiddleware);
@@ -222,19 +227,25 @@ class Router implements RouterInterface
                 
                 if (preg_match($structuralPattern, $requestPath, $matches)) {
                     $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                    $isValid = true;
-                    foreach ($constraints as $name => $regex) {
-                        if (isset($params[$name]) && !preg_match('#^' . $regex . '$#', $params[$name])) {
-                            $isValid = false;
-                            break;
-                        }
-                    }
-                    if ($isValid) {
+                    if ($this->parametersSatisfyConstraints($params, $constraints)) {
                         throw new \Magma\routing\MethodNotAllowedException("Method Not Allowed for path: {$requestPath}", 405);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Helper to validate extracted parameters against custom regex constraints.
+     */
+    private function parametersSatisfyConstraints(array $params, array $constraints): bool
+    {
+        foreach ($constraints as $name => $regex) {
+            if (isset($params[$name]) && !preg_match('#^' . $regex . '$#', $params[$name])) {
+                return false;
+            }
+        }
+        return true;
     }
     /**
      * Converts a route path into a PCRE Regular Expression.
@@ -299,8 +310,10 @@ class Router implements RouterInterface
                         $ref = new \ReflectionMethod($controller, $action);
                         $meta = [];
                         foreach ($ref->getParameters() as $param) {
+                            $type = $param->getType();
                             $meta[] = [
                                 'name' => $param->getName(),
+                                'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
                                 'hasDefault' => $param->isDefaultValueAvailable(),
                                 'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
                             ];
@@ -311,8 +324,12 @@ class Router implements RouterInterface
                     $args = [];
                     foreach (self::$reflectionCache[$cacheKey] as $meta) {
                         $name = $meta['name'];
+                        $className = $meta['class'];
+
                         if (array_key_exists($name, $params)) {
                             $args[] = $params[$name];
+                        } elseif ($className && $this->container->has($className)) {
+                            $args[] = $this->container->get($className);
                         } elseif ($meta['hasDefault']) {
                             $args[] = $meta['default'];
                         } else {
@@ -326,8 +343,13 @@ class Router implements RouterInterface
                 $args = [];
                 foreach ($ref->getParameters() as $param) {
                     $name = $param->getName();
+                    $type = $param->getType();
+                    $className = $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null;
+
                     if (array_key_exists($name, $params)) {
                         $args[] = $params[$name];
+                    } elseif ($className && $this->container->has($className)) {
+                        $args[] = $this->container->get($className);
                     } elseif ($param->isDefaultValueAvailable()) {
                         $args[] = $param->getDefaultValue();
                     } else {
