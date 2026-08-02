@@ -1,11 +1,21 @@
 <?php
 
 /**
- * The Front Controller.
- * 
- * This is the only file in the entire application that should be publicly 
- * accessible to the web. It serves as the gateway that initiates the 
- * bootstrapping process and hands control over to the Application kernel.
+ * Title: Application Front Controller
+ *
+ * Purpose:
+ * - Serves as the single entry point for all HTTP requests to the application.
+ * - Bootstraps the application configuration, DI container, and middleware pipeline.
+ * - Dispatches the incoming request through the initialized application kernel.
+ *
+ * Why / Why this design:
+ * - Implementing a Front Controller pattern provides a centralized location for security,
+ *   routing, and global middleware initialization.
+ * - Hides the internal file structure (`magma` directory) by only exposing the `www` folder to the web server.
+ *
+ * Teaching notes:
+ * - This pattern prevents bypass attacks since all requests must flow through this controlled gateway.
+ * - Similar to `public/index.php` in Laravel or Symfony. Keep this file extremely thin.
  */
 
 /**

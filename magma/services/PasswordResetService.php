@@ -3,7 +3,7 @@
 namespace Magma\services;
 
 use Magma\models\UserRepositoryInterface;
-use Magma\models\UserTokenRepositoryInterface;
+use Magma\models\PasswordResetTokenRepository;
 use Magma\queue\QueueInterface;
 use Magma\routing\UrlGenerator;
 use Magma\enums\PasswordResetStatus;
@@ -32,14 +32,14 @@ use Magma\database\TransactionManagerInterface;
 class PasswordResetService
 {
     protected UserRepositoryInterface $userRepository;
-    protected UserTokenRepositoryInterface $userTokenRepository;
+    protected PasswordResetTokenRepository $userTokenRepository;
     protected QueueInterface $queue;
     protected UrlGenerator $urlGenerator;
     protected TransactionManagerInterface $transactionManager;
 
     public function __construct(
         UserRepositoryInterface $userRepository,
-        UserTokenRepositoryInterface $userTokenRepository,
+        PasswordResetTokenRepository $userTokenRepository,
         QueueInterface $queue,
         UrlGenerator $urlGenerator,
         TransactionManagerInterface $transactionManager

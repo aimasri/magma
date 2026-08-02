@@ -20,6 +20,19 @@ use Magma\validation\FormRequest;
  */
 class RegisterRequest extends FormRequest
 {
+    /**
+     * Define the validation rules for user registration.
+     *
+     * Execution Flow:
+     * 1. Asserts the 'name' field is provided.
+     * 2. Validates 'email' against standard formatting rules.
+     * 3. Evaluates 'password' for minimum complexity and confirmation match.
+     *
+     * Logic behind the logic:
+     * The 'confirmed' rule prevents user lockouts immediately after registration by verifying intent. The email rule delegates complex RFC 822 compliance checks to the underlying validation engine.
+     *
+     * @return array
+     */
     public function rules(): array
     {
         return [

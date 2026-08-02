@@ -24,6 +24,21 @@ use Magma\http\RedirectResponse;
  */
 class AuthMiddleware implements MiddlewareInterface
 {
+    /**
+     * Executes the middleware layer to verify authentication.
+     * 
+     * Execution Flow:
+     * 1. Inspects the session for a valid 'user' payload.
+     * 2. If the user is missing, it immediately halts the request and issues a RedirectResponse to the login page.
+     * 3. If the user is present, it passes the request down the pipeline to the next layer.
+     * 
+     * Logic behind the logic:
+     * Validating authentication at the middleware layer prevents unauthorized users from executing any controller code, thereby ensuring zero unintended side effects from protected routes.
+     * 
+     * @param Request $request
+     * @param callable $next
+     * @return Response
+     */
     public function process(Request $request, callable $next): Response
     {
         if (!$request->session('user')) {

@@ -11,7 +11,7 @@ use Magma\http\Request;
  * - Encapsulate validation rules for a specific HTTP endpoint (e.g., `LoginRequest`).
  * - Ensure controllers remain focused on flow control and delegation, not data sanitization.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - By enforcing validation through a dedicated Request object, we guarantee that the 
  *   controller never processes invalid or malicious input. It acts as an unbreakable 
  *   gateway before business logic executes.
@@ -26,6 +26,12 @@ abstract class FormRequest
     protected Request $request;
     protected Validator $validator;
 
+    /**
+     * Initializes the FormRequest with the current HTTP request and Validator.
+     *
+     * @param Request $request The inbound HTTP request.
+     * @param Validator $validator The validation engine.
+     */
     public function __construct(Request $request, Validator $validator)
     {
         $this->request = $request;
@@ -51,11 +57,21 @@ abstract class FormRequest
         return true;
     }
 
+    /**
+     * Retrieves the validation errors if validation has previously failed.
+     *
+     * @return array An array of error messages.
+     */
     public function getErrors(): array
     {
         return $this->validator->getErrors();
     }
 
+    /**
+     * Retrieves the underlying HTTP Request instance.
+     *
+     * @return Request
+     */
     public function getRequest(): Request
     {
         return $this->request;

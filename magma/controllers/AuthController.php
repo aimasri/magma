@@ -17,28 +17,23 @@ use Magma\validation\Validator;
 use Magma\view\TemplateEngine;
 
 /**
- * Authentication HTTP Controller
+ * Title: Authentication HTTP Controller
  *
  * Purpose:
- * - Offer HTTP endpoints for the authentication lifecycle (login, registration, logout).
- * - Bridge the gap between the HTTP transport layer (`Request`/`Response`) and the 
- *   domain layer (`AuthenticationService`, `RegistrationService`).
+ * - Offers HTTP endpoints for the authentication lifecycle (login, registration, logout).
+ * - Bridges the gap between the HTTP transport layer (`Request`/`Response`) and the domain layer (`AuthenticationService`, `RegistrationService`).
  *
- * Why / Why this design:
- * - This controller acts strictly as an orchestrator. It receives a request, triggers 
- *   validation, delegates the actual security checks and session mechanics to the domain 
- *   services, and then returns an HTTP redirect. It contains zero business logic itself.
+ * Why this design:
+ * - This controller acts strictly as an orchestrator. It receives a request, triggers validation, delegates the actual security checks and session mechanics to the domain services, and then returns an HTTP redirect. It contains zero business logic itself.
  *
  * Teaching notes:
- * - This thin-controller architecture adheres to the "Fat Model, Skinny Controller" 
- *   paradigm (though more accurately "Fat Service, Skinny Controller" here). This makes 
- *   the controller incredibly easy to read and trivial to unit test by mocking the services.
+ * - This thin-controller architecture adheres to the "Fat Model, Skinny Controller" paradigm (though more accurately "Fat Service, Skinny Controller" here). This makes the controller incredibly easy to read and trivial to unit test by mocking the services.
  */
 class AuthController extends BaseController
 {
     protected Request $request;
-    protected RegistrationService $registrationService;
     protected AuthenticationService $authService;
+    protected RegistrationService $registrationService;
     protected UserRepositoryInterface $userRepository;
     protected Validator $validator;
 
@@ -46,15 +41,15 @@ class AuthController extends BaseController
         TemplateEngine $templateEngine, 
         \Magma\security\CsrfManager $csrfManager,
         Request $request, 
-        RegistrationService $registrationService, 
         AuthenticationService $authService, 
+        RegistrationService $registrationService,
         UserRepositoryInterface $userRepository,
         Validator $validator
     ) {
         parent::__construct($templateEngine, $csrfManager);
         $this->request = $request;
-        $this->registrationService = $registrationService;
         $this->authService = $authService;
+        $this->registrationService = $registrationService;
         $this->userRepository = $userRepository;
         $this->validator = $validator;
     }

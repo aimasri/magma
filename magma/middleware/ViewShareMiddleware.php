@@ -5,7 +5,7 @@ namespace Magma\middleware;
 use Magma\http\Request;
 use Magma\http\Response;
 use Magma\view\TemplateEngine;
-use Magma\models\VendorRepositoryInterface;
+use Magma\models\VendorQueryInterface;
 
 /**
  * ViewShareMiddleware — injects global layout variables.
@@ -26,9 +26,9 @@ use Magma\models\VendorRepositoryInterface;
 class ViewShareMiddleware implements MiddlewareInterface
 {
     private TemplateEngine $templateEngine;
-    private VendorRepositoryInterface $vendorRepository;
+    private VendorQueryInterface $vendorRepository;
 
-    public function __construct(TemplateEngine $templateEngine, VendorRepositoryInterface $vendorRepository)
+    public function __construct(TemplateEngine $templateEngine, VendorQueryInterface $vendorRepository)
     {
         $this->templateEngine = $templateEngine;
         $this->vendorRepository = $vendorRepository;
@@ -53,7 +53,7 @@ class ViewShareMiddleware implements MiddlewareInterface
         $vendor = $this->vendorRepository->getPrimaryVendor();
 
         $this->templateEngine->share('vendor', $vendor);
-        $this->templateEngine->share('tagline', $vendor['tagline'] ?? '');
+        $this->templateEngine->share('tagline', $vendor ? $vendor->tagline : '');
         $this->templateEngine->share('user', $request->session('user'));
 
         // Inject flash data prior to rendering

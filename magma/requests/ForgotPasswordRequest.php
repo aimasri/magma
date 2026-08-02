@@ -5,19 +5,16 @@ namespace Magma\requests;
 use Magma\validation\FormRequest;
 
 /**
- * ForgotPasswordRequest — validation for password reset initiation.
+ * Title: Forgot Password Request Validation
  *
  * Purpose:
- * - Ensure an email is provided and correctly formatted before creating a
- *   password reset token.
+ * - Ensures an email is provided and correctly formatted before creating a password reset token.
  *
- * Why / Why this design:
- * - Enforces the "Skinny Controller" principle by moving validation logic out of 
- *   the HTTP handlers and into dedicated request objects.
+ * Why this design:
+ * - Enforces the "Skinny Controller" principle by moving validation logic out of the HTTP handlers and into dedicated request objects.
  *
  * Teaching notes:
- * - This architecture mimics modern frameworks (like Laravel), promoting high 
- *   reusability and clean separation of concerns.
+ * - This architecture mimics modern frameworks (like Laravel), promoting high reusability and clean separation of concerns.
  */
 class ForgotPasswordRequest extends FormRequest
 {

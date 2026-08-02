@@ -63,9 +63,14 @@ class DomainServiceProvider implements ServiceProviderInterface
      */
     public function register(Container $container): void
     {
+        $container->set(\Magma\services\MailTransportInterface::class, function ($c) {
+            return new \Magma\services\NativeMailTransport();
+        });
+
         $container->set(MailerService::class, function ($c) {
             return new MailerService(
                 $c->get(TemplateEngine::class),
+                $c->get(\Magma\services\MailTransportInterface::class),
                 Config::getMailerSettings()
             );
         });
@@ -73,7 +78,7 @@ class DomainServiceProvider implements ServiceProviderInterface
         $container->set(PasswordResetService::class, function ($c) {
             return new PasswordResetService(
                 $c->get(UserRepositoryInterface::class),
-                $c->get(UserTokenRepositoryInterface::class),
+                $c->get(\Magma\models\PasswordResetTokenRepository::class),
                 $c->get(QueueInterface::class),
                 $c->get(UrlGenerator::class),
                 $c->get(TransactionManagerInterface::class)
@@ -90,7 +95,7 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(RememberMeService::class, function ($c) {
             return new RememberMeService(
-                $c->get(UserTokenRepositoryInterface::class)
+                $c->get(\Magma\models\RememberTokenRepository::class)
             );
         });
 
@@ -111,7 +116,6 @@ class DomainServiceProvider implements ServiceProviderInterface
         $container->set(PaginationService::class, function ($c) {
             return new PaginationService();
         });
-
 
     }
 }

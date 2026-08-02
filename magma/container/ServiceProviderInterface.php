@@ -26,6 +26,9 @@ interface ServiceProviderInterface
     /**
      * Registers services and parameters into the provided container.
      * 
+     * Logic behind the logic:
+     * - Provides a clean, isolated scope for setting up dependencies before the application starts handling requests, ensuring the container is fully primed.
+     * 
      * @param Container $container The dependency injection container.
      */
     public function register(Container $container): void;

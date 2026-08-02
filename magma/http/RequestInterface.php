@@ -3,14 +3,13 @@
 namespace Magma\http;
 
 /**
- * Request Interface
+ * Title: Request Interface
  *
  * Purpose:
- * - Define a contract for HTTP requests, allowing for decoupled implementations.
+ * - Defines a contract for HTTP requests, allowing for decoupled implementations.
  *
- * Why / Why this design:
- * - Adheres to the Dependency Inversion Principle, ensuring that core framework components 
- *   depend on abstractions rather than concrete request classes.
+ * Why this design:
+ * - Adheres to the Dependency Inversion Principle, ensuring that core framework components depend on abstractions rather than concrete request classes.
  *
  * Teaching notes:
  * - Interfaces provide clear boundaries and improve testability by enabling mocking.

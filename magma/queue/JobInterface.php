@@ -27,6 +27,14 @@ interface JobInterface
     /**
      * Executes the background job logic.
      *
+     * Purpose:
+     * - Serves as the primary entry point for executing the encapsulated job logic.
+     *
+     * Logic behind the logic:
+     * - The `payload` array provides fully untyped flexibility, pushing the responsibility of 
+     *   data deserialization and validation down to the concrete job implementation classes, 
+     *   thus decoupling the queue worker from job-specific logic.
+     *
      * @param array $payload The JSON-decoded payload from the queue.
      */
     public function handle(array $payload): void;

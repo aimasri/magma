@@ -40,6 +40,15 @@ interface ErrorHandlerInterface
     /**
      * Renders a specific HTTP error response.
      *
+     * Execution Flow:
+     * 1. Constructs an appropriate payload containing the message and optional trace.
+     * 2. Defers to a templating engine or raw string builder to generate the HTTP body.
+     * 3. Returns an immutable Response object encapsulating the payload and status code.
+     *
+     * Logic behind the logic:
+     * - Decoupling the rendering phase from exception handling allows you to reuse this method 
+     *   for manual aborts (like `abort(403)`) even when an exception wasn't thrown.
+     *
      * @param int $code The HTTP status code (e.g., 500, 404).
      * @param string $message A safe error message for the end user.
      * @param string|null $trace Optional stack trace included only in debug modes.
@@ -49,6 +58,16 @@ interface ErrorHandlerInterface
 
     /**
      * Wrapper for generating a standard 404 Not Found response.
+     *
+     * Execution Flow:
+     * 1. Purges output buffers to ensure a clean slate.
+     * 2. Calls renderError with a fixed 404 code and user-friendly message.
+     *
+     * Logic behind the logic:
+     * - This wrapper prevents magic numbers and duplicated strings throughout the framework 
+     *   for the most common HTTP error.
+     *
+     * @return Response
      */
     public function renderNotFound(): Response;
 }

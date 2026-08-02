@@ -1,3 +1,21 @@
+<?php
+/**
+ * Title: Welcome View Template
+ *
+ * Purpose:
+ * - Renders the default landing page for the Magma framework.
+ * - Displays a basic HTML structure welcoming the user.
+ *
+ * Teaching notes:
+ * - Views should remain completely logic-less (or as close to it as possible). All conditional
+ *   formatting or data transformation should occur in the controller or a presenter layer before reaching here.
+ *
+ * Variables:
+ * @var array $data An array containing data passed from the controller.
+ * @var string $data['title'] The title of the page.
+ * @var \Magma\view\TemplateEngine $data['engine'] The templating engine used to escape output.
+ */
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

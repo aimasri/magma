@@ -3,21 +3,18 @@
 namespace Magma\http;
 
 /**
- * Native Session Wrapper
+ * Title: Native Session Wrapper
  *
  * Purpose:
- * - Provide an object-oriented API for interacting with session data (get/set/remove).
- * - Centralize security policies for the session cookie (HttpOnly, SameSite, Secure).
- * - Provide safe mechanisms for session regeneration and destruction.
+ * - Provides an object-oriented API for interacting with session data (get/set/remove).
+ * - Centralizes security policies for the session cookie (HttpOnly, SameSite, Secure).
+ * - Provides safe mechanisms for session regeneration and destruction.
  *
- * Why / Why this design:
- * - By hiding the `$_SESSION` superglobal, the rest of the application is decoupled from 
- *   how sessions are stored. This makes it trivial to replace native file-based sessions 
- *   with Redis or Memcached later without changing controller logic.
+ * Why this design:
+ * - By hiding the `$_SESSION` superglobal, the rest of the application is decoupled from how sessions are stored. This makes it trivial to replace native file-based sessions with Redis or Memcached later without changing controller logic.
  *
  * Teaching notes:
- * - `session_regenerate_id(true)` is critical to prevent Session Fixation attacks. It 
- *   should be called immediately after any privilege escalation (like a successful login).
+ * - `session_regenerate_id(true)` is critical to prevent Session Fixation attacks. It should be called immediately after any privilege escalation (like a successful login).
  */
 class Session
 {

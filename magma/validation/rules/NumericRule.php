@@ -8,7 +8,7 @@ namespace Magma\validation\rules;
  * Purpose:
  * - Validates that a value is numeric.
  * 
- * Why / Why this design:
+ * Why/Why this design:
  * - Extracted into a callable class to support the Open/Closed Principle in the Validator.
  *
  * Teaching notes:

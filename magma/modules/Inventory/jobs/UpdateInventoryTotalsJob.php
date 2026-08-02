@@ -12,7 +12,7 @@ use Magma\modules\Inventory\models\VendorInventoryRepositoryInterface;
  * - Act as the asynchronous projector in our CQRS architecture.
  * - Respond to ledger insertion events by recalculating and caching the inventory totals.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Offloading the calculation to a background worker ensures that the web 
  *   response (when a user logs a transaction) remains fast.
  *
@@ -25,6 +25,11 @@ class UpdateInventoryTotalsJob implements JobInterface
 {
     private VendorInventoryRepositoryInterface $inventoryRepository;
 
+    /**
+     * Initializes the job with the required read-model repository.
+     *
+     * @param VendorInventoryRepositoryInterface $inventoryRepository The read-model data store.
+     */
     public function __construct(VendorInventoryRepositoryInterface $inventoryRepository)
     {
         $this->inventoryRepository = $inventoryRepository;

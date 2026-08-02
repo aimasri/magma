@@ -68,7 +68,7 @@ class HttpServiceProvider implements ServiceProviderInterface
         $container->set(ViewShareMiddleware::class, function ($c) {
             return new ViewShareMiddleware(
                 $c->get(TemplateEngine::class),
-                $c->get(VendorRepositoryInterface::class)
+                $c->get(\Magma\models\VendorQueryInterface::class)
             );
         });
 
@@ -86,10 +86,18 @@ class HttpServiceProvider implements ServiceProviderInterface
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
                 $c->get(\Magma\models\SiteReviewRepositoryInterface::class),
+                $c->get(Request::class),
+                $c->get(PaginationService::class)
+            );
+        });
+
+        $container->set(\Magma\controllers\ReviewController::class, function ($c) {
+            return new \Magma\controllers\ReviewController(
+                $c->get(TemplateEngine::class),
+                $c->get(\Magma\security\CsrfManager::class),
                 $c->get(ReviewSubmissionService::class),
                 $c->get(Request::class),
-                $c->get(Validator::class),
-                $c->get(PaginationService::class)
+                $c->get(Validator::class)
             );
         });
 

@@ -4,21 +4,19 @@ namespace Magma\jobs;
 
 use Magma\queue\JobInterface;
 use Magma\services\MailerService;
+use Magma\mail\PasswordResetEmail;
 
 /**
- * Send Password Reset Email Job
+ * Title: Send Password Reset Email Job
  *
  * Purpose:
- * - Handle the asynchronous dispatch of password reset emails.
+ * - Handles the asynchronous dispatch of password reset emails.
  *
- * Why / Why this design:
- * - Adheres strictly to the Single Responsibility Principle. This class only knows 
- *   how to extract email parameters from a payload and pass them to the MailerService.
+ * Why this design:
+ * - Adheres strictly to the Single Responsibility Principle. This class only knows how to extract email parameters from a payload and pass them to the MailerService.
  *
  * Teaching notes:
- * - Notice how this job is completely unaware of *where* it is running. It doesn't know 
- *   it was popped from Redis, and it doesn't know it's running in a CLI daemon. It just 
- *   does its job. This makes the code highly testable.
+ * - Notice how this job is completely unaware of *where* it is running. It doesn't know it was popped from Redis, and it doesn't know it's running in a CLI daemon. It just does its job. This makes the code highly testable.
  */
 class SendPasswordResetEmailJob implements JobInterface
 {
@@ -44,10 +42,14 @@ class SendPasswordResetEmailJob implements JobInterface
      */
     public function handle(array $payload): void
     {
-        $this->mailerService->sendPasswordResetEmail(
-            $payload['to_email'],
+        $mailable = new PasswordResetEmail(
             $payload['to_name'],
             $payload['reset_link']
+        );
+        
+        $this->mailerService->sendMailable(
+            $payload['to_email'],
+            $mailable
         );
     }
 }

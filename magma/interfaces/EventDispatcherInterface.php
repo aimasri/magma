@@ -19,7 +19,23 @@ namespace Magma\interfaces;
  */
 interface EventDispatcherInterface
 {
+    /**
+     * Registers a listener for a specific event.
+     * 
+     * @param string $eventName The fully qualified class name of the event.
+     * @param callable|string $listener The listener to register (callable or class name).
+     */
     public function listen(string $eventName, callable|string $listener): void;
+
+    /**
+     * Dispatches an event to all registered listeners.
+     * 
+     * @param object $event The event object to dispatch.
+     */
     public function dispatch(object $event): void;
+
+    /**
+     * Clears all registered listeners.
+     */
     public function clear(): void;
 }

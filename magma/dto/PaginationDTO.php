@@ -21,6 +21,19 @@ class PaginationDTO
     public readonly int $limit;
     public readonly ?int $lastId;
 
+    /**
+     * Initialize Pagination DTO
+     * 
+     * Purpose:
+     * - Captures the pagination constraints (limit and offset key) for a query.
+     * 
+     * Logic behind the logic:
+     * - By enforcing strictly typed properties via constructor injection, we prevent malformed 
+     *   pagination data (like negative limits) from propagating down to the repository layer.
+     * 
+     * @param int $limit
+     * @param int|null $lastId
+     */
     public function __construct(int $limit, ?int $lastId = null)
     {
         $this->limit = $limit;

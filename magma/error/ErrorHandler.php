@@ -104,10 +104,20 @@ class ErrorHandler implements ErrorHandlerInterface
     /**
      * Handle an exception by logging it and returning a safe response.
      * 
-     * This method:
-     * 1. Categorizes the exception (e.g., Validation vs System Error).
-     * 2. Logs the full stack trace to the server logs for developers.
-     * 3. Normalizes the HTTP status code.
+     * Execution Flow:
+     * 1. Clears any active output buffers to prevent partial view rendering.
+     * 2. Categorizes the exception (e.g., Validation vs System Error).
+     * 3. Logs the full stack trace to the server logs for developers.
+     * 4. Normalizes the HTTP status code (enforcing valid 4xx or 5xx codes).
+     * 5. Delegates to `renderError` to construct the final response.
+     * 
+     * Logic behind the logic:
+     * - Clearing output buffers first is essential; without it, users might see a half-rendered HTML 
+     *   page with an error appended to the bottom, which breaks CSS/JS and exposes system state.
+     *
+     * @param \Throwable $e The thrown exception.
+     * @param RequestInterface|null $request The incoming HTTP request if resolved.
+     * @return Response
      */
     public function handleException(\Throwable $e, ?RequestInterface $request = null): Response
     { 
@@ -145,6 +155,8 @@ class ErrorHandler implements ErrorHandlerInterface
             $code = 500;
         }
 
-        return $this->renderError($code, $e->getMessage(), $e->getTraceAsString());
+        $safeMessage = $this->debug ? $e->getMessage() : 'An unexpected system error occurred.';
+
+        return $this->renderError($code, $safeMessage, $e->getTraceAsString());
     }
 }

@@ -25,6 +25,19 @@ class Config
 
     /**
      * Loads environment variables from .env file and existing system environments.
+     *
+     * Execution Flow:
+     * 1. Parses the provided .env file using DotEnvParser.
+     * 2. Iterates through the parsed key-value pairs.
+     * 3. Sets the values into the internal cache, system environment via `putenv`, and `$_ENV`.
+     *
+     * Logic behind the logic:
+     * - Seeding `$_ENV` and `putenv` ensures that older legacy components or 
+     *   third-party libraries that rely on standard PHP environment functions 
+     *   can still access the configuration seamlessly.
+     *
+     * @param string $envPath Path to the .env file.
+     * @return void
      */
     public static function initialize(string $envPath = __DIR__ . '/../../.env'): void
     {
@@ -77,9 +90,19 @@ class Config
      * Get a strictly required configuration value.
      * Throws an exception if the key is missing or empty.
      *
-     * @param string $key
-     * @return string
-     * @throws \RuntimeException
+     * Execution Flow:
+     * 1. Calls the standard `get()` method to retrieve the value.
+     * 2. Checks if the returned value is null or an empty string.
+     * 3. Throws a RuntimeException if the check fails, otherwise returns the casted string.
+     *
+     * Logic behind the logic:
+     * - Enforces fail-fast principles during system boot or request initialization, 
+     *   preventing confusing errors deeper in the application where the missing 
+     *   value would eventually cause a failure.
+     *
+     * @param string $key The configuration key.
+     * @return string The configuration value.
+     * @throws \RuntimeException If the key is not found or empty.
      */
     public static function getRequired(string $key): string
     {
@@ -93,7 +116,14 @@ class Config
     /**
      * Get the database connection settings.
      *
-     * Provides a centralized place to manage DB defaults and environment fallbacks.
+     * Execution Flow:
+     * 1. Retrieves required credentials (DB_NAME, DB_USER, DB_PASSWORD).
+     * 2. Retrieves optional settings with safe defaults (DB_DRIVER, DB_HOST, DB_PORT).
+     * 3. Returns the aggregated array.
+     *
+     * Logic behind the logic:
+     * - Provides a centralized place to manage DB defaults and environment fallbacks, 
+     *   preventing scatter of default values across the repository/database layer.
      *
      * @return array{
      *   driver: string,
@@ -117,16 +147,21 @@ class Config
     }
 
     /**
-     * Get the Replica Database Settings
+     * Get the Replica Database Settings.
      *
      * Purpose:
      * - Provides connection credentials specifically for read-only database replicas.
+     *
+     * Execution Flow:
+     * 1. Attempts to retrieve replica-specific configuration variables.
+     * 2. Provides the primary master configuration variables as fallbacks if replica variables are not set.
+     * 3. Returns the aggregated array.
      *
      * Logic behind the logic:
      * - This seamlessly falls back to the primary master `DB_HOST` if no replica 
      *   is defined in the `.env` file. This is crucial because it allows the exact 
      *   same application codebase to run locally (with a single database container) 
-     *   and in production (with a master and 5 read replicas) without throwing errors.
+     *   and in production (with a master and read replicas) without throwing errors.
      *
      * @return array Associative array of connection settings.
      */
@@ -144,6 +179,15 @@ class Config
 
     /**
      * Get mailer configuration settings.
+     *
+     * Execution Flow:
+     * 1. Collects all mailer-related environment variables.
+     * 2. Enforces required fields for critical connection data.
+     * 3. Returns a structured associative array for the mailer transport service.
+     *
+     * Logic behind the logic:
+     * - Grouping these settings into a single configuration payload reduces parameter 
+     *   clutter when initializing the mailer service.
      *
      * @return array{
      *   host: string,

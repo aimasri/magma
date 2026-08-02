@@ -62,6 +62,36 @@ class Request implements RequestInterface
     private ?string $rawBody = null;
 
     public function __construct(
+        string $method,
+        string $uri,
+        array $get = [],
+        array $post = [],
+        array $server = [],
+        array $files = [], 
+        array $cookies = [],
+        ?Session $session = null,
+        ?array $parsedJson = null,
+        ?string $rawBody = null
+    ) {
+        $this->method = $method;
+        $this->uri = $uri;
+        $this->path = parse_url($this->uri, PHP_URL_PATH) ?? '/';
+        $this->get = $get;
+        $this->post = $post;
+        $this->server = $server;
+        $this->files = $files;
+        $this->cookies = $cookies;
+        $this->session = $session ?? new Session();
+        $this->parsedJson = $parsedJson;
+        $this->rawBody = $rawBody;
+        $this->requestData = $this->parsedJson !== null ? $this->parsedJson : $this->post;
+    }
+
+    /**
+     * Factory method to build a Request instance.
+     * Offloads JSON decoding and HTTP verb spoofing to a dedicated builder method.
+     */
+    public static function build(
         array $get = [],
         array $post = [],
         array $server = [],
@@ -69,65 +99,58 @@ class Request implements RequestInterface
         array $cookies = [],
         ?Session $session = null,
         ?string $rawBody = null
-    )
-    {
-        $this->get = $get;
-        $this->post = $post;
-        $this->server = $server;
-        $this->files = $files;
-        $this->cookies = $cookies;
-        $this->rawBody = $rawBody;
-
-        $this->session = $session ?? new Session();
-
-        // Detect the HTTP method, defaulting to GET if not set.
-        $rawMethod = strtoupper($this->server['REQUEST_METHOD'] ?? 'GET');
+    ): self {
+        $rawMethod = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
         
         if (!in_array($rawMethod, self::$allowedMethods, true)) {
             throw new \RuntimeException("Method Not Allowed: {$rawMethod}", 405);
         }
         
-        $this->method = $rawMethod;
+        $method = $rawMethod;
 
-        /**
-         * HTTP Method Spoofing:
-         * Standard HTML forms only support GET and POST. To use RESTful methods like 
-         * PUT or DELETE, we look for a hidden '_method' field in the POST data.
-         * 
-         * Execution Flow:
-         * 1. Detect the raw HTTP method and validate it against a strict allowlist.
-         * 2. If it is invalid, immediately throw a 405 Method Not Allowed exception.
-         * 3. If the request is a POST, check for a '_method' spoofing parameter.
-         * 4. Validate the spoofed method against the same allowlist to prevent bypass.
-         * 
-         * Logic behind the logic:
-         * - Checking the raw method first prevents malicious actors from sending arbitrary 
-         *   HTTP verbs. Re-validating the spoofed method ensures they cannot use a valid 
-         *   POST request to spoof an invalid verb like TRACK or TRACE.
-         */
-        if ($this->method === 'POST' && isset($this->post['_method'])) {
-            $spoofedMethod = strtoupper($this->post['_method']);
+        if ($method === 'POST' && isset($post['_method'])) {
+            $spoofedMethod = strtoupper($post['_method']);
             if (in_array($spoofedMethod, self::$allowedMethods, true)) {
-                $this->method = $spoofedMethod;
+                $method = $spoofedMethod;
             } else {
                 throw new \RuntimeException("Method Not Allowed: {$spoofedMethod}", 405);
             }
         }
 
-        $this->uri = $this->server['REQUEST_URI'] ?? '/';
-        $this->path = parse_url($this->uri, PHP_URL_PATH) ?? '/';
+        $uri = $server['REQUEST_URI'] ?? '/';
+        
+        $parsedJson = null;
+        $contentType = strtolower($server['CONTENT_TYPE'] ?? $server['HTTP_CONTENT_TYPE'] ?? '');
+        
+        if (str_contains($contentType, 'json')) {
+            if ($rawBody === null) {
+                $rawBody = (string) file_get_contents('php://input');
+            }
 
+            if ($rawBody !== '') {
+                try {
+                    $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+                    $parsedJson = is_array($decoded) ? $decoded : [];
+                } catch (\JsonException $e) {
+                    throw new \RuntimeException("Invalid JSON payload: " . $e->getMessage(), 400, $e);
+                }
+            } else {
+                $parsedJson = [];
+            }
+        }
 
+        return new self($method, $uri, $get, $post, $server, $files, $cookies, $session, $parsedJson, $rawBody);
     }
 
     /**
      * Factory method to create a Request instance using PHP globals.
      * 
+     * @param Session|null $session Optional injected session.
      * @return self
      */
-    public static function createFromGlobals(): self
+    public static function createFromGlobals(?Session $session = null): self
     {
-        return new self($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, new Session());
+        return self::build($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, $session);
     }
 
     /**
@@ -200,7 +223,6 @@ class Request implements RequestInterface
 
     /**
      * Retrieve data from the merged request data (POST + JSON).
-     * Parses JSON lazily on first access.
      * 
      * @param string|null $key
      * @param mixed $default
@@ -208,43 +230,10 @@ class Request implements RequestInterface
      */
     public function request(?string $key = null, mixed $default = null): mixed
     {
-        if ($this->requestData === null) {
-            $this->parseJsonPayload();
-            $this->requestData = !empty($this->parsedJson) ? $this->parsedJson : $this->post;
-        }
-
         if ($key === null) {
             return $this->requestData;
         }
         return $this->requestData[$key] ?? $default;
-    }
-
-    /**
-     * Lazily parses the JSON payload if the Content-Type header indicates application/json.
-     */
-    private function parseJsonPayload(): void
-    {
-        if ($this->parsedJson !== null) {
-            return;
-        }
-
-        $this->parsedJson = [];
-        $contentType = strtolower($this->server('CONTENT_TYPE', ''));
-        
-        if (str_contains($contentType, 'json')) {
-            if ($this->rawBody === null) {
-                $this->rawBody = (string) file_get_contents('php://input');
-            }
-
-            if ($this->rawBody !== '') {
-                try {
-                    $decoded = json_decode($this->rawBody, true, 512, JSON_THROW_ON_ERROR);
-                    $this->parsedJson = is_array($decoded) ? $decoded : [];
-                } catch (\JsonException $e) {
-                    throw new \RuntimeException("Invalid JSON payload: " . $e->getMessage(), 400, $e);
-                }
-            }
-        }
     }
     
     /**

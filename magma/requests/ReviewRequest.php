@@ -22,6 +22,19 @@ use Magma\validation\FormRequest;
  */
 class ReviewRequest extends FormRequest
 {
+    /**
+     * Define the validation rules for submitting a customer review.
+     *
+     * Execution Flow:
+     * 1. Evaluates 'author' field for presence and minimum length.
+     * 2. Validates 'comment' for length constraints to prevent spam or excessively large payloads.
+     * 3. Checks 'rating' bounds (1 to 5) to maintain statistical integrity.
+     *
+     * Logic behind the logic:
+     * Setting a hard maximum on text fields like 'comment' mitigates denial-of-service (DoS) vectors via payload bloating and prevents database truncation exceptions.
+     *
+     * @return array
+     */
     public function rules(): array
     {
         return [

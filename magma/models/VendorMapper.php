@@ -42,7 +42,7 @@ class VendorMapper
      * @param array $vendor Raw associative array from PDO.
      * @return array The processed vendor array.
      */
-    public function toDomain(array $vendor): array
+    public function toDomain(array $vendor): \Magma\dto\VendorDTO
     {
         $themeSettings = $vendor['theme_settings'] ?? null;
 
@@ -54,7 +54,17 @@ class VendorMapper
             $vendor['theme_settings'] = [];
         }
 
-        return $vendor;
+        return new \Magma\dto\VendorDTO(
+            id: (int) ($vendor['id'] ?? 0),
+            name: $vendor['name'] ?? '',
+            tagline: $vendor['tagline'] ?? null,
+            email: $vendor['email'] ?? '',
+            plan_id: (int) ($vendor['plan_id'] ?? 0),
+            subscription_status: $vendor['subscription_status'] ?? '',
+            billing_cycle_anchor: $vendor['billing_cycle_anchor'] ?? null,
+            payment_gateway_customer_id: $vendor['payment_gateway_customer_id'] ?? null,
+            theme_settings: $vendor['theme_settings']
+        );
     }
 
     /**
@@ -62,6 +72,17 @@ class VendorMapper
      *
      * Purpose:
      * - DRY helper to extract recognized columns and automatically serialize JSON arrays.
+     *
+     * Execution Flow:
+     * 1. Iterate over the statically defined `ALLOWED_COLUMNS`.
+     * 2. If the column exists in the provided `$data`, process its value.
+     * 3. For `theme_settings`, serialize arrays/objects into JSON strings.
+     * 4. Return the sanitized map of column bindings.
+     *
+     * Logic behind the logic:
+     * - Restricting bindings explicitly to `ALLOWED_COLUMNS` serves as a fail-safe firewall 
+     *   against malicious mass-assignment, ensuring internal fields (like `id`) cannot be 
+     *   injected from an HTTP POST request.
      *
      * @param array $data Raw input array.
      * @return array Associative array of sanitized field bindings.

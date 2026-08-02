@@ -3,21 +3,17 @@
 namespace Magma\http;
 
 /**
- * HttpResponseException — aborts execution and bubbles a response.
+ * Title: HTTP Response Exception
  *
  * Purpose:
- * - Allow deep application layers (like BaseController validation) to cleanly 
- *   halt execution and immediately return an HTTP response (like a Redirect) 
- *   without calling `exit()`, ensuring the middleware pipeline is not bypassed.
+ * - Allows deep application layers (like BaseController validation) to cleanly halt execution.
+ * - Immediately returns an HTTP response (like a Redirect) without calling `exit()`, ensuring the middleware pipeline is not bypassed.
  *
- * Why / Why this design:
- * - Employs Exception-Driven Control Flow. This prevents the need to pass return 
- *   values backwards through multiple abstraction layers when a critical termination 
- *   (like a validation failure) occurs.
+ * Why this design:
+ * - Employs Exception-Driven Control Flow. This prevents the need to pass return values backwards through multiple abstraction layers when a critical termination (like a validation failure) occurs.
  *
  * Teaching notes:
- * - This exception acts as a transport container. Catching it in the Router
- *   allows the response to bubble backwards naturally through all middleware.
+ * - This exception acts as a transport container. Catching it in the Router allows the response to bubble backwards naturally through all middleware.
  */
 class HttpResponseException extends \RuntimeException
 {

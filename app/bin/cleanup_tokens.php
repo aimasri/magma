@@ -19,11 +19,14 @@
 
 require_once dirname(__DIR__) . '/core/config/bootstrap.php';
 
-use Magma\models\UserTokenRepository;
+use Magma\models\RememberTokenRepository;
+use Magma\models\PasswordResetTokenRepository;
 
 // Bootstrapping initialized the container as $container
-$repository = $container->get(UserTokenRepository::class);
+$rememberRepo = $container->get(RememberTokenRepository::class);
+$passwordRepo = $container->get(PasswordResetTokenRepository::class);
 
-$deletedCount = $repository->deleteExpiredTokens();
+$deletedCount = $rememberRepo->deleteExpiredTokens();
+$deletedCount += $passwordRepo->deleteExpiredTokens();
 
 echo "Token cleanup completed successfully. " . $deletedCount . " expired tokens purged.\n";

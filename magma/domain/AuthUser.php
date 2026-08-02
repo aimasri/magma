@@ -22,6 +22,7 @@ class AuthUser
     private string $name;
     private string $role;
     private string $email;
+    private ?int $vendorId;
 
     /**
      * Constructs a new AuthUser entity.
@@ -30,6 +31,7 @@ class AuthUser
      * 1. Extracts the primary key, defaulting to 0 if missing.
      * 2. Extracts the name and role.
      * 3. Extracts the email.
+     * 4. Extracts the vendor_id if present.
      *
      * Logic behind the logic:
      * - By specifically mapping only the necessary fields from the `$data` array, 
@@ -44,6 +46,17 @@ class AuthUser
         $this->name = $data['name'] ?? '';
         $this->role = $data['role'] ?? 'user';
         $this->email = $data['email'] ?? '';
+        $this->vendorId = isset($data['vendor_id']) ? (int)$data['vendor_id'] : null;
+    }
+
+    public function hasVendorId(): bool
+    {
+        return $this->vendorId !== null;
+    }
+
+    public function getVendorId(): ?int
+    {
+        return $this->vendorId;
     }
 
     /**
@@ -66,7 +79,8 @@ class AuthUser
             'id' => $this->id,
             'name' => $this->name,
             'role' => $this->role,
-            'email' => $this->email
+            'email' => $this->email,
+            'vendor_id' => $this->vendorId
         ];
     }
 }

@@ -24,5 +24,20 @@ use Magma\http\Response;
  */
 interface MiddlewareInterface
 {
+    /**
+     * Process an incoming server request.
+     *
+     * Execution Flow:
+     * 1. Receives the current HTTP request.
+     * 2. Executes middleware-specific logic (e.g., validation, authentication).
+     * 3. Calls the next middleware in the chain OR returns a response directly to halt propagation.
+     *
+     * Logic behind the logic:
+     * Passing a callable `$next` provides complete control over the execution stack, allowing middleware to perform actions both before and after the downstream handlers execute, commonly known as the "Onion Architecture".
+     *
+     * @param Request $request
+     * @param callable $next
+     * @return Response
+     */
     public function process(Request $request, callable $next): Response;
 }

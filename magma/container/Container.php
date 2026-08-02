@@ -38,6 +38,12 @@ class Container
 
     /**
      * Manually registers a service definition.
+     *
+     * Logic behind the logic:
+     * - Allows developers to bypass auto-wiring for complex objects that require custom factory logic or specific configuration values.
+     *
+     * @param string $id The service identifier.
+     * @param callable $concrete The factory closure to create the service.
      */
     public function set(string $id, callable $concrete): void
     {
@@ -46,6 +52,12 @@ class Container
 
     /**
      * Binds an interface or alias to a concrete class.
+     *
+     * Logic behind the logic:
+     * - Essential for the Dependency Inversion Principle, letting the container know which concrete implementation to inject when an interface is type-hinted.
+     *
+     * @param string $alias The interface or alias name.
+     * @param string $concrete The fully qualified class name of the implementation.
      */
     public function bind(string $alias, string $concrete): void
     {
@@ -58,6 +70,9 @@ class Container
      * Logic behind the logic:
      * - We cache the result of `class_exists()` to prevent the PHP SPL autoloader 
      *   from repeatedly scanning the filesystem for non-existent classes.
+     *
+     * @param string $id The service identifier.
+     * @return bool True if the service can be resolved, false otherwise.
      */
     public function has(string $id): bool
     {
@@ -81,8 +96,17 @@ class Container
     /**
      * Retrieves a service instance.
      * 
-     * If the service hasn't been created yet, it will be instantiated 
-     * (and cached) using either a definition or auto-wiring logic.
+     * Execution Flow:
+     * 1. Checks if the requested ID has an alias and resolves it.
+     * 2. Returns an already instantiated cached instance if it exists.
+     * 3. Executes a manual definition factory if registered.
+     * 4. Falls back to auto-wiring via `resolve()`.
+     * 
+     * Logic behind the logic:
+     * - Implements a Singleton pattern for manually defined services by caching them in `$this->instances`, ensuring state is shared across the application lifecycle. Auto-wired dependencies are kept transient.
+     *
+     * @param string $id The service identifier.
+     * @return mixed The resolved service instance.
      */
     public function get(string $id): mixed
     {

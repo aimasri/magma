@@ -18,6 +18,16 @@ namespace Magma\routing;
  */
 class MethodNotAllowedException extends \RuntimeException
 {
+    /**
+     * Constructs a new MethodNotAllowedException.
+     *
+     * Logic behind the logic:
+     * - Overrides the default exception code to 405, ensuring HTTP status code semantic correctness out of the box.
+     *
+     * @param string $message Exception message, defaults to "Method Not Allowed".
+     * @param int $code Error code, defaults to 405.
+     * @param \Throwable|null $previous Previous exception for chaining.
+     */
     public function __construct(string $message = "Method Not Allowed", int $code = 405, ?\Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);

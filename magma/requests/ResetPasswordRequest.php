@@ -21,6 +21,19 @@ use Magma\validation\FormRequest;
  */
 class ResetPasswordRequest extends FormRequest
 {
+    /**
+     * Define the validation rules for resetting a password.
+     *
+     * Execution Flow:
+     * 1. Extracts the incoming payload mapping.
+     * 2. Evaluates the 'password' field against required and length constraints.
+     * 3. Validates that a corresponding 'password_confirmation' field matches exactly.
+     *
+     * Logic behind the logic:
+     * Enforcing a minimum length of 8 characters defends against brute-force attacks, while the 'confirmed' rule prevents user typos leading to a locked account state.
+     *
+     * @return array
+     */
     public function rules(): array
     {
         return [

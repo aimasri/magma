@@ -6,18 +6,16 @@ use Magma\http\Response;
 use Magma\view\TemplateEngine;
 
 /**
- * PolicyController — static informational pages (privacy, cookies).
+ * Title: Policy Controller
  *
  * Purpose:
- * - Render static policy pages, injecting application metadata for branding.
+ * - Renders static policy pages, injecting application metadata for branding.
  *
- * Why / Why this design:
- * - Standardizes even static pages through the Controller/View pipeline, ensuring 
- *   that global middleware (like `ViewShareMiddleware`) automatically applies to them.
+ * Why this design:
+ * - Standardizes even static pages through the Controller/View pipeline, ensuring that global middleware (like `ViewShareMiddleware`) automatically applies to them.
  *
  * Teaching notes:
- * - Keep these controllers minimal; static content can often be served
- *   directly from views or a simple CMS in larger projects.
+ * - Keep these controllers minimal; static content can often be served directly from views or a simple CMS in larger projects.
  */
 class PolicyController extends BaseController
 {

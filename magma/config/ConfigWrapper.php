@@ -19,26 +19,85 @@ namespace Magma\config;
  */
 class ConfigWrapper implements ConfigInterface
 {
+    /**
+     * Get a configuration value by key, wrapped.
+     *
+     * Execution Flow:
+     * 1. Delegates entirely to the static Config::get() method.
+     *
+     * Logic behind the logic:
+     * - Preserves the static caching performance of Config while exposing it via an instance method.
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
     public function get(string $key, mixed $default = null): mixed
     {
         return Config::get($key, $default);
     }
 
+    /**
+     * Get a strictly required configuration value, wrapped.
+     *
+     * Execution Flow:
+     * 1. Delegates entirely to the static Config::getRequired() method.
+     *
+     * Logic behind the logic:
+     * - Allows services to request required variables without relying on static method calls directly.
+     *
+     * @param string $key
+     * @return string
+     * @throws \RuntimeException
+     */
     public function getRequired(string $key): string
     {
         return Config::getRequired($key);
     }
 
+    /**
+     * Get the database connection settings, wrapped.
+     *
+     * Execution Flow:
+     * 1. Delegates to Config::getDatabaseSettings().
+     *
+     * Logic behind the logic:
+     * - Centralizes DB config retrieval via the interface.
+     *
+     * @return array
+     */
     public function getDatabaseSettings(): array
     {
         return Config::getDatabaseSettings();
     }
 
+    /**
+     * Get the Replica Database Settings, wrapped.
+     *
+     * Execution Flow:
+     * 1. Delegates to Config::getReplicaDatabaseSettings().
+     *
+     * Logic behind the logic:
+     * - Hides the static nature of the replica config setup from consumers.
+     *
+     * @return array
+     */
     public function getReplicaDatabaseSettings(): array
     {
         return Config::getReplicaDatabaseSettings();
     }
 
+    /**
+     * Get mailer configuration settings, wrapped.
+     *
+     * Execution Flow:
+     * 1. Delegates to Config::getMailerSettings().
+     *
+     * Logic behind the logic:
+     * - Enables mockable mailer settings for tests.
+     *
+     * @return array
+     */
     public function getMailerSettings(): array
     {
         return Config::getMailerSettings();

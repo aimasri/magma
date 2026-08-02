@@ -10,23 +10,17 @@ use Magma\validation\ValidationException;
 use Magma\view\TemplateEngine;
 
 /**
- * Base Application Controller
+ * Title: Base Application Controller
  *
  * Purpose:
- * - Provide foundational helper methods (like view rendering and validation shortcuts) 
- *   that are shared across all concrete controllers.
- * - Centralize dependencies (like the `TemplateEngine`) so child classes don't need 
- *   to inject them repeatedly.
+ * - Provides foundational helper methods (like view rendering and validation shortcuts) that are shared across all concrete controllers.
+ * - Centralizes dependencies (like the `TemplateEngine`) so child classes don't need to inject them repeatedly.
  *
- * Why / Why this design:
- * - Implements the Layer Supertype pattern. By inheriting from a common base class, 
- *   we eliminate boilerplate code in the child controllers, specifically around the 
- *   repetitive "Validate or Redirect" HTTP flow.
+ * Why this design:
+ * - Implements the Layer Supertype pattern. By inheriting from a common base class, we eliminate boilerplate code in the child controllers, specifically around the repetitive "Validate or Redirect" HTTP flow.
  *
  * Teaching notes:
- * - Be cautious not to put domain-specific business logic in a BaseController. It should 
- *   only contain generic HTTP or orchestration helpers. If a method is only used by one 
- *   child controller, it belongs in that child, not the base.
+ * - Be cautious not to put domain-specific business logic in a BaseController. It should only contain generic HTTP or orchestration helpers. If a method is only used by one child controller, it belongs in that child, not the base.
  */
 abstract class BaseController
 {

@@ -44,9 +44,12 @@ class Application
     /**
      * Appends a middleware to the execution stack.
      * 
-     * Middleware can be provided as a class name (to be resolved via DI) or 
-     * as a pre-instantiated object. The order of registration determines 
-     * the "nesting" of the layers in the handleRequest onion.
+     * Execution Flow:
+     * 1. Pushes the provided middleware instance or class name into the array.
+     * 
+     * Logic behind the logic:
+     * - Delaying the actual instantiation of class-string middleware until the router dispatch phase 
+     *   conserves memory and CPU cycles during bootstrap for middleware that might not even be hit.
      * 
      * @param string|MiddlewareInterface $middleware The middleware class name or instance.
      */
@@ -79,30 +82,41 @@ class Application
 
             // 2. Process the request through the single unified middleware pipeline
             $response = $this->container->get(RouterInterface::class)->dispatch($request, $this->middleware);
-
-            // 3. Send headers and body to the client
-            $response->send();
-
         } catch (\Throwable $e) {
-            $this->handleKernelError($e, $request ?? null);
+            $response = $this->handleKernelError($e, $request ?? null);
         }
+
+        // 3. Send headers and body to the client
+        $response->send();
     }
 
-    private function handleKernelError(\Throwable $e, ?RequestInterface $request): void
+    /**
+     * Handles fatal exceptions occurring at the kernel level.
+     * 
+     * Execution Flow:
+     * 1. Checks if the exception is a RouteNotFoundException.
+     * 2. If so, triggers the 404 response handler.
+     * 3. Otherwise, delegates to the generic 500 error handler.
+     * 4. Includes ultimate fallbacks to `http_response_code` if the error handlers themselves crash.
+     * 
+     * Logic behind the logic:
+     * - The nested try/catches ensure that even if the templating engine is entirely broken, 
+     *   the client still receives an appropriate HTTP status code rather than a blank screen (WSOD).
+     */
+    private function handleKernelError(\Throwable $e, ?RequestInterface $request): Response
     {
         if ($e instanceof \Magma\routing\RouteNotFoundException) {
             try {
-                $this->errorHandler->renderNotFound()->send();
+                return $this->errorHandler->renderNotFound();
             } catch (\Throwable $fatal) {
-                http_response_code(404);
+                return new Response('Not Found', 404);
             }
-            return;
         }
 
         try {
-            $this->errorHandler->handleException($e, $request)->send();
+            return $this->errorHandler->handleException($e, $request);
         } catch (\Throwable $fatal) {
-            http_response_code(500);
+            return new Response('Internal Server Error', 500);
         }
     }
 

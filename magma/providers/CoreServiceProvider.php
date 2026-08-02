@@ -12,12 +12,12 @@ use Magma\error\ErrorHandler;
 use Magma\error\ErrorHandlerInterface;
 use Magma\routing\Router;
 use Magma\routing\RouterInterface;
+use Magma\routing\RouteCollection;
+use Magma\routing\RouteDispatcher;
 use Magma\middleware\MiddlewareResolver;
 use Magma\routing\UrlGenerator;
 use Magma\database\DatabaseConnectionManager;
 use Magma\view\TemplateEngine;
-use Magma\view\ViewLoaderInterface;
-use Magma\view\FileViewLoader;
 use Magma\validation\Validator;
 use Magma\security\RateLimiterInterface;
 use Magma\security\RedisRateLimiter;
@@ -63,6 +63,14 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new \Magma\config\ConfigWrapper();
         });
 
+        $container->set(\Magma\security\TenantContext::class, function ($c) {
+            return new \Magma\security\TenantContext();
+        });
+
+        $container->set(\Magma\interfaces\StorageInterface::class, function ($c) {
+            return new \Magma\services\LocalFileStorageService(ROOT_DIR . '/storage');
+        });
+
         $container->set(QueueInterface::class, function ($c) {
             return new RedisQueue($c->get(\Redis::class));
         });
@@ -79,7 +87,7 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(RequestInterface::class, function ($c) {
-            return new Request(
+            return Request::build(
                 $_GET,
                 $_POST,
                 $_SERVER,
@@ -149,13 +157,8 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new \Magma\security\CsrfManager($c->get(Session::class));
         });
 
-        $container->set(ViewLoaderInterface::class, function ($c) {
-            return new FileViewLoader();
-        });
-
         $container->set(TemplateEngine::class, function ($c) {
             return new TemplateEngine(
-                $c->get(ViewLoaderInterface::class),
                 ROOT_DIR . '/app/views', 
                 ROOT_DIR . '/app/views/partials'
             );
@@ -186,7 +189,10 @@ class CoreServiceProvider implements ServiceProviderInterface
             
             $routes = file_exists($cacheFile) ? require $cacheFile : require $routesFile;
             
-            return new Router($c, $c->get(MiddlewareResolver::class), $routes);
+            $collection = new RouteCollection($routes);
+            $dispatcher = new RouteDispatcher($c, $c->get(MiddlewareResolver::class));
+            
+            return new Router($collection, $dispatcher);
         });
 
         $container->set(Router::class, function ($c) {

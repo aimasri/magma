@@ -8,7 +8,7 @@ namespace Magma\modules\Inventory\models;
  * Purpose:
  * - Define the contract for the Read Model of the CQRS inventory architecture.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Dependency Inversion Principle: Projector jobs should depend on abstractions, 
  *   not concrete SQL implementations. This isolates the domain logic from the 
  *   database layer, making the system testable and strictly modular.

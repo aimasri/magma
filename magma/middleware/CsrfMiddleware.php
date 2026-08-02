@@ -66,7 +66,10 @@ class CsrfMiddleware implements MiddlewareInterface
 
             // Rotate the token: Add a fresh one and discard the oldest once 
             // the grace period limit is exceeded.
-            $this->csrfManager->rotateToken();
+            // Pause rotation for AJAX/API requests to prevent rapid token exhaustion.
+            if (!$request->isJsonExpected()) {
+                $this->csrfManager->rotateToken();
+            }
         }
 
         return $next($request);

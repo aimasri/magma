@@ -24,20 +24,19 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 
 **TSP, The Sandbox Platform:** TSP is a generic software platform based in the cloud, specializing in various domain entities. The architecture is designed from the ground up to be highly adaptable, built to seamlessly support both massive, multi-tenant environments and isolated, single-tenant applications depending on the specific project requirements.
 
-
 **The Engineering Philosophy:** Modern frameworks hide a massive amount of complexity behind "magic" static methods and facades. This project intentionally removes the magic at the Magma level. Every action is explicitly wired together using clean architecture principles:
 
 * **SOLID Principles:** Classes have a Single Responsibility and rely on Dependency Inversion. We favor injecting interfaces rather than instantiating concrete classes.
 * **Separation of Concerns (SoC):** Controllers never query the database. Views never handle business logic. Data access is completely isolated in Repositories.
 * **Pragmatic Domain-Driven Design (DDD):** We enforce a strict rule: *Behavior belongs with the data*. We utilize "skinny" domain entities that manage their own state and internal logic, while Services act strictly as orchestrators. We build these models iteratively as the domain is discovered.
-* **Instructional Docblocks:** Every core file contains a standardized comment block explaining its *Purpose*, *Why this design was chosen*, and specific *Teaching notes*. Method docblocks map the exact *Execution Flow*.
+* **Instructional Docblocks:** Every core file contains a standardized comment block explaining its *Purpose*, *Why this design was chosen*, and specific *Teaching notes*. Method docblocks map the exact *Execution Flow* and the "logic behind the logic."
 * **Strict Typing:** All methods utilize strict scalar type hints and return types (PHP 8+), ensuring data predictability and avoiding silent casting errors.
 
 ---
 
 ## 02. The Request Lifecycle & Front Controller
 
-The application utilizes the **Front Controller** pattern. Every HTTP request made to the server (whether it's an API call, an image load, or a page visit) routes through a single entry point: `www/index.php`.
+The application utilizes the **Front Controller** pattern. Every HTTP request made to the server routes through a single entry point: `www/index.php`.
 
 1. **Bootstrapping:** `index.php` initializes the environment, sets up PSR-4 autoloading via the `bootstrap.php` script, and loads environment variables.
 2. **Containerization:** The `Container` is built, mapping core interfaces to their concrete implementations.
@@ -55,11 +54,9 @@ At the heart of the framework is `core/container/Container.php`.
 Instead of using `new ClassName()` scattered across the codebase (which creates tight coupling and makes unit testing impossible), classes declare their dependencies in their constructor. The Container uses PHP's **Reflection API** to inspect the constructor, automatically instantiate any required dependencies, and inject them recursively.
 
 **Key Educational Concepts:**
-* **Autowiring & Reflection Caching:** The container figures out the dependency graph automatically. To maximize speed in long-running applications, it caches reflection data in memory, avoiding the massive CPU overhead of repeated `ReflectionClass` instantiations.
-* **Memory Leak Protection:** The container employs a guarded caching strategy, ensuring that negative lookups (requests for non-existent classes) are never cached, protecting the worker from OOM errors when processing malicious inputs.
+* **Strict Dependency Inversion:** We actively decouple foundational HTTP layers from concrete implementations. For example, the `Request` object receives its `Session` dependency via constructor injection (`createFromGlobals(?Session $session = null)`), preventing the hardcoding of `new Session()` and allowing for robust unit testing.
+* **Autowiring & Reflection Caching:** The container figures out the dependency graph automatically. To maximize speed, it caches reflection data in memory, avoiding the massive CPU overhead of repeated `ReflectionClass` instantiations.
 * **Service Providers:** Complex bindings are grouped into logical providers (e.g., `HttpServiceProvider`, `RepositoryServiceProvider`) to keep the bootstrapping phase clean and modular.
-* **Inversion of Control:** By injecting dependencies, it becomes trivial to swap out implementations (e.g., swapping a `MemoryCache` for a `RedisCache`) without rewriting the underlying business logic.
-* **Configuration Isolation:** Global configuration settings are wrapped in a `ConfigInterface` and injected, guaranteeing testability across different environments without relying on `.env` globals.
 
 ---
 
@@ -70,13 +67,9 @@ Before a request reaches a Controller, it must pass through a generic `Pipeline`
 Middleware layers wrap around the application core like layers of an onion. A request travels *inward* through the layers, hits the controller, and the resulting response travels *outward* through the same layers.
 
 **Key Middleware Components:**
-* `MiddlewareResolver`: A dedicated factory that translates string identifiers into instantiated `MiddlewareInterface` objects.
-* `SessionTimeoutMiddleware`: Enforces timeouts on stale sessions to protect user accounts.
+* `TenantSecurityMiddleware`: Ensures absolute data isolation for SaaS deployments. Rather than manipulating raw untyped session arrays (which causes brittle code and feature envy), this middleware hydrates a strictly-typed `AuthUser` domain entity from the session. It then securely delegates property access (like `$user->getVendorId()`) to bind the tenant context, rigorously upholding the Law of Demeter.
 * `CsrfMiddleware`: Validates CSRF tokens on state-mutating requests (POST/PUT/DELETE) before they reach business logic.
 * `RateLimitMiddleware`: Uses atomic, memory-backed Redis commands (`INCR` and `EXPIRE`) to track failed attempts by IP address to prevent brute-force attacks.
-
-**Why this design?**
-It strictly decouples cross-cutting concerns from Controllers. A Controller shouldn't need to know how to validate a CSRF token or check rate limits; it should just trust that the request wouldn't have reached it if the security constraints were violated.
 
 ---
 
@@ -84,17 +77,14 @@ It strictly decouples cross-cutting concerns from Controllers. A Controller shou
 
 The `Router` (`core/routing/Router.php`) maps URL patterns to Controller methods. 
 
-**O(1) "Mega-Regex" Routing:** 
-To achieve maximum performance without relying on external packages, the router compiles all registered dynamic routes into a single, massive Regular Expression (using native PCRE `(*MARK:name)` verbs). This completely eliminates the O(N) penalty of sequential regex matching, ensuring that matching the 1st route or the 1000th route takes exactly the same amount of time.
+**The "Thin Controller" Pattern & SRP:**
+Controllers in this application act purely as traffic cops. We strictly enforce the **Single Responsibility Principle**. For example, rendering the homepage and handling review submissions are split into two completely separate controllers (`HomeController` and `ReviewController`). This prevents God-classes and allows each controller to inject only the services it absolutely needs.
 
-**The "Thin Controller" Pattern:**
-Controllers in this application act purely as traffic cops. They:
-1. Receive the HTTP `Request` object. **Superglobal Encapsulation:** Controllers never access superglobals (`$_GET`, `$_POST`, `$_SERVER`) directly. All HTTP context, including secure connection detection, is abstracted behind this object to eliminate untestable global state.
+Controllers execute a rigid flow:
+1. Receive the HTTP `Request` object. All HTTP context is abstracted behind this object to eliminate untestable global state (no `$_GET` or `$_POST`).
 2. Validate input using strongly-typed Data Transfer Objects (DTOs) and `FormRequest` validation logic.
 3. Delegate business actions to a specific Domain Service.
-4. Return an HTTP `Response` (HTML View, JSON, or Redirect).
-
-You will *never* see SQL or complex validation loops inside a controller. If a controller method exceeds 20-30 lines, it is likely violating the Single Responsibility Principle.
+4. Return an HTTP `Response` (HTML View, JSON, or Redirect). Using the PRG (Post/Redirect/Get) pattern guarantees users never accidentally double-submit forms on a page refresh.
 
 ---
 
@@ -106,9 +96,6 @@ Data access is entirely encapsulated using the **Repository Pattern**.
 * **Read/Write Splitting:** The application leverages two distinct PDO connections: `$dbRead` and `$dbWrite`. This allows horizontal scaling (directing heavy `SELECT` queries to read-replicas, while routing `INSERT/UPDATE/DELETE` statements to the master node).
 * **Chunked Bulk Inserts:** The repository abstracts chunking and transaction management for massive bulk inserts, protecting against maximum parameter exhaustion errors native to PDO drivers.
 * **Strict Isolation:** Repositories isolate all SQL statements. We actively avoid `SELECT *` in favor of explicitly naming required columns to enable database Index-Only scans.
-* **Data Mappers:** Repositories focus strictly on data access. Transforming raw SQL rows into domain objects or arrays is explicitly delegated to separate Mapper classes (like `VendorMapper`).
-
-**Transactions:** Complex operations spanning multiple tables are wrapped in an explicit `TransactionManagerInterface` (`transactional(callable $callback)`) to guarantee ACID compliance.
 
 ---
 
@@ -117,15 +104,15 @@ Data access is entirely encapsulated using the **Repository Pattern**.
 The application's core business rules are structured using Pragmatic Domain-Driven Design (DDD), deliberately splitting logic between **Domain Entities** and **Services**.
 
 **Domain Entities ("Skinny Entities"):**
-Behavior belongs with the data. Rather than passing loose associative arrays around ("Transaction Script" pattern), we encapsulate data into strictly-typed Domain Entities (e.g., `Review`, `UserRegistration`, `PasswordResetToken`, `InventoryMovement`, `AuthUser`). These entities own their internal state, manage default values, and perform their own data sanitization and cryptography (like hashing passwords or generating secure tokens). They never execute SQL.
+Behavior belongs with the data. We encapsulate data into strictly-typed Domain Entities (e.g., `Review`, `AuthUser`). These entities own their internal state, manage default values, and perform their own data sanitization. They never execute SQL.
 
 **Services ("Thin Orchestrators"):**
-When an action requires coordinating multiple entities, repositories, or external systems, it belongs in a **Service**. Services (like `RegistrationService` or `PasswordResetService`) act purely as orchestrators. They instantiate the necessary Domain Entities and pass them to the Repositories or event queues, keeping the service logic remarkably thin and focused on workflow rather than data manipulation.
+Services (like `InventorySyncService` or `PasswordResetService`) act purely as orchestrators. They inject domain repositories strictly via Interfaces (Dependency Inversion Principle) and execute workflow logic. They instantiate Domain Entities and pass them to Repositories or Event Queues, keeping the service logic focused purely on business rules rather than data manipulation.
 
 **Command Query Responsibility Segregation (CQRS):**
 For highly complex domain areas like Inventory Management, the architecture is split into separate read and write models:
-* **The Write Model (Event Ledger):** All stock movements are recorded as immutable events in an `inventory_transactions` table. We never update a single "total" row directly (Event Sourcing).
-* **The Read Model (Materialized View):** Background jobs calculate the aggregate totals from the ledger and save them to a hyper-fast cached table (`vendor_inventory`) so the frontend can query real-time stock at O(1) speed.
+* **The Write Model (Event Ledger):** All stock movements are recorded as immutable events. We never update a single "total" row directly (Event Sourcing).
+* **The Read Model (Materialized View):** Background jobs calculate the aggregate totals from the ledger and save them to a hyper-fast cached table so the frontend can query real-time stock at O(1) speed.
 
 ---
 
@@ -135,7 +122,6 @@ The frontend is rendered using a custom `TemplateEngine` (`core/view/TemplateEng
 
 * **Dependency Inversion:** The engine relies on a `ViewLoaderInterface` to manage filesystem operations, decoupling the engine from the physical disk.
 * **In-Memory Path Caching:** To prevent severe I/O degradation during large loops (e.g. rendering 500 product cards via partials), the engine caches path existence checks in memory, hitting the disk exactly once per unique view file.
-* **Strict Scope Decoupling:** The engine avoids internal scope pollution (`extract()`); variables are strictly accessed via the `$data['var']` array. Security components (like CSRF tokens) are explicitly injected into this `$data` context via composition (`$data['engine']`), completely decoupling the engine from the global HTTP state.
 * **XSS Prevention:** Views utilize explicit `htmlspecialchars()` encoding (or the `$data['engine']->escape()` helper) to sanitize all user-generated content before rendering it into the DOM.
 
 ---
@@ -144,18 +130,17 @@ The frontend is rendered using a custom `TemplateEngine` (`core/view/TemplateEng
 
 * **Data Transfer Objects (DTOs):** Data flowing between boundaries is packaged into strongly-typed DTOs (e.g., `ReviewDTO`). These classes use PHP 8.1 `readonly` properties to ensure immutability, providing strict contracts and IDE autocomplete.
 * **Global Exception Catching:** The `Application` kernel wraps execution in a `try/catch` block. If a fatal error occurs, an `ErrorHandler` intercepts it, cleans the output buffer (preventing half-rendered pages), logs the trace, and displays a user-friendly 500 error page.
-* **Form Requests:** Form validation is centralized via `FormRequest` classes, which automatically trap bad data, flash old input to the session, and seamlessly redirect the user back to the form with comprehensive error messages.
 
 ---
 
 ## 10. Asynchronous Processing & Event-Driven Queues
 
-To provide instant HTTP response times to users, heavy tasks (like sending emails or rebuilding CQRS materialized views) are offloaded to a background queue.
+To provide instant HTTP response times and prevent blocking requests, heavy architectural tasks (such as global database synchronizations) are offloaded to background queues.
 
+* **Preventing N+1 Blockages:** Code like `InventorySyncService` avoids synchronous iterations over large database sets by instead pushing discrete `SyncVendorInventoryJob` jobs to a `QueueInterface`.
 * **Queue Infrastructure:** The application utilizes a lightweight, dependency-free queue built natively on Redis Lists (`RPUSH` and `BLPOP`).
-* **The Polymorphic Strategy Pattern:** When the web server pushes a job, it serializes the job's payload alongside the fully-qualified class name of the handler (e.g., `core\jobs\SendPasswordResetEmailJob`).
-* **Payload Standardization:** To eliminate magic strings and hidden schema drifts, all queue-pushing services utilize standardized constants from `JobInterface` (`HANDLER_KEY`, `PAYLOAD_KEY`) to ensure a rigid contract between producers and the worker daemon.
-* **Worker Daemon:** A standalone CLI script (`bin/worker.php`) runs infinitely in the background. It polls the queue, dynamically resolves the requested handler class from the Dependency Injection container, and executes it. Adding new background jobs requires zero modification to the worker itself (Open/Closed Principle).
+* **The Command/Job Pattern:** Jobs injected into the queue implement a strict `JobInterface` and accept their dependencies (like Repositories) via constructor injection, allowing the background worker to resolve and execute them flawlessly via the DI container.
+* **Worker Daemon:** A standalone CLI script (`bin/worker.php`) runs infinitely in the background. It polls the queue, dynamically resolves the requested handler class, and executes it. Adding new background jobs requires zero modification to the worker itself (Open/Closed Principle).
 
 ---
 
@@ -163,10 +148,9 @@ To provide instant HTTP response times to users, heavy tasks (like sending email
 
 Magma is designed to remain highly responsive under heavy load. Advanced optimization techniques include:
 
-* **Lazy JSON Payload Parsing:** The `Request` object defers the deserialization of `application/json` payloads until the data is explicitly accessed. This saves massive CPU and memory overhead if a request is dropped early by rate-limiting or authentication middleware.
-* **Keyset (Cursor-Based) Pagination:** Deep pagination using `OFFSET` causes linear CPU degradation in SQL databases. We use Keyset Pagination (`WHERE id > :cursor_id ORDER BY id ASC LIMIT X`) to leverage B-Tree indexes, guaranteeing O(1) fetch times regardless of how deep the user paginates.
+* **Lazy JSON Payload Parsing:** The `Request` object defers the deserialization of `application/json` payloads until the data is explicitly accessed.
+* **Keyset (Cursor-Based) Pagination:** Deep pagination using `OFFSET` causes linear CPU degradation in SQL databases. We use Keyset Pagination (`WHERE id > :cursor_id ORDER BY id ASC LIMIT X`) to leverage B-Tree indexes.
 * **PHP Generators (`yield`):** Repositories returning multiple records use the `yield` keyword instead of `fetchAll()`. This streams records one-by-one, maintaining a near-zero memory footprint.
-* **Explicit Socket Management:** To support long-running CLI workers without leaking resources, components like the `DatabaseConnectionManager` feature explicit disconnection routines, preventing dangling connections to database servers.
 
 ---
 

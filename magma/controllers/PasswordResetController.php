@@ -14,21 +14,18 @@ use Magma\view\TemplateEngine;
 use Magma\enums\PasswordResetStatus;
 
 /**
- * PasswordResetController — orchestrates password recovery flows.
+ * Title: Password Reset Controller
  *
  * Purpose:
- * - Implement a secure, multi-step reset process: request, token issuance,
- *   validation, and final update. Avoids user enumeration by using generic
- *   success messaging.
+ * - Orchestrates password recovery flows.
+ * - Implements a secure, multi-step reset process: request, token issuance, validation, and final update.
+ * - Avoids user enumeration by using generic success messaging.
  *
- * Why / Why this design:
- * - Orchestrates complex domain services via HTTP. It strictly acts as a router 
- *   between the `Request` payload and the `PasswordResetService`, preventing 
- *   business logic (like token hashing) from leaking into the transport layer.
+ * Why this design:
+ * - Orchestrates complex domain services via HTTP. It strictly acts as a router between the `Request` payload and the `PasswordResetService`, preventing business logic (like token hashing) from leaking into the transport layer.
  *
  * Teaching notes:
- * - Keep token generation and email sending inside a service to allow
- *   for easier testing and replacement (e.g., queueing email deliveries).
+ * - Keep token generation and email sending inside a service to allow for easier testing and replacement (e.g., queueing email deliveries).
  */
 class PasswordResetController extends BaseController
 {

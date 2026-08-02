@@ -8,7 +8,7 @@ namespace Magma\modules\Inventory\models;
  * Purpose:
  * - Define the contract for the Write Model of the CQRS inventory architecture.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Dependency Inversion Principle: Services and Jobs should depend on abstractions, 
  *   not concrete SQL-bound implementations. This allows us to mock the ledger for 
  *   unit testing or swap to a different storage engine without touching business logic.

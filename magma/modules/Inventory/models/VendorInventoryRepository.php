@@ -9,7 +9,7 @@ namespace Magma\modules\Inventory\models;
  * - Handle the Read Model (Query) for the CQRS inventory architecture.
  * - Serve as a Materialized View for `vendor_inventory`, providing instant O(1) reads.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Instead of calculating the `SUM()` of thousands of ledger transactions every time 
  *   a user visits their dashboard, this repository fetches a pre-calculated total.
  * - The data in this table is eventually consistent, updated asynchronously by the queue.

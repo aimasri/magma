@@ -31,6 +31,14 @@ class MiddlewareResolver
     /**
      * Resolves an array of middleware definitions into executable instances.
      * 
+     * Execution Flow:
+     * 1. Takes an array of mixed middleware definitions.
+     * 2. Iterates over the array mapping each definition through the `resolve()` method.
+     * 3. Returns a uniformly typed array of instantiated MiddlewareInterface objects.
+     * 
+     * Logic behind the logic:
+     * Utilizing `array_map` provides a functional approach to transform configuration metadata into operational domain objects without managing stateful loops.
+     * 
      * @param array $middlewareList
      * @return MiddlewareInterface[]
      */
@@ -40,7 +48,16 @@ class MiddlewareResolver
     }
 
     /**
-     * Resolves a single middleware definition.
+     * Resolves a single middleware definition into an instantiated object.
+     * 
+     * Execution Flow:
+     * 1. Inspects the type of the incoming definition.
+     * 2. If it's an array, it treats the first element as the class name and applies the remaining elements as constructor arguments via the spread operator.
+     * 3. If it's a string, it defers instantiation to the Dependency Injection Container, allowing for auto-wiring of dependencies.
+     * 4. If it's already an object, it assumes it's a pre-configured instance and returns it directly.
+     * 
+     * Logic behind the logic:
+     * This method acts as a polymorphic factory, abstracting away the instantiation complexity from the router, allowing developers to define middleware using the most convenient syntax for their use-case.
      * 
      * @param string|object|array $definition
      * @return MiddlewareInterface

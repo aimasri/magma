@@ -52,7 +52,7 @@ while (true) {
                 // Execute the job logic
                 $handler->handle($job[\core\queue\JobInterface::PAYLOAD_KEY] ?? []);
                 echo "Successfully processed job.\n";
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 echo "Failed to process job: " . $e->getMessage() . "\n";
                 // In a production app, push this back to a "failed_jobs" queue here.
             }

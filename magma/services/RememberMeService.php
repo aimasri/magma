@@ -2,7 +2,7 @@
 
 namespace Magma\services;
 
-use Magma\models\UserTokenRepositoryInterface;
+use Magma\models\RememberTokenRepository;
 
 /**
  * Persistent Authentication Service (Remember Me)
@@ -24,9 +24,9 @@ use Magma\models\UserTokenRepositoryInterface;
  */
 class RememberMeService
 {
-    protected UserTokenRepositoryInterface $userTokenRepository;
+    protected RememberTokenRepository $userTokenRepository;
 
-    public function __construct(UserTokenRepositoryInterface $userTokenRepository)
+    public function __construct(RememberTokenRepository $userTokenRepository)
     {
         $this->userTokenRepository = $userTokenRepository;
     }

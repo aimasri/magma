@@ -14,7 +14,7 @@ use Magma\modules\Inventory\jobs\UpdateInventoryTotalsJob;
  * - Act as the Domain Service for orchestrating inventory movements.
  * - Serve as the gateway for the CQRS write-pipeline.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Controllers should not coordinate the complex dance of inserting a transaction 
  *   and firing a background queue job. By wrapping this in a Service, we make it 
  *   re-usable across Web Controllers, API endpoints, and CLI scripts.
@@ -29,6 +29,12 @@ class InventoryService
     private InventoryLedgerRepositoryInterface $ledgerRepository;
     private QueueInterface $queue;
 
+    /**
+     * Initializes the service with its required dependencies.
+     *
+     * @param InventoryLedgerRepositoryInterface $ledgerRepository Data store for transactions.
+     * @param QueueInterface $queue System for async job dispatch.
+     */
     public function __construct(
         InventoryLedgerRepositoryInterface $ledgerRepository,
         QueueInterface $queue

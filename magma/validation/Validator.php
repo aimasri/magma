@@ -18,7 +18,7 @@ use Magma\validation\rules\ConfirmedRule;
  * - Dynamically parse rules and execute corresponding validation methods from a registry.
  * - Collect and structure all validation failures into an error array.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - By transitioning to a rule registry map of callables, the Validator adheres 
  *   strictly to the Open/Closed Principle. It is closed for modification (no need 
  *   to edit this class to add rules) but completely open for extension (via the `extend` method).
@@ -33,6 +33,9 @@ class Validator
     protected array $data = []; // Store data for rules that need full context
     private array $rules = [];
 
+    /**
+     * Initializes the Validator with a default set of common validation rules.
+     */
     public function __construct()
     {
         // Register default rules
@@ -117,11 +120,22 @@ class Validator
         }
     }
 
+    /**
+     * Retrieves the array of collected validation errors.
+     * 
+     * @return array Map of field names to their respective error messages.
+     */
     public function getErrors(): array
     {
         return $this->errors;
     }
 
+    /**
+     * Adds an error message for a specific field if one does not already exist.
+     * 
+     * @param string $field The field that failed validation.
+     * @param string $message The failure message.
+     */
     protected function addError(string $field, string $message): void
     {
         if (!isset($this->errors[$field])) {

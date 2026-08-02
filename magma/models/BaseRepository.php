@@ -46,6 +46,20 @@ abstract class BaseRepository
     /**
      * Executes a single bulk INSERT statement.
      * 
+     * Purpose:
+     * - Mass-inserts records into the database with high efficiency.
+     *
+     * Execution Flow:
+     * 1. Split the massive `$rows` array into safe chunk sizes to avoid query limits.
+     * 2. Begin a transaction on the Write connection.
+     * 3. Dynamically construct a massive parameterized INSERT string for each chunk.
+     * 4. Execute the insert, commit if all chunks succeed, rollback on failure.
+     *
+     * Logic behind the logic:
+     * - Using explicit chunking and a single transaction massively reduces round-trips 
+     *   to the database. The 65,000 parameter limit calculation guarantees we never hit 
+     *   PDO's internal placeholder ceiling.
+     *
      * @param string $table The table name.
      * @param array $columns An array of column names.
      * @param array $rows A multi-dimensional array of row values corresponding to the columns.

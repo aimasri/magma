@@ -24,8 +24,6 @@ namespace Magma\view;
  */
 class TemplateEngine
 {
-    /** @var ViewLoaderInterface */
-    private ViewLoaderInterface $loader;
 
     /** @var string Root directory for specific page templates. */
     private string $viewsPath;
@@ -60,9 +58,8 @@ class TemplateEngine
      *   the application root. Normalizing the paths here ensures developers 
      *   don't have to worry about whether they included a trailing slash.
      */
-    public function __construct(ViewLoaderInterface $loader, string $viewsPath = '', string $layoutPath = '')
+    public function __construct(string $viewsPath = '', string $layoutPath = '')
     {
-        $this->loader = $loader;
         $this->viewsPath = rtrim($viewsPath, '/\\') . DIRECTORY_SEPARATOR;
         if (!empty($layoutPath)) {
             $this->layoutPath = rtrim($layoutPath, '/\\') . DIRECTORY_SEPARATOR;
@@ -118,21 +115,20 @@ class TemplateEngine
         $templateFile = $this->viewsPath . $template . '.php';
         
         if (!isset(self::$pathCache[$templateFile])) {
-            self::$pathCache[$templateFile] = $this->loader->exists($templateFile);
+            self::$pathCache[$templateFile] = file_exists($templateFile);
         }
 
         if (!self::$pathCache[$templateFile]) {
             throw new \RuntimeException("View file not found: {$templateFile}");
         }
 
-        // Defer loading to the injected loader
-        $content = $this->loader->load($templateFile, $data);
+        $content = $this->loadFile($templateFile, $data);
 
         if ($layout && !empty($this->layoutPath)) {
             $layoutFile = $this->layoutPath . $layout . '.php';
             
             if (!isset(self::$pathCache[$layoutFile])) {
-                self::$pathCache[$layoutFile] = $this->loader->exists($layoutFile);
+                self::$pathCache[$layoutFile] = file_exists($layoutFile);
             }
 
             if (!self::$pathCache[$layoutFile]) {
@@ -140,7 +136,7 @@ class TemplateEngine
             }
             
             $data['content'] = $content;
-            $finalContent = $this->loader->load($layoutFile, $data);
+            $finalContent = $this->loadFile($layoutFile, $data);
 
             return $finalContent;
         }
@@ -173,7 +169,7 @@ class TemplateEngine
         $templateFile = $path . $template . '.php';
 
         if (!isset(self::$pathCache[$templateFile])) {
-            self::$pathCache[$templateFile] = $this->loader->exists($templateFile);
+            self::$pathCache[$templateFile] = file_exists($templateFile);
         }
 
         if (!self::$pathCache[$templateFile]) {
@@ -182,7 +178,19 @@ class TemplateEngine
 
         $data = array_merge($this->sharedData, $this->viewData, $data);
         $data['engine'] = $this;
-        echo $this->loader->load($templateFile, $data);
+        echo $this->loadFile($templateFile, $data);
+    }
+
+    private function loadFile(string $path, array $data): string
+    {
+        ob_start();
+        try {
+            require $path;
+            return ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level() > 0) ob_end_clean();
+            throw $e;
+        }
     }
 
     /**

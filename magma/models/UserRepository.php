@@ -69,6 +69,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * Purpose:
      * - Fetches user details based on internal ID rather than email.
      *
+     * Logic behind the logic:
+     * - Consistent with `findByEmail`, this intentionally omits the password hash to maintain strict security boundaries for general data loads.
+     *
      * @param int $id The user's ID.
      * @return array|null Associative array of user details, or null if missing.
      */
@@ -90,6 +93,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * 2. Executes the query using the Write connection.
      * 3. Returns the newly generated primary key.
      *
+     * Logic behind the logic:
+     * - By enforcing a typed domain entity `UserRegistration`, we guarantee the caller has already satisfied validation constraints before writing to DB.
+     *
      * @param \Magma\domain\UserRegistration $registration The encapsulated registration data.
      * @return int The ID of the newly created user.
      */
@@ -110,6 +116,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * Purpose:
      * - Modifies the password hash for a specific user after a password reset 
      *   or a manual password change request.
+     *
+     * Logic behind the logic:
+     * - Modifying credentials shouldn't invoke the entire update mechanism of the model. 
+     *   A strict, isolated method prevents unintentional overwriting of other user fields.
      *
      * @param int $userId The primary key of the user.
      * @param string $hashedPassword The new pre-hashed password.

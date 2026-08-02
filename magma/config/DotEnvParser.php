@@ -25,6 +25,20 @@ class DotEnvParser
     /**
      * Parses a .env file and returns an associative array of key-value pairs.
      * 
+     * Execution Flow:
+     * 1. Checks if the file is readable.
+     * 2. Guards against excessively large files to prevent memory exhaustion.
+     * 3. Reads the file line by line, skipping comments and empty lines.
+     * 4. Splits each line into a key and value based on the first '=' character.
+     * 5. Strips surrounding quotes from the value if present.
+     * 6. Returns the accumulated key-value pairs.
+     *
+     * Logic behind the logic:
+     * - Reading line-by-line and splitting precisely on the first '=' ensures that 
+     *   environment variables with equal signs in their values (like base64 strings) 
+     *   are not improperly truncated. The memory guard prevents malicious or accidental 
+     *   large files from crashing the application during boot.
+     * 
      * @param string $path Path to the .env file.
      * @return array<string, string>
      */

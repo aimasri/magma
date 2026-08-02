@@ -4,22 +4,19 @@ namespace Magma\jobs;
 
 use Magma\queue\JobInterface;
 use Magma\services\MailerService;
+use Magma\mail\WelcomeEmail;
 
 /**
- * Send Welcome Email Job
+ * Title: Send Welcome Email Job
  *
  * Purpose:
- * - Handle the asynchronous dispatch of the welcome email for new users.
+ * - Handles the asynchronous dispatch of the welcome email for new users.
  *
- * Why / Why this design:
- * - By decoupling the registration flow from the email dispatch, the user 
- *   experiences a rapid signup process. The queue handles the heavy lifting 
- *   of communicating with the SMTP server in the background.
- * 
+ * Why this design:
+ * - By decoupling the registration flow from the email dispatch, the user experiences a rapid signup process. The queue handles the heavy lifting of communicating with the SMTP server in the background.
+ *
  * Teaching notes:
- * - This class perfectly demonstrates the Open/Closed Principle. We added 
- *   new background functionality without needing to modify the `bin/worker.php` 
- *   daemon at all.
+ * - This class perfectly demonstrates the Open/Closed Principle. We added new background functionality without needing to modify the `bin/worker.php` daemon at all.
  */
 class SendWelcomeEmailJob implements JobInterface
 {
@@ -43,9 +40,11 @@ class SendWelcomeEmailJob implements JobInterface
      */
     public function handle(array $payload): void
     {
-        $this->mailerService->sendWelcomeEmail(
+        $mailable = new WelcomeEmail($payload['to_name']);
+        
+        $this->mailerService->sendMailable(
             $payload['to_email'],
-            $payload['to_name']
+            $mailable
         );
     }
 }

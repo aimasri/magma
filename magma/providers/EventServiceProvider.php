@@ -35,6 +35,19 @@ class EventServiceProvider implements ServiceProviderInterface
         ],
     ];
 
+    /**
+     * Registers the event listeners into the application's event dispatcher.
+     * 
+     * Execution Flow:
+     * 1. Resolves the EventDispatcherInterface from the dependency injection container.
+     * 2. Iterates over the predefined `$listen` array mapping events to listeners.
+     * 3. Registers each listener string to its corresponding event on the dispatcher.
+     * 
+     * Logic behind the logic:
+     * - Centralizing listener registration here keeps bootstrap code clean and separates event configuration from dispatcher implementation.
+     * 
+     * @param Container $container The dependency injection container.
+     */
     public function register(Container $container): void
     {
         $dispatcher = $container->get(EventDispatcherInterface::class);

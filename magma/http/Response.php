@@ -3,21 +3,17 @@
 namespace Magma\http;
 
 /**
- * HTTP Response Abstraction
+ * Title: HTTP Response Abstraction
  *
  * Purpose:
- * - Encapsulate HTTP status codes, response headers, and the HTML/JSON payload.
- * - Provide a fluent API for modifying responses before transmission.
+ * - Encapsulates HTTP status codes, response headers, and the HTML/JSON payload.
+ * - Provides a fluent API for modifying responses before transmission.
  *
- * Why / Why this design:
- * - Returning a `Response` object instead of using `echo` or `header()` immediately 
- *   allows middleware layers to intercept and modify the output (e.g., adding CORS headers 
- *   or GZIP compression) before anything is sent over the wire.
+ * Why this design:
+ * - Returning a `Response` object instead of using `echo` or `header()` immediately allows middleware layers to intercept and modify the output (e.g., adding CORS headers or GZIP compression) before anything is sent over the wire.
  *
  * Teaching notes:
- * - Modern frameworks separate the "creation" of a response from the "emission" of it. 
- *   This is why the `send()` method is only called once, at the very end of the Application 
- *   lifecycle, preventing "headers already sent" errors.
+ * - Modern frameworks separate the "creation" of a response from the "emission" of it. This is why the `send()` method is only called once, at the very end of the Application lifecycle, preventing "headers already sent" errors.
  */
 class Response
 {

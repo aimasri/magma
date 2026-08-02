@@ -19,6 +19,22 @@ use Magma\http\RedirectResponse;
  */
 class GuestMiddleware implements MiddlewareInterface
 {
+    /**
+     * Filters the request to ensure the user is an unauthenticated guest.
+     * 
+     * Execution Flow:
+     * 1. Extracts the user state from the current session.
+     * 2. If a user is found, their 'role' is evaluated.
+     * 3. Vendors are redirected to the '/admin' dashboard, while standard users go to '/user'.
+     * 4. If no user is found, the guest is allowed to proceed to the requested route.
+     * 
+     * Logic behind the logic:
+     * This middleware acts as a UX optimization and a defensive measure against authenticated users inadvertently submitting guest-only forms like registration or login, which could pollute session state.
+     * 
+     * @param Request $request
+     * @param callable $next
+     * @return Response
+     */
     public function process(Request $request, callable $next): Response
     {
         $user = $request->session('user');

@@ -35,6 +35,12 @@ class Pipeline
 
     /**
      * Set the object being sent through the pipeline.
+     *
+     * Logic behind the logic:
+     * - Stores the primary payload (e.g., an HTTP request) that will be mutated or inspected by each pipe.
+     *
+     * @param mixed $passable The object to pass through the pipeline.
+     * @return self
      */
     public function send(mixed $passable): self
     {
@@ -44,6 +50,12 @@ class Pipeline
 
     /**
      * Set the array of pipes.
+     *
+     * Logic behind the logic:
+     * - Accepts the layers (middleware/handlers) that the passable must travel through, allowing dynamic configuration of the pipeline.
+     *
+     * @param array $pipes The array of middleware/pipes.
+     * @return self
      */
     public function through(array $pipes): self
     {
@@ -53,6 +65,12 @@ class Pipeline
 
     /**
      * Set the method to call on the pipes.
+     *
+     * Logic behind the logic:
+     * - Allows flexibility in the interface of the pipes. While 'process' or 'handle' are common, this makes the pipeline completely agnostic.
+     *
+     * @param string $method The method name to invoke on each pipe.
+     * @return self
      */
     public function via(string $method): self
     {
@@ -84,6 +102,15 @@ class Pipeline
 
     /**
      * Get a Closure that represents a slice of the application onion.
+     *
+     * Execution Flow:
+     * 1. Returns a closure that wraps the current pipe and the next closure.
+     * 2. When executed, it calls the specified method on the current pipe, passing the passable payload and the next layer.
+     *
+     * Logic behind the logic:
+     * - This creates the recursive nested structure necessary for the Onion architecture. Each slice acts as a wrapper around the core, allowing pre- and post-processing of the payload.
+     *
+     * @return \Closure
      */
     private function getSlice(): \Closure
     {

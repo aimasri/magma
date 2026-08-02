@@ -9,7 +9,7 @@ namespace Magma\modules\Inventory\models;
  * - Handle the Write Model (Command) for the CQRS inventory architecture.
  * - Append immutable transactions to the `inventory_transactions` ledger.
  *
- * Why / Why this design:
+ * Why/Why this design:
  * - Separating the ledger (write) from the totals (read) ensures that inserting 
  *   a transaction is incredibly fast (append-only) and avoids database locking 
  *   issues that occur when concurrently updating a shared 'totals' row.

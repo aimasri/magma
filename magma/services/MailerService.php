@@ -3,6 +3,7 @@
 namespace Magma\services;
 
 use Magma\view\TemplateEngine;
+use Magma\mail\MailableInterface;
 
 /**
  * Transactional Email Abstraction
@@ -23,60 +24,38 @@ use Magma\view\TemplateEngine;
  */
 class MailerService
 {
-    protected array $config;
-    protected TemplateEngine $templateEngine;
+    private TemplateEngine $templateEngine;
+    private MailTransportInterface $transport;
+    private array $config;
 
-    public function __construct(TemplateEngine $templateEngine, array $config)
+    /**
+     * @param TemplateEngine $templateEngine Used to compile HTML templates.
+     * @param MailTransportInterface $transport Used to send emails.
+     * @param array $config Must contain 'from_email' and 'from_name'.
+     */
+    public function __construct(TemplateEngine $templateEngine, MailTransportInterface $transport, array $config)
     {
         $this->templateEngine = $templateEngine;
+        $this->transport = $transport;
         $this->config = $config;
     }
 
     /**
-     * Dispatches a recovery email to the user.
-     * 
-     * It constructs a multipart HTML message. Note that success here means the 
-     * message was accepted by the local MTA; it does not guarantee final 
-     * inbox delivery, which depends on server reputation and SPF/DKIM 
-     * configurations.
-     */
-    public function sendPasswordResetEmail(string $toEmail, string $toName, string $resetLink): bool
-    {
-        $subject = 'Password Reset Request for Magma Framework';
-
-        /**
-         * HTML Email Body
-         * 
-         * Render the email view template. The third parameter 'null' ensures 
-         * the global website layout is bypassed.
-         */
-        $body = $this->templateEngine->render('emails/password_reset', [
-            'toName' => $toName,
-            'resetLink' => $resetLink
-        ], null);
-
-        return $this->send($toEmail, $subject, $body);
-    }
-
-    /**
-     * Dispatches a welcome email to a newly registered user.
+     * Dispatches a mailable email object.
      * 
      * Execution Flow:
-     * 1. Set the email subject and standard headers.
-     * 2. Render the `emails/welcome.php` view into an HTML string.
+     * 1. Retrieve the subject from the mailable.
+     * 2. Render the HTML body using the TemplateEngine.
      * 3. Dispatch via the local MTA.
-     * 
-     * Logic behind the logic:
-     * - Like the password reset email, we catch exceptions to ensure that an 
-     *   email failure does not crash the broader process (like a user logging in).
+     *
+     * @param string $toEmail The recipient email address.
+     * @param MailableInterface $mailable The mailable object to send.
+     * @return bool True if accepted for delivery, false otherwise.
      */
-    public function sendWelcomeEmail(string $toEmail, string $toName): bool
+    public function sendMailable(string $toEmail, MailableInterface $mailable): bool
     {
-        $subject = 'Welcome to Magma!';
-
-        $body = $this->templateEngine->render('emails/welcome', [
-            'toName' => $toName
-        ], null);
+        $subject = $mailable->getSubject();
+        $body = $mailable->renderBody($this->templateEngine);
 
         return $this->send($toEmail, $subject, $body);
     }
@@ -101,25 +80,13 @@ class MailerService
      */
     private function send(string $toEmail, string $subject, string $body): bool
     {
-        try {
-            // Standard headers for HTML email delivery
-            $headers = "From: {$this->config['from_name']} <{$this->config['from_email']}>\r\n";
-            $headers .= "Reply-To: {$this->config['from_email']}\r\n";
-            $headers .= "MIME-Version: 1.0\r\n";
-            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $headers = [
+            'From' => "{$this->config['from_name']} <{$this->config['from_email']}>",
+            'Reply-To' => $this->config['from_email'],
+            'MIME-Version' => '1.0',
+            'Content-Type' => 'text/html; charset=UTF-8'
+        ];
 
-            // The mail() function returns true on success, false on failure.
-            // Note: Success only means the email was accepted by the local MTA, not necessarily delivered.
-            $success = mail($toEmail, $subject, $body, $headers);
-
-            if (!$success) {
-                error_log("Email to {$toEmail} failed to be accepted by local MTA.");
-            }
-
-            return $success;
-        } catch (\Exception $e) {
-            error_log("Email to {$toEmail} failed: {$e->getMessage()}");
-            return false;
-        }
+        return $this->transport->send($toEmail, $subject, $body, $headers);
     }
 }
