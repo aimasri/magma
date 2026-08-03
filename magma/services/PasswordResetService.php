@@ -80,8 +80,8 @@ class PasswordResetService
 
         try {
             $this->transactionManager->transactional(function () use ($user, $token) {
-                $this->userTokenRepository->deleteAllPasswordResetTokensForUser($user['id']);
-                $this->userTokenRepository->createPasswordResetToken($user['id'], $token);
+                $this->userTokenRepository->deleteAllPasswordResetTokensForUser($user->getId());
+                $this->userTokenRepository->createPasswordResetToken($user->getId(), $token);
             });
         } catch (\Throwable $e) {
             error_log("Failed to create password reset token: " . $e->getMessage());
@@ -94,7 +94,7 @@ class PasswordResetService
             JobInterface::HANDLER_KEY => \Magma\jobs\SendPasswordResetEmailJob::class,
             JobInterface::PAYLOAD_KEY => [
                 'to_email' => $email,
-                'to_name' => $user['name'],
+                'to_name' => $user->getName(),
                 'reset_link' => $resetLink
             ]
         ]);

@@ -63,11 +63,12 @@ class AuthenticationService
             return AuthenticationResult::failure();
         }
 
-        $this->login($user);
-        $result = AuthenticationResult::success($user);
+        $authUser = new \Magma\domain\AuthUser($user);
+        $this->login($authUser);
+        $result = AuthenticationResult::success($authUser);
 
         if ($remember) {
-            $tokenData = $this->rememberMeService->generateToken($user['id']);
+            $tokenData = $this->rememberMeService->generateToken($authUser->getId());
             $result->withCookie('remember_user', $tokenData['token'], $tokenData['expiry']);
         }
 
@@ -120,9 +121,8 @@ class AuthenticationService
      * - By storing the user's role and ID in the session, we avoid redundant database 
      *   lookups on subsequent requests.
      */
-    public function login(array $userData): void
+    public function login(\Magma\domain\AuthUser $authUser): void
     {
-        $authUser = new \Magma\domain\AuthUser($userData);
 
         // Regenerate the session ID to prevent Session Fixation attacks.
         // This invalidates the pre-login session ID, ensuring attackers cannot hijack 

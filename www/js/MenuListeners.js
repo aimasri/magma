@@ -22,7 +22,12 @@ export class MenuListeners {
      */
     constructor(stateManager, containerElement = null) {
         this.stateManager = stateManager;
-        this.container = containerElement || document.querySelector('.sidebar') || document.body;
+        this.container = containerElement || document.querySelector('.sidebar');
+        
+        if (!this.container) {
+            throw new Error("MenuListeners requires a valid container element for event delegation.");
+        }
+        
         this.bindEvents();
     }
 

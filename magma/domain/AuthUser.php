@@ -59,6 +59,26 @@ class AuthUser
         return $this->vendorId;
     }
 
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
     /**
      * Converts the entity into an array suitable for session storage.
      *

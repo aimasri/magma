@@ -36,7 +36,7 @@ interface UserRepositoryInterface
      * @param string $email
      * @return array|null
      */
-    public function findByEmail(string $email): ?array;
+    public function findByEmail(string $email): ?\Magma\domain\AuthUser;
 
     /**
      * Retrieve a user by their email address including their password hash.
@@ -67,7 +67,7 @@ interface UserRepositoryInterface
      * @param int $id
      * @return array|null
      */
-    public function findById(int $id): ?array;
+    public function findById(int $id): ?\Magma\domain\AuthUser;
 
     /**
      * Insert a new user into the database.

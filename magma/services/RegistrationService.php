@@ -57,10 +57,10 @@ class RegistrationService
      *   catch the exception and gracefully redirect the user back to the form.
      * 
      * @param array $data The registration payload (must contain name, email, password)
-     * @return array The newly created user record.
+     * @return \Magma\domain\AuthUser The newly created user entity.
      * @throws ValidationException If the email is already registered.
      */
-    public function registerUser(array $data): array
+    public function registerUser(array $data): \Magma\domain\AuthUser
     {
         $registration = new \Magma\domain\UserRegistration($data);
         

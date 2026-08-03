@@ -85,7 +85,8 @@ class AuthController extends BaseController
         }
 
         if ($this->request->session('user')) {
-            return $this->redirectToDashboard($this->request->session('user'));
+            $sessionUser = new \Magma\domain\AuthUser($this->request->session('user'));
+            return $this->redirectToDashboard($sessionUser);
         }
 
         return $this->render('auth/login', [
@@ -99,9 +100,9 @@ class AuthController extends BaseController
      * @param array $user
      * @return RedirectResponse
      */
-    private function redirectToDashboard(array $user): RedirectResponse
+    private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
     {
-        return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user['role'] ?? null));
+        return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole() ?? null));
     }
 
     /**

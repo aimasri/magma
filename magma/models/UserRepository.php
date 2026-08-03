@@ -36,11 +36,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * - Excluding the password hash prevents highly sensitive data from accidentally 
      *   being dumped into the user's cookie/session cache payload during general lookups.
      */
-    public function findByEmail(string $email): ?array
+    public function findByEmail(string $email): ?\Magma\domain\AuthUser
     {
         $stmt = $this->dbRead->prepare("SELECT id, name, email, role FROM users WHERE email = ?");
         $stmt->execute([$email]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return $row ? new \Magma\domain\AuthUser($row) : null;
     }
 
     /**
@@ -73,13 +75,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * - Consistent with `findByEmail`, this intentionally omits the password hash to maintain strict security boundaries for general data loads.
      *
      * @param int $id The user's ID.
-     * @return array|null Associative array of user details, or null if missing.
-     */
-    public function findById(int $id): ?array
+    public function findById(int $id): ?\Magma\domain\AuthUser
     {
         $stmt = $this->dbRead->prepare("SELECT id, name, email, role FROM users WHERE id = ?");
         $stmt->execute([$id]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return $row ? new \Magma\domain\AuthUser($row) : null;
     }
 
     /**

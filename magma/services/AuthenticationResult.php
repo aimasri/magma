@@ -23,16 +23,16 @@ namespace Magma\services;
  */
 class AuthenticationResult
 {
-    private ?array $user;
+    private ?\Magma\domain\AuthUser $user;
     private array $cookiesToSet = [];
     private array $cookiesToClear = [];
 
-    public function __construct(?array $user = null)
+    public function __construct(?\Magma\domain\AuthUser $user = null)
     {
         $this->user = $user;
     }
 
-    public static function success(array $user): self
+    public static function success(\Magma\domain\AuthUser $user): self
     {
         return new self($user);
     }
@@ -47,7 +47,7 @@ class AuthenticationResult
         return $this->user !== null;
     }
 
-    public function getUser(): ?array
+    public function getUser(): ?\Magma\domain\AuthUser
     {
         return $this->user;
     }
