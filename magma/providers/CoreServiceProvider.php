@@ -14,6 +14,8 @@ use Magma\routing\Router;
 use Magma\routing\RouterInterface;
 use Magma\routing\RouteCollection;
 use Magma\routing\RouteDispatcher;
+use Magma\routing\RouteCacheInterface;
+use Magma\routing\ArrayRouteCache;
 use Magma\middleware\MiddlewareResolver;
 use Magma\routing\UrlGenerator;
 use Magma\database\DatabaseConnectionManager;
@@ -176,6 +178,14 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new MiddlewareResolver($c);
         });
 
+        $container->set(RouteCacheInterface::class, function ($c) {
+            static $cache = null;
+            if ($cache === null) {
+                $cache = new ArrayRouteCache();
+            }
+            return $cache;
+        });
+
         $container->set(RouterInterface::class, function ($c) {
             $cacheFile = ROOT_DIR . '/magma/config/routes.cache.php';
             $routesFile = ROOT_DIR . '/magma/config/routes.php';
@@ -184,8 +194,9 @@ class CoreServiceProvider implements ServiceProviderInterface
             
             $collection = new RouteCollection($routes);
             $dispatcher = new RouteDispatcher($c, $c->get(MiddlewareResolver::class));
+            $routeCache = $c->get(RouteCacheInterface::class);
             
-            return new Router($collection, $dispatcher);
+            return new Router($collection, $dispatcher, $routeCache);
         });
 
         $container->set(Router::class, function ($c) {

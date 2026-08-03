@@ -26,19 +26,21 @@ class Router implements RouterInterface
 {
     private RouteCollection $collection;
     private RouteDispatcher $dispatcher;
+    private RouteCacheInterface $cache;
     private array $compiledMegaRegexes;
-    private static array $workerCachedRegexes = [];
 
-    public function __construct(RouteCollection $collection, RouteDispatcher $dispatcher)
+    public function __construct(RouteCollection $collection, RouteDispatcher $dispatcher, RouteCacheInterface $cache)
     {
         $this->collection = $collection;
         $this->dispatcher = $dispatcher;
+        $this->cache = $cache;
         
-        if (!empty(self::$workerCachedRegexes)) {
-            $this->compiledMegaRegexes = self::$workerCachedRegexes;
+        $cached = $this->cache->get();
+        if ($cached !== null) {
+            $this->compiledMegaRegexes = $cached;
         } else {
             $this->compiledMegaRegexes = RouteCompiler::compileMegaRegexes($this->collection->getDynamicRoutes());
-            self::$workerCachedRegexes = $this->compiledMegaRegexes;
+            $this->cache->set($this->compiledMegaRegexes);
         }
     }
 
@@ -128,13 +130,22 @@ class Router implements RouterInterface
 
     private function handleMethodNotAllowedExceptions(string $requestMethod, string $requestPath): void
     {
+        $this->checkStaticRoutesForMethodNotAllowed($requestMethod, $requestPath);
+        $this->checkDynamicRoutesForMethodNotAllowed($requestMethod, $requestPath);
+    }
+
+    private function checkStaticRoutesForMethodNotAllowed(string $requestMethod, string $requestPath): void
+    {
         $staticRoutes = $this->collection->getStaticRoutes();
         foreach ($staticRoutes as $method => $paths) {
             if ($method !== $requestMethod && isset($paths[$requestPath])) {
                 throw new \Magma\routing\MethodNotAllowedException("Method Not Allowed for path: {$requestPath}", 405);
             }
         }
+    }
 
+    private function checkDynamicRoutesForMethodNotAllowed(string $requestMethod, string $requestPath): void
+    {
         $dynamicRoutes = $this->collection->getDynamicRoutes();
         foreach ($dynamicRoutes as $method => $routes) {
             if ($method === $requestMethod) continue;
