@@ -22,7 +22,9 @@ use Magma\services\PasswordResetService;
 use Magma\middleware\ViewShareMiddleware;
 
 use Magma\controllers\HomeController;
-use Magma\controllers\AuthController;
+use Magma\controllers\LoginController;
+use Magma\controllers\RegisterController;
+use Magma\controllers\LogoutController;
 use Magma\controllers\PasswordResetController;
 use Magma\controllers\PolicyController;
 use admin\controllers\VendorAdminController;
@@ -101,15 +103,36 @@ class HttpServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(AuthController::class, function ($c) {
-            return new AuthController(
+        $container->set(LoginController::class, function ($c) {
+            return new LoginController(
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
+                $c->get(\Magma\http\Session::class),
                 $c->get(Request::class),
-                $c->get(RegistrationService::class),
                 $c->get(AuthenticationService::class),
-                $c->get(UserRepositoryInterface::class),
                 $c->get(Validator::class)
+            );
+        });
+
+        $container->set(RegisterController::class, function ($c) {
+            return new RegisterController(
+                $c->get(TemplateEngine::class),
+                $c->get(\Magma\security\CsrfManager::class),
+                $c->get(\Magma\http\Session::class),
+                $c->get(Request::class),
+                $c->get(AuthenticationService::class),
+                $c->get(RegistrationService::class),
+                $c->get(Validator::class)
+            );
+        });
+
+        $container->set(LogoutController::class, function ($c) {
+            return new LogoutController(
+                $c->get(TemplateEngine::class),
+                $c->get(\Magma\security\CsrfManager::class),
+                $c->get(\Magma\http\Session::class),
+                $c->get(Request::class),
+                $c->get(AuthenticationService::class)
             );
         });
 
