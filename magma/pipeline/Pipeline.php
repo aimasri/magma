@@ -116,6 +116,9 @@ class Pipeline
     {
         return function (callable $next, object|callable $pipe) {
             return function (mixed $passable) use ($next, $pipe) {
+                if (is_callable($pipe)) {
+                    return $pipe($passable, $next);
+                }
                 return $pipe->{$this->method}($passable, $next);
             };
         };

@@ -23,6 +23,7 @@ use Magma\http\Session;
 class CsrfManager
 {
     private Session $session;
+    private const GRACE_PERIOD_COUNT = 5;
 
     public function __construct(Session $session)
     {
@@ -43,12 +44,15 @@ class CsrfManager
      */
     public function getToken(): string
     {
-        $token = $this->session->get('_csrf_token');
-        if (!$token) {
+        $tokens = $this->session->get('_csrf_token', []);
+        
+        if (empty($tokens) || !is_array($tokens)) {
             $token = bin2hex(random_bytes(32));
-            $this->session->set('_csrf_token', $token);
+            $this->session->set('_csrf_token', [$token]);
+            return $token;
         }
-        return $token;
+        
+        return end($tokens);
     }
 
     /**
@@ -66,9 +70,19 @@ class CsrfManager
      */
     public function validateToken(string $submittedToken): bool
     {
-        $validToken = $this->session->get('_csrf_token');
+        $validTokens = $this->session->get('_csrf_token', []);
         
-        return is_string($validToken) && !empty($submittedToken) && hash_equals($validToken, $submittedToken);
+        if (!is_array($validTokens) || empty($submittedToken)) {
+            return false;
+        }
+
+        foreach ($validTokens as $validToken) {
+            if (is_string($validToken) && hash_equals($validToken, $submittedToken)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -86,7 +100,19 @@ class CsrfManager
      */
     public function regenerateToken(): void
     {
-        $this->session->set('_csrf_token', bin2hex(random_bytes(32)));
+        $tokens = $this->session->get('_csrf_token', []);
+        
+        if (!is_array($tokens)) {
+            $tokens = [];
+        }
+        
+        $tokens[] = bin2hex(random_bytes(32));
+        
+        if (count($tokens) > self::GRACE_PERIOD_COUNT) {
+            $tokens = array_slice($tokens, -self::GRACE_PERIOD_COUNT);
+        }
+        
+        $this->session->set('_csrf_token', $tokens);
     }
 
     /**
