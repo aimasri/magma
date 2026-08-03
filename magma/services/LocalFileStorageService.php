@@ -47,20 +47,30 @@ class LocalFileStorageService implements StorageInterface
      */
     private function getFullPath(string $path): string
     {
-        $requestedPath = $this->basePath . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
+        if (str_contains($path, "\0")) {
+            throw new RuntimeException("Invalid path provided: null byte detected.");
+        }
+
+        $path = str_replace('\\', '/', ltrim($path, '/\\'));
+        $parts = explode('/', $path);
         
-        $directory = realpath(dirname($requestedPath));
-        if ($directory === false) {
-            throw new RuntimeException("Invalid path provided: directory does not exist.");
+        $safeParts = [];
+        foreach ($parts as $part) {
+            if ($part === '' || $part === '.') {
+                continue;
+            }
+            if ($part === '..') {
+                if (count($safeParts) > 0) {
+                    array_pop($safeParts);
+                } else {
+                    throw new RuntimeException("Invalid path provided: path traversal detected.");
+                }
+            } else {
+                $safeParts[] = $part;
+            }
         }
         
-        $realPath = $directory . DIRECTORY_SEPARATOR . basename($requestedPath);
-        
-        if (!str_starts_with($realPath, $this->basePath)) {
-            throw new RuntimeException("Invalid path provided: path traversal detected.");
-        }
-        
-        return $realPath;
+        return $this->basePath . DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $safeParts);
     }
 
     /**

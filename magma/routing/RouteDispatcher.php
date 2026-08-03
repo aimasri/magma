@@ -86,6 +86,8 @@ class RouteDispatcher
 
                         if (array_key_exists($name, $params)) {
                             $args[] = $params[$name];
+                        } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
+                            $args[] = $request;
                         } elseif ($className && $this->container->has($className)) {
                             $args[] = $this->container->get($className);
                         } elseif ($meta['hasDefault']) {
@@ -97,19 +99,35 @@ class RouteDispatcher
                     return $controller->$action(...$args);
                 }
                 
-                $ref = new \ReflectionFunction($handler);
+                $cacheKey = 'closure_' . spl_object_hash($handler);
+                if (!isset(self::$reflectionCache[$cacheKey])) {
+                    $ref = new \ReflectionFunction($handler);
+                    $meta = [];
+                    foreach ($ref->getParameters() as $param) {
+                        $type = $param->getType();
+                        $meta[] = [
+                            'name' => $param->getName(),
+                            'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
+                            'hasDefault' => $param->isDefaultValueAvailable(),
+                            'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
+                        ];
+                    }
+                    self::$reflectionCache[$cacheKey] = $meta;
+                }
+
                 $args = [];
-                foreach ($ref->getParameters() as $param) {
-                    $name = $param->getName();
-                    $type = $param->getType();
-                    $className = $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null;
+                foreach (self::$reflectionCache[$cacheKey] as $meta) {
+                    $name = $meta['name'];
+                    $className = $meta['class'];
 
                     if (array_key_exists($name, $params)) {
                         $args[] = $params[$name];
+                    } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
+                        $args[] = $request;
                     } elseif ($className && $this->container->has($className)) {
                         $args[] = $this->container->get($className);
-                    } elseif ($param->isDefaultValueAvailable()) {
-                        $args[] = $param->getDefaultValue();
+                    } elseif ($meta['hasDefault']) {
+                        $args[] = $meta['default'];
                     } else {
                         $args[] = null;
                     }

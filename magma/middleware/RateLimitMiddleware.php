@@ -59,10 +59,12 @@ class RateLimitMiddleware implements MiddlewareInterface
     {
         // Extract IP address; falling back to a default string if unavailable
         $ip = $request->server('REMOTE_ADDR') ?? '0.0.0.0';
+        $uri = $request->server('REQUEST_URI') ?? '/';
+        $key = $ip . ':' . $uri;
 
         // Record the attempt atomically FIRST to close the race window
         // The limiter returns the new count, saving us a second GET trip.
-        $currentAttempts = $this->limiter->hit($ip, $this->decaySeconds);
+        $currentAttempts = $this->limiter->hit($key, $this->decaySeconds);
 
         if ($currentAttempts > $this->maxAttempts) {
             // Threshold exceeded

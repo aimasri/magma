@@ -83,7 +83,7 @@ class Validator
             $fieldRules = explode('|', $ruleString);
             
             // Skip further validation if the value is empty and not required
-            if (empty($value) && !in_array('required', $fieldRules)) {
+            if (($value === null || $value === '') && !in_array('required', $fieldRules)) {
                 continue;
             }
 

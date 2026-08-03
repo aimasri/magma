@@ -23,24 +23,22 @@ use PDO;
  */
 abstract class BaseRepository
 {
-    /**
-     * @var PDO The master connection for INSERT, UPDATE, and DELETE queries.
-     */
-    protected PDO $dbWrite;
+    protected \Magma\database\DatabaseConnectionManager $dbManager;
 
-    /**
-     * @var PDO The replica connection strictly for SELECT queries.
-     */
-    protected PDO $dbRead;
-
-    /**
-     * @param PDO $dbWrite
-     * @param PDO $dbRead
-     */
-    public function __construct(PDO $dbWrite, PDO $dbRead)
+    public function __construct(\Magma\database\DatabaseConnectionManager $dbManager)
     {
-        $this->dbWrite = $dbWrite;
-        $this->dbRead = $dbRead;
+        $this->dbManager = $dbManager;
+    }
+
+    public function __get(string $name)
+    {
+        if ($name === 'dbWrite') {
+            return $this->dbManager->getWriteConnection();
+        }
+        if ($name === 'dbRead') {
+            return $this->dbManager->getReadConnection();
+        }
+        throw new \RuntimeException("Property {$name} not found");
     }
 
     /**
@@ -74,8 +72,11 @@ abstract class BaseRepository
         $colCount = count($columns);
         $columnList = implode(', ', $columns);
 
-        $this->dbWrite->beginTransaction();
-
+        $isNested = $this->dbWrite->inTransaction();
+        if (!$isNested) {
+            $this->dbWrite->beginTransaction();
+        }
+        
         try {
             $maxAllowedChunk = (int) floor(65000 / $colCount);
             $safeChunkSize = min($chunkSize, $maxAllowedChunk);
@@ -100,10 +101,14 @@ abstract class BaseRepository
                 $stmt->execute($flatValues);
             }
 
-            $this->dbWrite->commit();
+            if (!$isNested) {
+                $this->dbWrite->commit();
+            }
         } catch (\Throwable $e) {
-            $this->dbWrite->rollBack();
-            throw clone $e; // Rethrow while preserving stack trace
+            if (!$isNested) {
+                $this->dbWrite->rollBack();
+            }
+            throw $e;
         }
     }
 }

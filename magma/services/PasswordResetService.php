@@ -8,6 +8,7 @@ use Magma\queue\QueueInterface;
 use Magma\routing\UrlGenerator;
 use Magma\enums\PasswordResetStatus;
 use Magma\database\TransactionManagerInterface;
+use Magma\models\RememberTokenRepository;
 
 /**
  * Password Reset Domain Service
@@ -33,6 +34,7 @@ class PasswordResetService
 {
     protected UserRepositoryInterface $userRepository;
     protected PasswordResetTokenRepository $userTokenRepository;
+    protected RememberTokenRepository $rememberTokenRepository;
     protected QueueInterface $queue;
     protected UrlGenerator $urlGenerator;
     protected TransactionManagerInterface $transactionManager;
@@ -40,12 +42,14 @@ class PasswordResetService
     public function __construct(
         UserRepositoryInterface $userRepository,
         PasswordResetTokenRepository $userTokenRepository,
+        RememberTokenRepository $rememberTokenRepository,
         QueueInterface $queue,
         UrlGenerator $urlGenerator,
         TransactionManagerInterface $transactionManager
     ) {
         $this->userRepository = $userRepository;
         $this->userTokenRepository = $userTokenRepository;
+        $this->rememberTokenRepository = $rememberTokenRepository;
         $this->queue = $queue;
         $this->urlGenerator = $urlGenerator;
         $this->transactionManager = $transactionManager;
@@ -154,6 +158,7 @@ class PasswordResetService
             return $this->transactionManager->transactional(function () use ($record, $hashed, $resetToken) {
                 $this->userRepository->updatePassword($record['user_id'], $hashed);
                 $this->userTokenRepository->deletePasswordResetToken($resetToken->getHashedToken());
+                $this->rememberTokenRepository->deleteAllRememberTokensForUser($record['user_id']);
                 return PasswordResetStatus::SUCCESS;
             });
         } catch (\Exception $e) {

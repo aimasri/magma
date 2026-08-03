@@ -22,12 +22,20 @@ use Magma\security\TenantContext;
  */
 abstract class BaseCommandRepository
 {
-    protected \PDO $db;
+    protected DatabaseConnectionManager $dbManager;
     protected TenantContext $tenantContext;
 
     public function __construct(DatabaseConnectionManager $dbManager, TenantContext $tenantContext)
     {
-        $this->db = $dbManager->getWriteConnection();
+        $this->dbManager = $dbManager;
         $this->tenantContext = $tenantContext;
+    }
+
+    public function __get(string $name)
+    {
+        if ($name === 'db') {
+            return $this->dbManager->getWriteConnection();
+        }
+        throw new \RuntimeException("Property {$name} not found");
     }
 }

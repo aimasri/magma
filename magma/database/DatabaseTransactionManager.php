@@ -24,11 +24,11 @@ use Throwable;
  */
 class DatabaseTransactionManager implements TransactionManagerInterface
 {
-    private PDO $dbWrite;
+    private DatabaseConnectionManager $dbManager;
 
-    public function __construct(PDO $dbWrite)
+    public function __construct(DatabaseConnectionManager $dbManager)
     {
-        $this->dbWrite = $dbWrite;
+        $this->dbManager = $dbManager;
     }
 
     /**
@@ -51,23 +51,24 @@ class DatabaseTransactionManager implements TransactionManagerInterface
      */
     public function transactional(callable $callback): mixed
     {
-        $isNested = $this->dbWrite->inTransaction();
+        $dbWrite = $this->dbManager->getWriteConnection();
+        $isNested = $dbWrite->inTransaction();
 
         if (!$isNested) {
-            $this->dbWrite->beginTransaction();
+            $dbWrite->beginTransaction();
         }
 
         try {
             $result = $callback();
             
             if (!$isNested) {
-                $this->dbWrite->commit();
+                $dbWrite->commit();
             }
             
             return $result;
         } catch (Throwable $e) {
             if (!$isNested) {
-                $this->dbWrite->rollBack();
+                $dbWrite->rollBack();
             }
             throw $e;
         }

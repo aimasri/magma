@@ -52,7 +52,7 @@ class RouteCompiler
                 
                 $regexes[] = $pattern . '(*MARK:' . $index . ')';
             }
-            $compiledMegaRegexes[$method] = '#^(?:' . implode('|', $regexes) . ')$#';
+            $compiledMegaRegexes[$method] = '#^(?J)(?:' . implode('|', $regexes) . ')$#';
         }
         return $compiledMegaRegexes;
     }

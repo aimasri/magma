@@ -23,7 +23,6 @@ use Magma\http\Session;
 class CsrfManager
 {
     private Session $session;
-    private const GRACE_PERIOD_COUNT = 2;
 
     public function __construct(Session $session)
     {
@@ -44,12 +43,12 @@ class CsrfManager
      */
     public function getToken(): string
     {
-        $csrfTokens = $this->session->get('_csrf_tokens', []);
-        if (empty($csrfTokens)) {
-            $csrfTokens[] = bin2hex(random_bytes(32));
-            $this->session->set('_csrf_tokens', $csrfTokens);
+        $token = $this->session->get('_csrf_token');
+        if (!$token) {
+            $token = bin2hex(random_bytes(32));
+            $this->session->set('_csrf_token', $token);
         }
-        return end($csrfTokens);
+        return $token;
     }
 
     /**
@@ -67,16 +66,9 @@ class CsrfManager
      */
     public function validateToken(string $submittedToken): bool
     {
-        $csrfTokens = $this->session->get('_csrf_tokens', []);
-        foreach ($csrfTokens as $index => $validToken) {
-            if (is_string($validToken) && !empty($submittedToken) && hash_equals($validToken, $submittedToken)) {
-                // Consume the token to prevent replay attacks
-                unset($csrfTokens[$index]);
-                $this->session->set('_csrf_tokens', array_values($csrfTokens));
-                return true;
-            }
-        }
-        return false;
+        $validToken = $this->session->get('_csrf_token');
+        
+        return is_string($validToken) && !empty($submittedToken) && hash_equals($validToken, $submittedToken);
     }
 
     /**
@@ -92,14 +84,9 @@ class CsrfManager
      * - Limiting the array size prevents session bloat, while still providing UX grace for 
      *   multi-tab forms.
      */
-    public function rotateToken(): void
+    public function regenerateToken(): void
     {
-        $csrfTokens = $this->session->get('_csrf_tokens', []);
-        $csrfTokens[] = bin2hex(random_bytes(32));
-        if (count($csrfTokens) > self::GRACE_PERIOD_COUNT) {
-            $csrfTokens = array_slice($csrfTokens, -self::GRACE_PERIOD_COUNT);
-        }
-        $this->session->set('_csrf_tokens', $csrfTokens);
+        $this->session->set('_csrf_token', bin2hex(random_bytes(32)));
     }
 
     /**

@@ -54,23 +54,23 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(\Magma\models\SiteReviewRepositoryInterface::class, function ($c) {
-            return new SiteReviewRepository($c->get('db.write'), $c->get('db.read'));
+            return new SiteReviewRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
         });
 
         $container->set(UserRepositoryInterface::class, function ($c) {
-            return new UserRepository($c->get('db.write'), $c->get('db.read'));
+            return new UserRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
         });
 
         $container->set(RememberTokenRepository::class, function ($c) {
-            return new RememberTokenRepository($c->get('db.write'), $c->get('db.read'));
+            return new RememberTokenRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
         });
 
         $container->set(PasswordResetTokenRepository::class, function ($c) {
-            return new PasswordResetTokenRepository($c->get('db.write'), $c->get('db.read'));
+            return new PasswordResetTokenRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
         });
 
         $container->set(TransactionManagerInterface::class, function ($c) {
-            return new DatabaseTransactionManager($c->get('db.write'));
+            return new DatabaseTransactionManager($c->get(\Magma\database\DatabaseConnectionManager::class));
         });
     }
 }

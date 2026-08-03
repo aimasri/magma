@@ -55,8 +55,8 @@ class PasswordResetController extends BaseController
      */
     public function forgotPassword(): Response
     {
-        $status = $this->request->flash('reset_status');
-        $error = $this->request->flash('reset_error');
+        $status = $this->session->flash('reset_status');
+        $error = $this->session->flash('reset_error');
 
         return $this->render('auth/forgot_password', [
             'title'   => 'Forgot Password',
@@ -117,9 +117,9 @@ class PasswordResetController extends BaseController
     public function resetPasswordForm(): Response
     {
         $token = $this->request->query('token');
-        $error = $this->request->flash('reset_error');
+        $error = $this->session->flash('reset_error');
 
-        if (!$this->passwordResetService->validateToken($token)) {
+        if (empty($token) || !is_string($token) || !$this->passwordResetService->validateToken($token)) {
             return $this->render('auth/forgot_password', ['title' => 'Forgot Password', 'error' => 'Invalid or expired token.', 'status' => null]);
         }
 

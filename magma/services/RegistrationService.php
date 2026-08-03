@@ -64,12 +64,19 @@ class RegistrationService
     {
         $registration = new \Magma\domain\UserRegistration($data);
         
-        if ($this->userRepository->findByEmail($registration->getEmail())) {
-            throw new ValidationException(['email' => 'This email is already registered.']);
-        }
-        
         return $this->transactionManager->transactional(function () use ($registration) {
-            $userId = $this->userRepository->create($registration);
+            if ($this->userRepository->findByEmail($registration->getEmail())) {
+                throw new ValidationException(['email' => 'This email is already registered.']);
+            }
+
+            try {
+                $userId = $this->userRepository->create($registration);
+            } catch (\PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    throw new ValidationException(['email' => 'This email is already registered.']);
+                }
+                throw $e;
+            }
 
             // Fetch the newly created user
             $user = $this->userRepository->findById($userId);

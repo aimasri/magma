@@ -48,7 +48,13 @@ class InventorySyncService
         $vendors = $this->repository->getVendorIdsFromTransactions();
         
         foreach ($vendors as $vendorId) {
-            $this->queue->push(new SyncVendorInventoryJob($this->repository, $vendorId));
+            $payload = json_encode([
+                \Magma\queue\JobInterface::HANDLER_KEY => \Magma\modules\Inventory\jobs\SyncVendorInventoryJob::class,
+                \Magma\queue\JobInterface::PAYLOAD_KEY => [
+                    'vendor_id' => $vendorId
+                ]
+            ]);
+            $this->queue->push('inventory', $payload);
         }
     }
 }

@@ -27,7 +27,7 @@ class RequiredRule
      */
     public function __invoke(string $field, mixed $value, array $params, array $data): ?string
     {
-        if (empty($value) && $value !== '0') {
+        if (empty($value) && !in_array($value, [0, 0.0, '0'], true)) {
             return "The {$field} field is required.";
         }
         return null;

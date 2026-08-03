@@ -66,7 +66,8 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
                 // Timeout exceeded. Destroy session and redirect to login.
                 $this->session->destroy();
                 
-                return new \Magma\http\RedirectResponse('/login');
+                return (new \Magma\http\RedirectResponse('/login'))
+                    ->withCookie('remember_user', '', time() - 3600);
             }
 
             // Update last activity timestamp

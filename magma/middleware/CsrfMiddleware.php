@@ -64,12 +64,7 @@ class CsrfMiddleware implements MiddlewareInterface
                 return new Response("Forbidden: Invalid or missing CSRF token.", 403);
             }
 
-            // Rotate the token: Add a fresh one and discard the oldest once 
-            // the grace period limit is exceeded.
-            // Pause rotation for AJAX/API requests to prevent rapid token exhaustion.
-            if (!$request->isJsonExpected()) {
-                $this->csrfManager->rotateToken();
-            }
+
         }
 
         return $next($request);
