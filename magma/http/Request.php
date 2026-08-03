@@ -325,13 +325,14 @@ class Request implements RequestInterface
         return $this->cookies[$key] ?? $default;
     }
 
-    /**
-     * Determine if the request is over HTTPS.
-     */
     public function isSecure(): bool
     {
         $https = $this->server['HTTPS'] ?? '';
-        return (!empty($https) && strtolower($https) !== 'off') || 
-               ($this->server['SERVER_PORT'] ?? '') == 443;
+        if ((!empty($https) && strtolower($https) !== 'off') || ($this->server['SERVER_PORT'] ?? '') == 443) {
+            return true;
+        }
+
+        $forwardedProto = $this->header('X-Forwarded-Proto', '');
+        return strtolower($forwardedProto) === 'https';
     }
 }

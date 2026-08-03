@@ -81,6 +81,11 @@ class Validator
         foreach ($rules as $field => $ruleString) {
             $value = $data[$field] ?? null;
             $fieldRules = explode('|', $ruleString);
+            
+            // Skip further validation if the value is empty and not required
+            if (empty($value) && !in_array('required', $fieldRules)) {
+                continue;
+            }
 
             foreach ($fieldRules as $ruleName) {
                 $params = [];

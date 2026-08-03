@@ -50,7 +50,12 @@ class DashboardWidgetRegistry
     {
         $data = [];
         foreach ($this->widgets as $identifier => $widget) {
-            $data[$identifier] = $widget->render($vendorId);
+            try {
+                $data[$identifier] = $widget->render($vendorId);
+            } catch (\Throwable $e) {
+                // Log the error internally, but allow the rest of the dashboard to render
+                $data[$identifier] = ['error' => 'Widget temporarily unavailable'];
+            }
         }
         return $data;
     }

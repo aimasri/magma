@@ -50,19 +50,6 @@ class SubscriptionMiddleware implements MiddlewareInterface
      */
     public function process(RequestInterface $request, callable $next): Response
     {
-        // Example implementation placeholder
-        // In a real application, you would resolve the Tenant or User from the Request
-        // and check if their active subscription plan includes $this->requiredFeatures.
-
-        /*
-        $tenant = $request->getAttribute('tenant');
-        foreach ($this->requiredFeatures as $feature) {
-            if (!$tenant->hasFeature($feature)) {
-                return new Response('Payment Required: Please upgrade your subscription to access this feature.', 402);
-            }
-        }
-        */
-
-        return $next($request);
+        throw new \RuntimeException("Subscription gating is not yet implemented.");
     }
 }

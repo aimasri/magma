@@ -49,12 +49,15 @@ class LocalFileStorageService implements StorageInterface
     {
         $requestedPath = $this->basePath . DIRECTORY_SEPARATOR . ltrim($path, '/\\');
         
-        // Ensure the path resolves safely within basePath
         $directory = realpath(dirname($requestedPath));
-        $realPath = $directory !== false ? $directory . DIRECTORY_SEPARATOR . basename($requestedPath) : $requestedPath;
+        if ($directory === false) {
+            throw new RuntimeException("Invalid path provided: directory does not exist.");
+        }
+        
+        $realPath = $directory . DIRECTORY_SEPARATOR . basename($requestedPath);
         
         if (!str_starts_with($realPath, $this->basePath)) {
-            throw new RuntimeException("Invalid path provided.");
+            throw new RuntimeException("Invalid path provided: path traversal detected.");
         }
         
         return $realPath;

@@ -68,8 +68,11 @@ class CsrfManager
     public function validateToken(string $submittedToken): bool
     {
         $csrfTokens = $this->session->get('_csrf_tokens', []);
-        foreach ($csrfTokens as $validToken) {
+        foreach ($csrfTokens as $index => $validToken) {
             if (is_string($validToken) && !empty($submittedToken) && hash_equals($validToken, $submittedToken)) {
+                // Consume the token to prevent replay attacks
+                unset($csrfTokens[$index]);
+                $this->session->set('_csrf_tokens', array_values($csrfTokens));
                 return true;
             }
         }

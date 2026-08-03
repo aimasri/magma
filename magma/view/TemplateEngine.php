@@ -38,9 +38,6 @@ class TemplateEngine
     /** @var array Global data injected by middleware (e.g., vendor theme). */
     private array $sharedData = [];
 
-    /** @var array Cache for file existence checks to prevent redundant I/O. */
-    private static array $pathCache = [];
-
     /**
      * Initializes the engine with paths for templates and layouts.
      * 
@@ -114,11 +111,7 @@ class TemplateEngine
         $this->viewData = $data;
         $templateFile = $this->viewsPath . $template . '.php';
         
-        if (!isset(self::$pathCache[$templateFile])) {
-            self::$pathCache[$templateFile] = file_exists($templateFile);
-        }
-
-        if (!self::$pathCache[$templateFile]) {
+        if (!file_exists($templateFile)) {
             throw new \RuntimeException("View file not found: {$templateFile}");
         }
 
@@ -127,11 +120,7 @@ class TemplateEngine
         if ($layout && !empty($this->layoutPath)) {
             $layoutFile = $this->layoutPath . $layout . '.php';
             
-            if (!isset(self::$pathCache[$layoutFile])) {
-                self::$pathCache[$layoutFile] = file_exists($layoutFile);
-            }
-
-            if (!self::$pathCache[$layoutFile]) {
+            if (!file_exists($layoutFile)) {
                 throw new \RuntimeException("Layout file not found: {$layoutFile}");
             }
             
@@ -168,11 +157,7 @@ class TemplateEngine
         $path = !empty($this->layoutPath) ? $this->layoutPath : $this->viewsPath;
         $templateFile = $path . $template . '.php';
 
-        if (!isset(self::$pathCache[$templateFile])) {
-            self::$pathCache[$templateFile] = file_exists($templateFile);
-        }
-
-        if (!self::$pathCache[$templateFile]) {
+        if (!file_exists($templateFile)) {
             throw new \RuntimeException("Partial view file not found: {$templateFile}");
         }
 
@@ -183,12 +168,15 @@ class TemplateEngine
 
     private function loadFile(string $path, array $data): string
     {
+        $level = ob_get_level();
         ob_start();
         try {
             require $path;
             return ob_get_clean();
         } catch (\Throwable $e) {
-            if (ob_get_level() > 0) ob_end_clean();
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
             throw $e;
         }
     }

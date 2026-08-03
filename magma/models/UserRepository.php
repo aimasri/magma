@@ -75,6 +75,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * - Consistent with `findByEmail`, this intentionally omits the password hash to maintain strict security boundaries for general data loads.
      *
      * @param int $id The user's ID.
+     */
     public function findById(int $id): ?\Magma\domain\AuthUser
     {
         $stmt = $this->dbRead->prepare("SELECT id, name, email, role FROM users WHERE id = ?");
