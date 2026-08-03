@@ -26,10 +26,16 @@ use Magma\http\RedirectResponse;
  */
 class RoleMiddleware implements MiddlewareInterface
 {
-    private array $allowedRoles;
-    private string $redirectPath;
+    private array $allowedRoles = [];
+    private string $redirectPath = '/';
+    private \Magma\http\Session $session;
 
-    public function __construct(array|string $allowedRoles, string $redirectPath = '/')
+    public function __construct(\Magma\http\Session $session)
+    {
+        $this->session = $session;
+    }
+
+    public function configure(array|string $allowedRoles, string $redirectPath = '/'): void
     {
         $this->allowedRoles = (array) $allowedRoles;
         $this->redirectPath = $redirectPath;
@@ -51,7 +57,7 @@ class RoleMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $user = $request->session('user');
+        $user = $this->session->get('user');
         
         if (!$user || !isset($user['role']) || !in_array($user['role'], $this->allowedRoles, true)) {
             return new RedirectResponse($this->redirectPath);

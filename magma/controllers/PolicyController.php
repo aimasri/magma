@@ -19,9 +19,9 @@ use Magma\view\TemplateEngine;
  */
 class PolicyController extends BaseController
 {
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager)
+    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session)
     {
-        parent::__construct($templateEngine, $csrfManager);
+        parent::__construct($templateEngine, $csrfManager, $session);
     }
 
     /**

@@ -27,11 +27,13 @@ class ViewShareMiddleware implements MiddlewareInterface
 {
     private TemplateEngine $templateEngine;
     private VendorQueryInterface $vendorRepository;
+    private \Magma\http\Session $session;
 
-    public function __construct(TemplateEngine $templateEngine, VendorQueryInterface $vendorRepository)
+    public function __construct(TemplateEngine $templateEngine, VendorQueryInterface $vendorRepository, \Magma\http\Session $session)
     {
         $this->templateEngine = $templateEngine;
         $this->vendorRepository = $vendorRepository;
+        $this->session = $session;
     }
 
     /**
@@ -54,16 +56,16 @@ class ViewShareMiddleware implements MiddlewareInterface
 
         $this->templateEngine->share('vendor', $vendor);
         $this->templateEngine->share('tagline', $vendor ? $vendor->tagline : '');
-        $this->templateEngine->share('user', $request->session('user'));
+        $this->templateEngine->share('user', $this->session->get('user'));
 
         // Inject flash data prior to rendering
 
-        $errors = $request->session('errors', []);
-        $request->setSession('errors', null);
+        $errors = $this->session->get('errors', []);
+        $this->session->set('errors', null);
         $this->templateEngine->share('errors', $errors);
 
-        $old = $request->session('old', []);
-        $request->setSession('old', null);
+        $old = $this->session->get('old', []);
+        $this->session->set('old', null);
         $this->templateEngine->share('old', $old);
 
         return $next($request);

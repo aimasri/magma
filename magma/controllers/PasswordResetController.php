@@ -33,9 +33,9 @@ class PasswordResetController extends BaseController
     protected PasswordResetService $passwordResetService;
     protected Validator $validator;
 
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, Request $request, PasswordResetService $passwordResetService, Validator $validator)
+    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session, Request $request, PasswordResetService $passwordResetService, Validator $validator)
     {
-        parent::__construct($templateEngine, $csrfManager);
+        parent::__construct($templateEngine, $csrfManager, $session);
         $this->request = $request;
         $this->passwordResetService = $passwordResetService;
         $this->validator = $validator;
@@ -89,13 +89,13 @@ class PasswordResetController extends BaseController
         $status = $this->passwordResetService->requestReset($email);
 
         if ($status === PasswordResetStatus::SUCCESS) {
-            $this->request->setSession('reset_status', 'A reset link has been sent.');
+            $this->session->set('reset_status', 'A reset link has been sent.');
         } elseif ($status === PasswordResetStatus::USER_NOT_FOUND) {
             // Maintain security: if requestReset returns USER_NOT_FOUND, 
             // provide generic success message.
-            $this->request->setSession('reset_status', 'If an account exists, a link has been sent.');
+            $this->session->set('reset_status', 'If an account exists, a link has been sent.');
         } else {
-            $this->request->setSession('reset_error', 'Failed to send email.');
+            $this->session->set('reset_error', 'Failed to send email.');
         }
 
         return new RedirectResponse('/forgot-password');
@@ -156,14 +156,14 @@ class PasswordResetController extends BaseController
         $status = $this->passwordResetService->completeReset($token, $password);
 
         if ($status === PasswordResetStatus::SUCCESS) {
-            $this->request->setSession('reset_status', 'Password updated! Please log in.');
+            $this->session->set('reset_status', 'Password updated! Please log in.');
             return new RedirectResponse('/login');
         }
 
         if ($status === PasswordResetStatus::INVALID_TOKEN) {
-            $this->request->setSession('reset_error', 'Invalid or expired token.');
+            $this->session->set('reset_error', 'Invalid or expired token.');
         } else {
-            $this->request->setSession('reset_error', 'Failed to reset password. Please try again.');
+            $this->session->set('reset_error', 'Failed to reset password. Please try again.');
         }
         return new RedirectResponse('/forgot-password');
     }

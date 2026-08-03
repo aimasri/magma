@@ -24,6 +24,13 @@ use Magma\http\RedirectResponse;
  */
 class AuthMiddleware implements MiddlewareInterface
 {
+    private \Magma\http\Session $session;
+
+    public function __construct(\Magma\http\Session $session)
+    {
+        $this->session = $session;
+    }
+
     /**
      * Executes the middleware layer to verify authentication.
      * 
@@ -41,7 +48,7 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        if (!$request->session('user')) {
+        if (!$this->session->get('user')) {
             return new RedirectResponse('/login');
         }
         return $next($request);

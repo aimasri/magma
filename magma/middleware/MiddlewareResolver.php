@@ -66,7 +66,11 @@ class MiddlewareResolver
     {
         if (is_array($definition)) {
             $class = array_shift($definition);
-            return new $class(...$definition);
+            $instance = $this->container->get($class);
+            if (method_exists($instance, 'configure')) {
+                $instance->configure(...$definition);
+            }
+            return $instance;
         }
 
         if (is_string($definition)) {

@@ -40,7 +40,6 @@ class Request implements RequestInterface
     private array $server;
     private array $files;
     private array $cookies;
-    private Session $session;
     
     // Derived properties for routing and logic.
     private string $method;
@@ -69,7 +68,6 @@ class Request implements RequestInterface
         array $server = [],
         array $files = [], 
         array $cookies = [],
-        ?Session $session = null,
         ?array $parsedJson = null,
         ?string $rawBody = null
     ) {
@@ -81,7 +79,6 @@ class Request implements RequestInterface
         $this->server = $server;
         $this->files = $files;
         $this->cookies = $cookies;
-        $this->session = $session ?? new Session();
         $this->parsedJson = $parsedJson;
         $this->rawBody = $rawBody;
         $this->requestData = $this->parsedJson !== null ? $this->parsedJson : $this->post;
@@ -97,7 +94,6 @@ class Request implements RequestInterface
         array $server = [],
         array $files = [], 
         array $cookies = [],
-        ?Session $session = null,
         ?string $rawBody = null
     ): self {
         $rawMethod = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
@@ -119,38 +115,19 @@ class Request implements RequestInterface
 
         $uri = $server['REQUEST_URI'] ?? '/';
         
-        $parsedJson = null;
         $contentType = strtolower($server['CONTENT_TYPE'] ?? $server['HTTP_CONTENT_TYPE'] ?? '');
-        
-        if (str_contains($contentType, 'json')) {
-            if ($rawBody === null) {
-                $rawBody = (string) file_get_contents('php://input');
-            }
+        $parsedJson = \Magma\http\PayloadParser::parseJsonPayload($contentType, $rawBody);
 
-            if ($rawBody !== '') {
-                try {
-                    $decoded = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
-                    $parsedJson = is_array($decoded) ? $decoded : [];
-                } catch (\JsonException $e) {
-                    throw new \RuntimeException("Invalid JSON payload: " . $e->getMessage(), 400, $e);
-                }
-            } else {
-                $parsedJson = [];
-            }
-        }
-
-        return new self($method, $uri, $get, $post, $server, $files, $cookies, $session, $parsedJson, $rawBody);
+        return new self($method, $uri, $get, $post, $server, $files, $cookies, $parsedJson, $rawBody);
     }
 
     /**
      * Factory method to create a Request instance using PHP globals.
-     * 
-     * @param Session|null $session Optional injected session.
-     * @return self
      */
-    public static function createFromGlobals(?Session $session = null): self
+    public static function createFromGlobals(): self
     {
-        return self::build($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, $session);
+        $rawBody = file_get_contents('php://input');
+        return self::build($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, $rawBody);
     }
 
     /**
@@ -251,53 +228,7 @@ class Request implements RequestInterface
         return $this->server[$key] ?? $default;
     }
     
-    /**
-     * Retrieve session data.
-     * 
-     * @param string|null $key
-     * @param mixed $default
-     * @return mixed
-     */
-    public function session(?string $key = null, mixed $default = null): mixed
-    {
-        if ($key === null) {
-            return $this->session->all();
-        }
-        return $this->session->get($key, $default);
-    }
-    
-    /**
-     * Atomically read and clear a session value (Flash data).
-     * 
-     * Purpose:
-     * - Implements the Post/Redirect/Get (PRG) flash pattern safely.
-     * 
-     * Execution Flow:
-     * 1. Retrieve the value from the session.
-     * 2. Delete the key from the session.
-     * 3. Return the value.
-     * 
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
-     */
-    public function flash(string $key, mixed $default = null): mixed
-    {
-        $value = $this->session->get($key, $default);
-        $this->session->set($key, null);
-        return $value;
-    }
-    
-    /**
-     * Set a value in the session.
-     * 
-     * @param string $key
-     * @param mixed $value
-     */
-    public function setSession(string $key, mixed $value): void
-    {
-        $this->session->set($key, $value);
-    }
+
     
 
     /**

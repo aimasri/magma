@@ -26,18 +26,21 @@ class HomeController extends BaseController
     private SiteReviewRepositoryInterface $siteReviewRepository;
     private Request $request;
     private PaginationService $paginationService;
+    private \Magma\http\Session $session;
 
     public function __construct(
         TemplateEngine $templateEngine,
         \Magma\security\CsrfManager $csrfManager,
+        \Magma\http\Session $session,
         SiteReviewRepositoryInterface $siteReviewRepository,
         Request $request,
         PaginationService $paginationService
     ) {
-        parent::__construct($templateEngine, $csrfManager);
+        parent::__construct($templateEngine, $csrfManager, $session);
         $this->siteReviewRepository = $siteReviewRepository;
         $this->request = $request;
         $this->paginationService = $paginationService;
+        $this->session = $session;
     }
 
     /**
@@ -63,7 +66,7 @@ class HomeController extends BaseController
             $pagination->lastId
         );
 
-        $successMessage = $this->request->flash('success_message');
+        $successMessage = $this->session->flash('success_message');
 
         return $this->render('home', [
             'reviews' => $allReviews,

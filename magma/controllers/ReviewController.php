@@ -32,12 +32,13 @@ class ReviewController extends BaseController
 
     public function __construct(
         TemplateEngine $templateEngine,
-        CsrfManager $csrfManager,
+        \Magma\security\CsrfManager $csrfManager,
+        \Magma\http\Session $session,
         ReviewSubmissionService $reviewSubmissionService,
         Request $request,
         Validator $validator
     ) {
-        parent::__construct($templateEngine, $csrfManager);
+        parent::__construct($templateEngine, $csrfManager, $session);
         $this->reviewSubmissionService = $reviewSubmissionService;
         $this->request = $request;
         $this->validator = $validator;
@@ -63,7 +64,7 @@ class ReviewController extends BaseController
         $data = $this->request->request();
         $this->reviewSubmissionService->submit($data);
 
-        $this->request->setSession('success_message', 'Review Submitted! Thank you. Your review is now pending moderation.');
+        $this->session->set('success_message', 'Review Submitted! Thank you. Your review is now pending moderation.');
         return new RedirectResponse('/');
     }
 }

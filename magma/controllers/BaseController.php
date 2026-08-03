@@ -26,11 +26,13 @@ abstract class BaseController
 {
     protected TemplateEngine $templateEngine;
     protected \Magma\security\CsrfManager $csrfManager;
+    protected \Magma\http\Session $session;
 
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager)
+    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session)
     {
         $this->templateEngine = $templateEngine;
         $this->csrfManager = $csrfManager;
+        $this->session = $session;
     }
 
     /**
@@ -60,8 +62,8 @@ abstract class BaseController
             $formRequest->validate();
         } catch (ValidationException $e) {
             $request = $formRequest->getRequest();
-            $request->setSession('errors', $e->getErrors());
-            $request->setSession('old', $request->request());
+            $this->session->set('errors', $e->getErrors());
+            $this->session->set('old', $request->request());
             
             throw new HttpResponseException(new RedirectResponse($redirectPath));
         }

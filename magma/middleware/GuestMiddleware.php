@@ -19,6 +19,12 @@ use Magma\http\RedirectResponse;
  */
 class GuestMiddleware implements MiddlewareInterface
 {
+    private \Magma\http\Session $session;
+
+    public function __construct(\Magma\http\Session $session)
+    {
+        $this->session = $session;
+    }
     /**
      * Filters the request to ensure the user is an unauthenticated guest.
      * 
@@ -37,7 +43,7 @@ class GuestMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $user = $request->session('user');
+        $user = $this->session->get('user');
         if ($user) {
             if (isset($user['role']) && $user['role'] === 'vendor') {
                 return new RedirectResponse('/admin');

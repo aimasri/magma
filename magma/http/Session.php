@@ -51,6 +51,13 @@ class Session
         return $this->storage[$key] ?? $default;
     }
 
+    public function flash(string $key, mixed $default = null): mixed
+    {
+        $value = $this->get($key, $default);
+        $this->set($key, null);
+        return $value;
+    }
+
     public function set(string $key, mixed $value): void
     {
         $this->storage[$key] = $value;

@@ -53,21 +53,6 @@ interface RequestInterface
     public function server(?string $key = null, mixed $default = null): mixed;
 
     /**
-     * Retrieves a value from the user's active session.
-     */
-    public function session(?string $key = null, mixed $default = null): mixed;
-
-    /**
-     * Retrieves a one-time flash message from the session.
-     */
-    public function flash(string $key, mixed $default = null): mixed;
-
-    /**
-     * Sets a key-value pair in the user's active session.
-     */
-    public function setSession(string $key, mixed $value): void;
-
-    /**
      * Attaches a custom attribute to the request for use by later middleware or controllers.
      */
     public function setAttribute(string $key, mixed $value): void;

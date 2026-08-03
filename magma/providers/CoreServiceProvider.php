@@ -87,14 +87,7 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(RequestInterface::class, function ($c) {
-            return Request::build(
-                $_GET,
-                $_POST,
-                $_SERVER,
-                $_FILES,
-                $_COOKIE,
-                $c->get(Session::class)
-            );
+            return Request::createFromGlobals();
         });
 
         // Map the concrete Request class to the interface resolution for backwards compatibility
