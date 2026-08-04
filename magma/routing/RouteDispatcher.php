@@ -66,72 +66,20 @@ class RouteDispatcher
                     $cacheKey = $controllerClass . '@' . $action;
                     if (!isset(self::$reflectionCache[$cacheKey])) {
                         $ref = new \ReflectionMethod($controller, $action);
-                        $meta = [];
-                        foreach ($ref->getParameters() as $param) {
-                            $type = $param->getType();
-                            $meta[] = [
-                                'name' => $param->getName(),
-                                'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
-                                'hasDefault' => $param->isDefaultValueAvailable(),
-                                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
-                            ];
-                        }
-                        self::$reflectionCache[$cacheKey] = $meta;
+                        self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
                     }
                     
-                    $args = [];
-                    foreach (self::$reflectionCache[$cacheKey] as $meta) {
-                        $name = $meta['name'];
-                        $className = $meta['class'];
-
-                        if (array_key_exists($name, $params)) {
-                            $args[] = $params[$name];
-                        } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
-                            $args[] = $request;
-                        } elseif ($className && $this->container->has($className)) {
-                            $args[] = $this->container->get($className);
-                        } elseif ($meta['hasDefault']) {
-                            $args[] = $meta['default'];
-                        } else {
-                            $args[] = null;
-                        }
-                    }
+                    $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
                     return $controller->$action(...$args);
                 }
                 
                 $cacheKey = 'closure_' . spl_object_hash($handler);
                 if (!isset(self::$reflectionCache[$cacheKey])) {
                     $ref = new \ReflectionFunction($handler);
-                    $meta = [];
-                    foreach ($ref->getParameters() as $param) {
-                        $type = $param->getType();
-                        $meta[] = [
-                            'name' => $param->getName(),
-                            'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
-                            'hasDefault' => $param->isDefaultValueAvailable(),
-                            'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
-                        ];
-                    }
-                    self::$reflectionCache[$cacheKey] = $meta;
+                    self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
                 }
 
-                $args = [];
-                foreach (self::$reflectionCache[$cacheKey] as $meta) {
-                    $name = $meta['name'];
-                    $className = $meta['class'];
-
-                    if (array_key_exists($name, $params)) {
-                        $args[] = $params[$name];
-                    } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
-                        $args[] = $request;
-                    } elseif ($className && $this->container->has($className)) {
-                        $args[] = $this->container->get($className);
-                    } elseif ($meta['hasDefault']) {
-                        $args[] = $meta['default'];
-                    } else {
-                        $args[] = null;
-                    }
-                }
+                $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
                 return $handler(...$args);
             } catch (HttpResponseException $e) {
                 return $e->getResponse();
@@ -145,5 +93,42 @@ class RouteDispatcher
             ->send($request)
             ->through($resolvedMiddleware)
             ->then($coreHandler);
+    }
+
+    private function buildReflectionMeta(\ReflectionFunctionAbstract $ref): array
+    {
+        $meta = [];
+        foreach ($ref->getParameters() as $param) {
+            $type = $param->getType();
+            $meta[] = [
+                'name' => $param->getName(),
+                'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
+                'hasDefault' => $param->isDefaultValueAvailable(),
+                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
+            ];
+        }
+        return $meta;
+    }
+
+    private function resolveDependencies(array $cacheMeta, array $params, RequestInterface $request): array
+    {
+        $args = [];
+        foreach ($cacheMeta as $meta) {
+            $name = $meta['name'];
+            $className = $meta['class'];
+
+            if (array_key_exists($name, $params)) {
+                $args[] = $params[$name];
+            } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
+                $args[] = $request;
+            } elseif ($className && $this->container->has($className)) {
+                $args[] = $this->container->get($className);
+            } elseif ($meta['hasDefault']) {
+                $args[] = $meta['default'];
+            } else {
+                $args[] = null;
+            }
+        }
+        return $args;
     }
 }

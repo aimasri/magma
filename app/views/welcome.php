@@ -24,10 +24,10 @@
     <title><?= isset($data['title']) ? $data['engine']->escape($data['title']) : 'Magma Framework' ?></title>
     <link rel="stylesheet" href="/css/app.css">
 </head>
-<body>
-    <main class="welcome-container">
-        <h1>Welcome to Magma!</h1>
-        <p>A solid, explicit, "no magic" PHP framework.</p>
+<body class="magma-theme-root">
+    <main class="welcome-card">
+        <h1 class="welcome-card__title">Welcome to Magma!</h1>
+        <p class="welcome-card__text">A solid, explicit, "no magic" PHP framework.</p>
     </main>
 </body>
 </html>
