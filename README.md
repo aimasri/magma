@@ -1,6 +1,8 @@
 # Magma Framework: The Educational Architecture Core
 
-Welcome to the Magma Framework source code. This repository is intentionally designed as an **instructional codebase**. It demonstrates how to build a robust, scalable, and secure web application using vanilla PHP **without relying on heavy, black-box frameworks** like Laravel or Symfony. 
+Welcome to the Magma Framework source code. This repository is intentionally designed as an **instructional, enterprise-hardened codebase**. It demonstrates how to build a robust, scalable, and mathematically sound web application using vanilla PHP and JS **without relying on heavy, black-box frameworks** like Laravel or Symfony.
+
+Following a rigorous 10-pass architectural audit and refactoring phase, this codebase represents the pinnacle of clean architecture, strict SOLID principles, and defensive programming.
 
 By exploring this codebase, you will learn the fundamental architectural patterns that power all modern web frameworks, with thorough, docblock-level explanations of *how* and *why* the components interact. This README serves as the ultimate syllabus and overview for understanding the framework's design.
 
@@ -13,7 +15,7 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 6. [Data Persistence: The Repository Pattern](#06-data-persistence-the-repository-pattern)
 7. [Domain Logic, Services & CQRS](#07-domain-logic-services--cqrs)
 8. [The Decoupled Template Engine](#08-the-decoupled-template-engine)
-9. [Security, DTOs, & Error Handling](#09-security-dtos--error-handling)
+9. [Frontend Architecture: Modular Vanilla JS](#09-frontend-architecture-modular-vanilla-js)
 10. [Asynchronous Processing & Event-Driven Queues](#10-asynchronous-processing--event-driven-queues)
 11. [High-Performance Optimization Techniques](#11-high-performance-optimization-techniques)
 12. [Advanced Production Considerations & Roadmap](#12-advanced-production-considerations--roadmap)
@@ -29,8 +31,8 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 * **SOLID Principles:** Classes have a Single Responsibility and rely on Dependency Inversion. We favor injecting interfaces rather than instantiating concrete classes.
 * **Separation of Concerns (SoC):** Controllers never query the database. Views never handle business logic. Data access is completely isolated in Repositories.
 * **Pragmatic Domain-Driven Design (DDD):** We enforce a strict rule: *Behavior belongs with the data*. We utilize "skinny" domain entities that manage their own state and internal logic, while Services act strictly as orchestrators. We build these models iteratively as the domain is discovered.
-* **Instructional Docblocks:** Every core file contains a standardized comment block explaining its *Purpose*, *Why this design was chosen*, and specific *Teaching notes*. Method docblocks map the exact *Execution Flow* and the "logic behind the logic."
-* **Strict Typing:** All methods utilize strict scalar type hints and return types (PHP 8+), ensuring data predictability and avoiding silent casting errors.
+* **Instructional Docblocks:** Every core file contains a standardized comment block explaining its *Title*, *Purpose*, *Why this design was chosen*, and specific *Teaching notes*. Method docblocks map the exact *Execution Flow* and the "logic behind the logic."
+* **Strict Typing:** All methods utilize strict scalar type hints and return types (`declare(strict_types=1)` in PHP), ensuring data predictability and avoiding silent casting errors.
 
 ---
 
@@ -54,7 +56,7 @@ At the heart of the framework is `core/container/Container.php`.
 Instead of using `new ClassName()` scattered across the codebase (which creates tight coupling and makes unit testing impossible), classes declare their dependencies in their constructor. The Container uses PHP's **Reflection API** to inspect the constructor, automatically instantiate any required dependencies, and inject them recursively.
 
 **Key Educational Concepts:**
-* **Strict Dependency Inversion:** We actively decouple foundational HTTP layers from concrete implementations. For example, the `Request` object receives its `Session` dependency via constructor injection (`createFromGlobals(?Session $session = null)`), preventing the hardcoding of `new Session()` and allowing for robust unit testing.
+* **Strict Dependency Inversion:** We actively decouple foundational HTTP layers from concrete implementations. For example, the `Request` object receives its `Session` dependency via constructor injection (`createFromGlobals(?SessionInterface $session = null)`), preventing the hardcoding of `new Session()` and allowing for robust unit testing.
 * **Autowiring & Reflection Caching:** The container figures out the dependency graph automatically. To maximize speed, it caches reflection data in memory, avoiding the massive CPU overhead of repeated `ReflectionClass` instantiations.
 * **Service Providers:** Complex bindings are grouped into logical providers (e.g., `HttpServiceProvider`, `RepositoryServiceProvider`) to keep the bootstrapping phase clean and modular.
 
@@ -67,7 +69,7 @@ Before a request reaches a Controller, it must pass through a generic `Pipeline`
 Middleware layers wrap around the application core like layers of an onion. A request travels *inward* through the layers, hits the controller, and the resulting response travels *outward* through the same layers.
 
 **Key Middleware Components:**
-* `TenantSecurityMiddleware`: Ensures absolute data isolation for SaaS deployments. Rather than manipulating raw untyped session arrays (which causes brittle code and feature envy), this middleware hydrates a strictly-typed `AuthUser` domain entity from the session. It then securely delegates property access (like `$user->getVendorId()`) to bind the tenant context, rigorously upholding the Law of Demeter.
+* `TenantContextMiddleware`: Ensures absolute data isolation for SaaS deployments. Rather than manipulating raw untyped session arrays (which causes brittle code and feature envy), this middleware injects the `AuthenticationService` to retrieve a strictly-typed `AuthUser` domain entity. It then securely delegates property access to bind the tenant context, rigorously upholding the Law of Demeter and the Dependency Inversion Principle.
 * `CsrfMiddleware`: Validates CSRF tokens on state-mutating requests (POST/PUT/DELETE) before they reach business logic.
 * `RateLimitMiddleware`: Uses atomic, memory-backed Redis commands (`INCR` and `EXPIRE`) to track failed attempts by IP address to prevent brute-force attacks.
 
@@ -93,9 +95,10 @@ Controllers execute a rigid flow:
 Data access is entirely encapsulated using the **Repository Pattern**.
 
 * **BaseRepository:** An abstract class centralizes the injection of the `PDO` instances, eliminating boilerplate.
+* **PostgreSQL Native Compatibility:** Identifier quoting explicitly uses PostgreSQL standard double quotes (`"`), ensuring queries run flawlessly on scalable cloud deployments without syntax errors.
 * **Read/Write Splitting:** The application leverages two distinct PDO connections: `$dbRead` and `$dbWrite`. This allows horizontal scaling (directing heavy `SELECT` queries to read-replicas, while routing `INSERT/UPDATE/DELETE` statements to the master node).
 * **Chunked Bulk Inserts:** The repository abstracts chunking and transaction management for massive bulk inserts, protecting against maximum parameter exhaustion errors native to PDO drivers.
-* **Strict Isolation:** Repositories isolate all SQL statements. We actively avoid `SELECT *` in favor of explicitly naming required columns to enable database Index-Only scans.
+* **Exception Isolation:** Raw database errors (e.g., PDOException 23000 for unique constraint violations) are trapped in the persistence layer and re-thrown as Domain Exceptions (like `DuplicateResourceException`), keeping the Domain Services completely agnostic of the database driver.
 
 ---
 
@@ -122,14 +125,19 @@ The frontend is rendered using a custom `TemplateEngine` (`core/view/TemplateEng
 
 * **Dependency Inversion:** The engine relies on a `ViewLoaderInterface` to manage filesystem operations, decoupling the engine from the physical disk.
 * **In-Memory Path Caching:** To prevent severe I/O degradation during large loops (e.g. rendering 500 product cards via partials), the engine caches path existence checks in memory, hitting the disk exactly once per unique view file.
-* **XSS Prevention:** Views utilize explicit `htmlspecialchars()` encoding (or the `$data['engine']->escape()` helper) to sanitize all user-generated content before rendering it into the DOM.
+* **Output Buffer Isolation:** The engine utilizes output buffering (`ob_start` / `ob_get_clean`) coupled with deep try/catch blocks (`ob_get_level`) to ensure that if a template fails midway through execution, the partial HTML is swallowed and never leaked to the client.
 
 ---
 
-## 09. Security, DTOs, & Error Handling
+## 09. Frontend Architecture: Modular Vanilla JS
 
-* **Data Transfer Objects (DTOs):** Data flowing between boundaries is packaged into strongly-typed DTOs (e.g., `ReviewDTO`). These classes use PHP 8.1 `readonly` properties to ensure immutability, providing strict contracts and IDE autocomplete.
-* **Global Exception Catching:** The `Application` kernel wraps execution in a `try/catch` block. If a fatal error occurs, an `ErrorHandler` intercepts it, cleans the output buffer (preventing half-rendered pages), logs the trace, and displays a user-friendly 500 error page.
+The Magma frontend follows the same rigorous decoupling principles as the backend, eschewing bloated frameworks for highly optimized ES6 Vanilla JS.
+
+* **Strict MVC Modules:** Complex UI components, such as the `MagmaCombobox`, are shattered into distinct layers:
+  * **Model (`MagmaComboboxModel.js`):** Manages API data fetching, entirely decoupled from the DOM.
+  * **View (`MagmaComboboxView.js`):** Handles all user interactions and DOM updates. Uses `DocumentFragment` to batch append elements, completely eliminating DOM reflow/repaint thrashing during rapid autocomplete updates.
+  * **Controller (`MagmaCombobox.js`):** Orchestrates event bindings between the Model and View.
+* **DRY Utility CSS:** Layouts are composed using utility CSS (`/css/components/utilities.css` - e.g., `.d-flex`, `.align-items-center`) rather than duplicating rules across hundreds of unique component classes.
 
 ---
 
@@ -137,7 +145,7 @@ The frontend is rendered using a custom `TemplateEngine` (`core/view/TemplateEng
 
 To provide instant HTTP response times and prevent blocking requests, heavy architectural tasks (such as global database synchronizations) are offloaded to background queues.
 
-* **Preventing N+1 Blockages:** Code like `InventorySyncService` avoids synchronous iterations over large database sets by instead pushing discrete `SyncVendorInventoryJob` jobs to a `QueueInterface`.
+* **Encapsulated Serialization:** Domain services merely push abstract `$payload` arrays to the `QueueInterface`. The concrete `RedisQueue` driver assumes responsibility for serializing the job envelopes (e.g., `json_encode`), strictly isolating storage mechanics from business logic.
 * **Queue Infrastructure:** The application utilizes a lightweight, dependency-free queue built natively on Redis Lists (`RPUSH` and `BLPOP`).
 * **The Command/Job Pattern:** Jobs injected into the queue implement a strict `JobInterface` and accept their dependencies (like Repositories) via constructor injection, allowing the background worker to resolve and execute them flawlessly via the DI container.
 * **Worker Daemon:** A standalone CLI script (`bin/worker.php`) runs infinitely in the background. It polls the queue, dynamically resolves the requested handler class, and executes it. Adding new background jobs requires zero modification to the worker itself (Open/Closed Principle).
@@ -148,7 +156,7 @@ To provide instant HTTP response times and prevent blocking requests, heavy arch
 
 Magma is designed to remain highly responsive under heavy load. Advanced optimization techniques include:
 
-* **Lazy JSON Payload Parsing:** The `Request` object defers the deserialization of `application/json` payloads until the data is explicitly accessed.
+* **N+1 Query Elimination:** Repositories use targeted `DISTINCT` selections (e.g., fetching unique vendor IDs straight from transaction ledgers) rather than iterating and firing separate queries inside loops.
 * **Keyset (Cursor-Based) Pagination:** Deep pagination using `OFFSET` causes linear CPU degradation in SQL databases. We use Keyset Pagination (`WHERE id > :cursor_id ORDER BY id ASC LIMIT X`) to leverage B-Tree indexes.
 * **PHP Generators (`yield`):** Repositories returning multiple records use the `yield` keyword instead of `fetchAll()`. This streams records one-by-one, maintaining a near-zero memory footprint.
 
