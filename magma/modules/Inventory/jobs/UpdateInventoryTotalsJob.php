@@ -49,8 +49,7 @@ class UpdateInventoryTotalsJob implements JobInterface
     {
         $vendorId = $payload['vendor_id'];
         $productId = $payload['product_id'];
-        $quantityDelta = $payload['quantity'];
 
-        $this->inventoryRepository->incrementAvailableQuantity($vendorId, $productId, $quantityDelta);
+        $this->inventoryRepository->recalculateAvailableQuantity($vendorId, $productId);
     }
 }

@@ -67,7 +67,7 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             
             return $result;
         } catch (Throwable $e) {
-            if (!$isNested) {
+            if (!$isNested && $dbWrite->inTransaction()) {
                 $dbWrite->rollBack();
             }
             throw $e;

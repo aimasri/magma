@@ -37,24 +37,5 @@ interface VendorInventoryRepositoryInterface
      */
     public function getAvailableQuantity(int $vendorId, int $productId): float;
 
-    /**
-     * Atomically increments or inserts the cached quantity (Materialized View Projection).
-     *
-     * Execution Flow:
-     * 1. Prepare the `INSERT ... ON CONFLICT DO UPDATE` upsert query.
-     * 2. Bind the delta quantity to add.
-     * 3. Execute the atomic update against the Write connection.
-     *
-     * Logic behind the logic:
-     * - Using an Upsert instead of checking `SELECT count(*)` followed by an `INSERT` or `UPDATE` 
-     *   prevents fatal race conditions if multiple background workers attempt to initialize 
-     *   the exact same product's cached total simultaneously. Adding EXCLUDED.quantity_available 
-     *   to the existing value ensures atomic delta updates.
-     *
-     * @param int $vendorId The vendor ID.
-     * @param int $productId The product ID.
-     * @param float $quantityDelta The delta to add.
-     * @return void
-     */
-    public function incrementAvailableQuantity(int $vendorId, int $productId, float $quantityDelta): void;
+    public function recalculateAvailableQuantity(int $vendorId, int $productId): void;
 }

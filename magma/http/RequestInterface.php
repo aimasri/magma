@@ -55,7 +55,7 @@ interface RequestInterface
     /**
      * Attaches a custom attribute to the request for use by later middleware or controllers.
      */
-    public function setAttribute(string $key, mixed $value): void;
+    public function withAttribute(string $key, mixed $value): self;
 
     /**
      * Retrieves a previously attached custom attribute.

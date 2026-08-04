@@ -58,41 +58,41 @@ class RouteDispatcher
     public function dispatch(array|callable $handler, array $params, array $middlewareList, RequestInterface $request, array $globalMiddleware = []): Response
     {
         $coreHandler = function (RequestInterface $request) use ($handler, $params): Response {
-            try {
-                if (is_array($handler)) {
-                    [$controllerClass, $action] = $handler;
-                    $controller = $this->container->get($controllerClass);
-                    
-                    $cacheKey = $controllerClass . '@' . $action;
-                    if (!isset(self::$reflectionCache[$cacheKey])) {
-                        $ref = new \ReflectionMethod($controller, $action);
-                        self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
-                    }
-                    
-                    $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
-                    return $controller->$action(...$args);
-                }
+            if (is_array($handler)) {
+                [$controllerClass, $action] = $handler;
+                $controller = $this->container->get($controllerClass);
                 
-                $cacheKey = 'closure_' . spl_object_hash($handler);
+                $cacheKey = $controllerClass . '@' . $action;
                 if (!isset(self::$reflectionCache[$cacheKey])) {
-                    $ref = new \ReflectionFunction($handler);
+                    $ref = new \ReflectionMethod($controller, $action);
                     self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
                 }
-
+                
                 $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
-                return $handler(...$args);
-            } catch (HttpResponseException $e) {
-                return $e->getResponse();
+                return $controller->$action(...$args);
             }
+            
+            $cacheKey = 'closure_' . spl_object_hash($handler);
+            if (!isset(self::$reflectionCache[$cacheKey])) {
+                $ref = new \ReflectionFunction($handler);
+                self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
+            }
+
+            $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
+            return $handler(...$args);
         };
 
         $mergedMiddleware = array_merge($globalMiddleware, $middlewareList);
         $resolvedMiddleware = $this->middlewareResolver->resolveAll($mergedMiddleware);
 
-        return (new Pipeline())
-            ->send($request)
-            ->through($resolvedMiddleware)
-            ->then($coreHandler);
+        try {
+            return (new Pipeline())
+                ->send($request)
+                ->through($resolvedMiddleware)
+                ->then($coreHandler);
+        } catch (HttpResponseException $e) {
+            return $e->getResponse();
+        }
     }
 
     private function buildReflectionMeta(\ReflectionFunctionAbstract $ref): array
@@ -126,7 +126,7 @@ class RouteDispatcher
             } elseif ($meta['hasDefault']) {
                 $args[] = $meta['default'];
             } else {
-                $args[] = null;
+                throw new \RuntimeException("Unable to resolve dependency '{$name}' for class '" . ($className ?? 'unknown') . "'.");
             }
         }
         return $args;

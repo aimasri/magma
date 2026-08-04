@@ -66,6 +66,7 @@ class CsrfMiddleware implements MiddlewareInterface
             }
 
             $this->csrfManager->consumeToken($submittedToken);
+            $this->csrfManager->regenerateToken();
         }
 
         return $next($request);

@@ -47,6 +47,7 @@ class RouteCompiler
                 $pattern = preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
                     $name = $matches[1];
                     $regex = $constraints[$name] ?? '[^/]+';
+                    $regex = str_replace('#', '\#', $regex);
                     return "(?P<$name>$regex)";
                 }, $pattern);
                 
@@ -68,6 +69,7 @@ class RouteCompiler
         $pattern = preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
             $name = $matches[1];
             $regex = $constraints[$name] ?? '[^/]+';
+            $regex = str_replace('#', '\#', $regex);
             return "(?P<$name>$regex)";
         }, $pattern);
         

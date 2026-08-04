@@ -246,14 +246,17 @@ class Request implements RequestInterface
     
 
     /**
-     * Set a custom attribute on the request object (useful for middleware).
+     * Return an instance with the specified derived request attribute.
      * 
      * @param string $key
      * @param mixed $value
+     * @return static
      */
-    public function setAttribute(string $key, mixed $value): void
+    public function withAttribute(string $key, mixed $value): self
     {
-        $this->attributes[$key] = $value;
+        $clone = clone $this;
+        $clone->attributes[$key] = $value;
+        return $clone;
     }
 
     /**
@@ -346,7 +349,14 @@ class Request implements RequestInterface
             return true;
         }
 
-        $forwardedProto = $this->header('X-Forwarded-Proto', '');
-        return strtolower($forwardedProto) === 'https';
+        // Only trust X-Forwarded-Proto if coming from a trusted proxy (e.g., localhost proxy)
+        // For demonstration, we assume proxies from 127.0.0.1 or 10.x.x.x are trusted.
+        $remoteAddr = $this->server['REMOTE_ADDR'] ?? '';
+        if (str_starts_with($remoteAddr, '127.') || str_starts_with($remoteAddr, '10.')) {
+            $forwardedProto = $this->header('X-Forwarded-Proto', '');
+            return strtolower($forwardedProto) === 'https';
+        }
+        
+        return false;
     }
 }

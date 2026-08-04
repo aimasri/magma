@@ -69,7 +69,9 @@ abstract class BaseRepository
         }
 
         $colCount = count($columns);
-        $columnList = implode(', ', $columns);
+        $escapedColumns = array_map(fn($col) => "`" . str_replace("`", "``", $col) . "`", $columns);
+        $columnList = implode(', ', $escapedColumns);
+        $escapedTable = "`" . str_replace("`", "``", $table) . "`";
 
         $isNested = $this->getDbWrite()->inTransaction();
         if (!$isNested) {
@@ -87,7 +89,7 @@ abstract class BaseRepository
                 $rowPlaceholders = '(' . implode(',', array_fill(0, $colCount, '?')) . ')';
                 $allPlaceholders = implode(',', array_fill(0, $rowCount, $rowPlaceholders));
                 
-                $sql = "INSERT INTO {$table} ({$columnList}) VALUES {$allPlaceholders}";
+                $sql = "INSERT INTO {$escapedTable} ({$columnList}) VALUES {$allPlaceholders}";
                 $stmt = $this->getDbWrite()->prepare($sql);
                 
                 $flatValues = [];
@@ -104,7 +106,7 @@ abstract class BaseRepository
                 $this->getDbWrite()->commit();
             }
         } catch (\Throwable $e) {
-            if (!$isNested) {
+            if (!$isNested && $this->getDbWrite()->inTransaction()) {
                 $this->getDbWrite()->rollBack();
             }
             throw $e;

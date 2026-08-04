@@ -117,7 +117,15 @@ class Container
         }
 
         if (isset($this->definitions[$id])) {
-            $this->instances[$id] = $this->definitions[$id]($this);
+            if (isset($this->resolving[$id])) {
+                throw new RuntimeException("Circular dependency detected while resolving [{$id}].");
+            }
+            $this->resolving[$id] = true;
+            try {
+                $this->instances[$id] = $this->definitions[$id]($this);
+            } finally {
+                unset($this->resolving[$id]);
+            }
             return $this->instances[$id];
         }
 

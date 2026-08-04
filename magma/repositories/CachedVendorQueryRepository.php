@@ -61,7 +61,7 @@ class CachedVendorQueryRepository implements VendorQueryInterface
         if ($this->redis) {
             $cached = $this->redis->get($cacheKey);
             if ($cached !== false) {
-                return unserialize($cached);
+                return unserialize($cached, ['allowed_classes' => [\Magma\dto\VendorDTO::class]]);
             }
         }
 

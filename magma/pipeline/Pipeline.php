@@ -44,8 +44,9 @@ class Pipeline
      */
     public function send(mixed $passable): self
     {
-        $this->passable = $passable;
-        return $this;
+        $clone = clone $this;
+        $clone->passable = $passable;
+        return $clone;
     }
 
     /**
@@ -59,8 +60,9 @@ class Pipeline
      */
     public function through(array $pipes): self
     {
-        $this->pipes = $pipes;
-        return $this;
+        $clone = clone $this;
+        $clone->pipes = $pipes;
+        return $clone;
     }
 
     /**
@@ -74,8 +76,9 @@ class Pipeline
      */
     public function via(string $method): self
     {
-        $this->method = $method;
-        return $this;
+        $clone = clone $this;
+        $clone->method = $method;
+        return $clone;
     }
 
     /**

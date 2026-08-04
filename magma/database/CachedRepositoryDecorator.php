@@ -49,11 +49,11 @@ abstract class CachedRepositoryDecorator
     {
         $cached = $this->cache->get($key);
         if ($cached !== false) {
-            return unserialize($cached);
+            return json_decode($cached, true);
         }
 
         $result = $callback();
-        $this->cache->setex($key, $this->ttl, serialize($result));
+        $this->cache->setex($key, $this->ttl, json_encode($result));
 
         return $result;
     }

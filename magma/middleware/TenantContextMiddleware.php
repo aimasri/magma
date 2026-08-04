@@ -62,7 +62,7 @@ class TenantContextMiddleware implements MiddlewareInterface
             if ($user->hasVendorId()) {
                 $vendorId = $user->getVendorId();
                 $this->tenantContext->setVendorId($vendorId);
-                $request->setAttribute('tenant_id', $vendorId);
+                $request = $request->withAttribute('tenant_id', $vendorId);
             }
         }
         

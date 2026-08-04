@@ -44,8 +44,10 @@ class RememberMeService
         [$selector, $validator] = explode(':', $token);
         $tokenRecord = $this->userTokenRepository->findValidRememberToken($selector);
 
-        if ($tokenRecord && hash_equals($tokenRecord['hashed_validator'], hash('sha256', $validator))) {
-            return (int) $tokenRecord['user_id'];
+        $expectedHash = $tokenRecord ? $tokenRecord['hashed_validator'] : hash('sha256', 'dummy_validator_to_prevent_timing_attacks');
+
+        if (hash_equals($expectedHash, hash('sha256', $validator))) {
+            return $tokenRecord ? (int) $tokenRecord['user_id'] : null;
         }
 
         return null;

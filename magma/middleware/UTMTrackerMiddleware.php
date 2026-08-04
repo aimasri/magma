@@ -58,7 +58,7 @@ class UTMTrackerMiddleware implements MiddlewareInterface
 
         if (!empty($tracked)) {
             $request->setSession('_utm_tracking', $tracked);
-            $request->setAttribute('utm_data', $tracked);
+            $request = $request->withAttribute('utm_data', $tracked);
         }
 
         return $next($request);

@@ -19,7 +19,7 @@ namespace Magma\modules\Inventory\models;
  *   (an Upsert). This guarantees atomicity and prevents race conditions if multiple 
  *   jobs attempt to initialize the same product's inventory record simultaneously.
  */
-class VendorInventoryRepository extends \Magma\database\BaseCommandRepository implements VendorInventoryRepositoryInterface
+class VendorInventoryRepository extends \Magma\database\BaseRepository implements VendorInventoryRepositoryInterface
 {
     /**
      * Retrieve the cached available quantity for a product.
@@ -44,7 +44,7 @@ class VendorInventoryRepository extends \Magma\database\BaseCommandRepository im
             WHERE vendor_id = :vendor_id AND product_id = :product_id
         ";
 
-        $stmt = $this->getDb()->prepare($sql);
+        $stmt = $this->getDbRead()->prepare($sql);
         $stmt->execute([
             'vendor_id'  => $vendorId,
             'product_id' => $productId
@@ -55,39 +55,21 @@ class VendorInventoryRepository extends \Magma\database\BaseCommandRepository im
         return $result ? (float)$result['quantity_available'] : 0.0;
     }
 
-    /**
-     * Atomically increments or inserts the cached quantity (Materialized View Projection).
-     *
-     * Execution Flow:
-     * 1. Prepare the `INSERT ... ON CONFLICT DO UPDATE` upsert query.
-     * 2. Bind the delta quantity to add.
-     * 3. Execute the atomic update against the Write connection.
-     *
-     * Logic behind the logic:
-     * - Using an Upsert instead of checking `SELECT count(*)` followed by an `INSERT` or `UPDATE` 
-     *   prevents fatal race conditions if multiple background workers attempt to initialize 
-     *   the exact same product's cached total simultaneously. Adding EXCLUDED.quantity_available 
-     *   to the existing value ensures atomic delta updates.
-     *
-     * @param int $vendorId The vendor ID.
-     * @param int $productId The product ID.
-     * @param float $quantityDelta The delta to add.
-     * @return void
-     */
-    public function incrementAvailableQuantity(int $vendorId, int $productId, float $quantityDelta): void
+    public function recalculateAvailableQuantity(int $vendorId, int $productId): void
     {
         $sql = "
             INSERT INTO vendor_inventory (vendor_id, product_id, quantity_available)
-            VALUES (:vendor_id, :product_id, :quantity)
+            SELECT :vendor_id, :product_id, COALESCE(SUM(quantity), 0)
+            FROM inventory_transactions
+            WHERE vendor_id = :vendor_id AND product_id = :product_id
             ON CONFLICT (vendor_id, product_id) 
-            DO UPDATE SET quantity_available = vendor_inventory.quantity_available + EXCLUDED.quantity_available
+            DO UPDATE SET quantity_available = EXCLUDED.quantity_available
         ";
 
-        $stmt = $this->getDb()->prepare($sql);
+        $stmt = $this->getDbWrite()->prepare($sql);
         $stmt->execute([
             'vendor_id'  => $vendorId,
-            'product_id' => $productId,
-            'quantity'   => $quantityDelta
+            'product_id' => $productId
         ]);
     }
 }
