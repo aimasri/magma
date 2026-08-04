@@ -49,16 +49,13 @@ class InventorySyncService
         $payloads = [];
         
         foreach ($vendors as $vendorId) {
-            $payloads[] = json_encode([
-                \Magma\queue\JobInterface::HANDLER_KEY => \Magma\modules\Inventory\jobs\SyncVendorInventoryJob::class,
-                \Magma\queue\JobInterface::PAYLOAD_KEY => [
-                    'vendor_id' => $vendorId
-                ]
-            ]);
+            $payloads[] = [
+                'vendor_id' => $vendorId
+            ];
         }
 
         if (!empty($payloads)) {
-            $this->queue->pushBatch('inventory', $payloads);
+            $this->queue->pushBatch('inventory', \Magma\modules\Inventory\jobs\SyncVendorInventoryJob::class, $payloads);
         }
     }
 }

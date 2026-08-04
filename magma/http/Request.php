@@ -348,10 +348,23 @@ class Request implements RequestInterface
             return true;
         }
 
-        // Only trust X-Forwarded-Proto if coming from a trusted proxy (e.g., localhost proxy)
-        // For demonstration, we assume proxies from 127.0.0.1 or 10.x.x.x are trusted.
+        // Only trust X-Forwarded-Proto if coming from a trusted proxy
         $remoteAddr = $this->server['REMOTE_ADDR'] ?? '';
-        if (str_starts_with($remoteAddr, '127.') || str_starts_with($remoteAddr, '10.')) {
+        
+        $trustedProxies = \Magma\config\Config::get('TRUSTED_PROXIES', ['127.0.0.1']);
+        if (is_string($trustedProxies)) {
+            $trustedProxies = explode(',', $trustedProxies);
+        }
+        
+        $isTrustedProxy = false;
+        foreach ($trustedProxies as $proxy) {
+            if (str_starts_with($remoteAddr, trim($proxy))) {
+                $isTrustedProxy = true;
+                break;
+            }
+        }
+
+        if ($isTrustedProxy) {
             $forwardedProto = $this->header('X-Forwarded-Proto', '');
             return strtolower($forwardedProto) === 'https';
         }

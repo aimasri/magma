@@ -71,9 +71,9 @@ abstract class BaseRepository
         }
 
         $colCount = count($columns);
-        $escapedColumns = array_map(fn($col) => "`" . str_replace("`", "``", $col) . "`", $columns);
+        $escapedColumns = array_map(fn($col) => '"' . str_replace('"', '""', $col) . '"', $columns);
         $columnList = implode(', ', $escapedColumns);
-        $escapedTable = "`" . str_replace("`", "``", $table) . "`";
+        $escapedTable = '"' . str_replace('"', '""', $table) . '"';
 
         $isNested = $this->getDbWrite()->inTransaction();
         if (!$isNested) {

@@ -24,7 +24,7 @@ class VendorInventoryRepository extends BaseCommandRepository
      */
     public function getVendorIdsFromTransactions(): array
     {
-        $stmt = $this->getDb()->prepare("SELECT id FROM vendors");
+        $stmt = $this->getDb()->prepare("SELECT DISTINCT vendor_id FROM inventory_transactions");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }

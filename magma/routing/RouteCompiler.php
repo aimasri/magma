@@ -45,13 +45,7 @@ class RouteCompiler
                 $path = $route[1];
                 $constraints = $route[3] ?? [];
                 
-                $pattern = preg_quote($path, '#');
-                $pattern = preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
-                    $name = $matches[1];
-                    $regex = $constraints[$name] ?? '[^/]+';
-                    $regex = str_replace('#', '\#', $regex);
-                    return "(?P<$name>$regex)";
-                }, $pattern);
+                $pattern = self::replaceTokensWithRegex($path, $constraints);
                 
                 $regexes[] = $pattern . '(*MARK:' . $index . ')';
             }
@@ -67,17 +61,22 @@ class RouteCompiler
             return self::$compiledCache[$cacheKey];
         }
 
-        $pattern = preg_quote($path, '#');
-        $pattern = preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
-            $name = $matches[1];
-            $regex = $constraints[$name] ?? '[^/]+';
-            $regex = str_replace('#', '\#', $regex);
-            return "(?P<$name>$regex)";
-        }, $pattern);
+        $pattern = self::replaceTokensWithRegex($path, $constraints);
         
         $compiled = '#^' . $pattern . '$#';
         self::$compiledCache[$cacheKey] = $compiled;
         
         return $compiled;
+    }
+
+    private static function replaceTokensWithRegex(string $path, array $constraints): string
+    {
+        $pattern = preg_quote($path, '#');
+        return preg_replace_callback('/\\\{([a-zA-Z0-9_]+)\\\}/', function ($matches) use ($constraints) {
+            $name = $matches[1];
+            $regex = $constraints[$name] ?? '[^/]+';
+            $regex = str_replace('#', '\#', $regex);
+            return "(?P<$name>$regex)";
+        }, $pattern);
     }
 }

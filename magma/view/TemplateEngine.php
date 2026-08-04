@@ -166,8 +166,18 @@ class TemplateEngine
         echo $this->loadFile($templateFile, $data);
     }
 
-    /**
      * Extracts variables and loads the template file into an output buffer.
+     *
+     * Execution Flow:
+     * 1. Get current output buffer level.
+     * 2. Start new output buffer.
+     * 3. Require the template, which outputs to buffer.
+     * 4. Get buffer contents and clear it.
+     * 5. Catch any exceptions and clean buffers up to the original level.
+     *
+     * Logic behind the logic:
+     * - Using try/catch with `ob_get_level()` ensures that if a template throws an error
+     *   halfway through rendering, the partial HTML is swallowed and not sent to the client.
      *
      * @param string $path The absolute path to the PHP template file.
      * @param array $data The variables to expose within the template scope.

@@ -22,6 +22,9 @@ require_once __DIR__ . '/autoload.php';
 use Magma\container\Container;
 use Magma\config\Config;
 use Magma\providers\CoreServiceProvider;
+use Magma\providers\DatabaseServiceProvider;
+use Magma\providers\InfrastructureServiceProvider;
+use Magma\providers\RoutingServiceProvider;
 use Magma\providers\RepositoryServiceProvider;
 use Magma\providers\DomainServiceProvider;
 use Magma\providers\HttpServiceProvider;
@@ -45,6 +48,9 @@ $container->set(Container::class, function () use ($container) {
  */
 $providers = [
     new CoreServiceProvider(),
+    new InfrastructureServiceProvider(),
+    new DatabaseServiceProvider(),
+    new RoutingServiceProvider(),
     new RepositoryServiceProvider(),
     new DomainServiceProvider(),
     new HttpServiceProvider(),

@@ -100,17 +100,14 @@ class PasswordResetService
 
         $resetLink = $this->urlGenerator->generateAbsolute('/reset-password', ['token' => $token->getPlainTextToken()]);
         
-        $payload = json_encode([
-            JobInterface::HANDLER_KEY => \Magma\jobs\SendPasswordResetEmailJob::class,
-            JobInterface::PAYLOAD_KEY => [
-                'to_email' => $email,
-                'to_name' => $user->getName(),
-                'reset_link' => $resetLink
-            ]
-        ]);
+        $payload = [
+            'to_email' => $email,
+            'to_name' => $user->getName(),
+            'reset_link' => $resetLink
+        ];
 
         try {
-            $this->queue->push('emails', $payload);
+            $this->queue->push('emails', \Magma\jobs\SendPasswordResetEmailJob::class, $payload);
         } catch (\Throwable $e) {
             error_log("Failed to queue password reset email: " . $e->getMessage());
             return PasswordResetStatus::SYSTEM_ERROR;

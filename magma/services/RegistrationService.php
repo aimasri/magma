@@ -74,11 +74,8 @@ class RegistrationService
         $user = $this->transactionManager->transactional(function () use ($registration) {
             try {
                 $userId = $this->userCommandRepository->create($registration);
-            } catch (\PDOException $e) {
-                if ($e->getCode() === '23000') {
-                    throw new ValidationException(['email' => 'This email is already registered.']);
-                }
-                throw $e;
+            } catch (\Magma\domain\exceptions\DuplicateResourceException $e) {
+                throw new ValidationException(['email' => 'This email is already registered.']);
             }
 
             // Fetch the newly created user

@@ -27,6 +27,10 @@ class VendorMapper
         'payment_gateway_customer_id', 'theme_settings'
     ];
 
+    private const JSON_COLUMNS = [
+        'theme_settings'
+    ];
+
     /**
      * Hydrate a Raw Database Record into a Domain Array
      *
@@ -44,14 +48,14 @@ class VendorMapper
      */
     public function toDomain(array $vendor): \Magma\dto\VendorDTO
     {
-        $themeSettings = $vendor['theme_settings'] ?? null;
-
-        if (is_string($themeSettings) && trim($themeSettings) !== '') {
-            $decoded = json_decode($themeSettings, true);
-            // Ensure the decoded result is strictly an array, bypassing scalar JSON values
-            $vendor['theme_settings'] = is_array($decoded) ? $decoded : [];
-        } elseif (!is_array($themeSettings)) {
-            $vendor['theme_settings'] = [];
+        foreach (self::JSON_COLUMNS as $jsonCol) {
+            $val = $vendor[$jsonCol] ?? null;
+            if (is_string($val) && trim($val) !== '') {
+                $decoded = json_decode($val, true);
+                $vendor[$jsonCol] = is_array($decoded) ? $decoded : [];
+            } elseif (!is_array($val)) {
+                $vendor[$jsonCol] = [];
+            }
         }
 
         return new \Magma\dto\VendorDTO(
@@ -97,7 +101,7 @@ class VendorMapper
 
             $value = $data[$column];
             
-            if ($column === 'theme_settings') {
+            if (in_array($column, self::JSON_COLUMNS)) {
                 $value = match (true) {
                     is_array($value), is_object($value) => json_encode($value),
                     is_string($value) => $value,

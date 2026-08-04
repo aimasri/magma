@@ -26,13 +26,14 @@ interface QueueInterface
      * - Enqueues a payload for asynchronous processing.
      *
      * Logic behind the logic:
-     * - The payload is passed as a raw string to remain storage-agnostic, deferring JSON 
-     *   encoding to the caller and allowing the queue driver to simply store bytes.
+     * - The serialization logic is pushed down to the concrete QueueInterface implementation
+     *   (e.g., RedisQueue) to decouple domain services from queue internals.
      *
      * @param string $queue
-     * @param string $payload
+     * @param string $handlerClass
+     * @param array $payload
      */
-    public function push(string $queue, string $payload): void;
+    public function push(string $queue, string $handlerClass, array $payload): void;
 
     /**
      * Pop a job from the front of the queue, blocking until one is available or timeout occurs.
@@ -57,7 +58,8 @@ interface QueueInterface
      * - Reduces network round trips and prevents N+1 problems when queuing many jobs at once.
      *
      * @param string $queue
-     * @param string[] $payloads
+     * @param string $handlerClass
+     * @param array[] $payloads
      */
-    public function pushBatch(string $queue, array $payloads): void;
+    public function pushBatch(string $queue, string $handlerClass, array $payloads): void;
 }

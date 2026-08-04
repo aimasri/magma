@@ -28,11 +28,11 @@ class RoleMiddleware implements MiddlewareInterface
 {
     private array $allowedRoles = [];
     private string $redirectPath = '/';
-    private \Magma\http\Session $session;
+    private \Magma\services\AuthenticationService $authService;
 
-    public function __construct(\Magma\http\Session $session)
+    public function __construct(\Magma\services\AuthenticationService $authService)
     {
-        $this->session = $session;
+        $this->authService = $authService;
     }
 
     public function configure(array|string $allowedRoles, string $redirectPath = '/'): void
@@ -57,9 +57,9 @@ class RoleMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $user = $this->session->get('user');
+        $user = $this->authService->getAuthenticatedUser();
         
-        if (!$user || !isset($user['role']) || !in_array($user['role'], $this->allowedRoles, true)) {
+        if (!$user || !in_array($user->getRole(), $this->allowedRoles, true)) {
             return new RedirectResponse($this->redirectPath);
         }
         

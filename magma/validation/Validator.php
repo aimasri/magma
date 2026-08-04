@@ -59,6 +59,24 @@ class Validator
     }
 
     /**
+     * Parses a rule string into its name and parameters.
+     * 
+     * @param string $ruleString e.g. "min:8"
+     * @return array [string $ruleName, array $params]
+     */
+    private function parseRule(string $ruleString): array
+    {
+        $params = [];
+        if (str_contains($ruleString, ':')) {
+            [$ruleName, $paramString] = explode(':', $ruleString);
+            $params = explode(',', $paramString);
+        } else {
+            $ruleName = $ruleString;
+        }
+        return [$ruleName, $params];
+    }
+
+    /**
      * Executes the validation logic against a given data set.
      * 
      * Execution Flow:
@@ -87,12 +105,8 @@ class Validator
                 continue;
             }
 
-            foreach ($fieldRules as $ruleName) {
-                $params = [];
-                if (str_contains($ruleName, ':')) {
-                    [$ruleName, $paramString] = explode(':', $ruleName);
-                    $params = explode(',', $paramString);
-                }
+            foreach ($fieldRules as $ruleString) {
+                [$ruleName, $params] = $this->parseRule($ruleString);
 
                 if (isset($this->rules[$ruleName])) {
                     $ruleCallable = $this->rules[$ruleName];

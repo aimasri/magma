@@ -3,6 +3,7 @@
 namespace Magma\queue;
 
 use Redis;
+use Magma\queue\JobInterface;
 
 /**
  * Redis Queue
@@ -40,9 +41,13 @@ class RedisQueue implements QueueInterface
      * - `RPUSH` is an O(1) operation. It allows the web server to instantly offload the job 
      *   and immediately return an HTTP response to the user.
      */
-    public function push(string $queue, string $payload): void
+    public function push(string $queue, string $handlerClass, array $payload): void
     {
-        $this->redis->rpush($this->prefix . $queue, $payload);
+        $data = json_encode([
+            JobInterface::HANDLER_KEY => $handlerClass,
+            JobInterface::PAYLOAD_KEY => $payload
+        ]);
+        $this->redis->rpush($this->prefix . $queue, $data);
     }
 
     /**
@@ -77,11 +82,19 @@ class RedisQueue implements QueueInterface
      * 1. Prepend the queue name with the environment prefix.
      * 2. Execute `RPUSH` with variadic unpacking to append all payloads atomically.
      */
-    public function pushBatch(string $queue, array $payloads): void
+    public function pushBatch(string $queue, string $handlerClass, array $payloads): void
     {
         if (empty($payloads)) {
             return;
         }
-        $this->redis->rpush($this->prefix . $queue, ...$payloads);
+        
+        $encodedPayloads = array_map(function ($payload) use ($handlerClass) {
+            return json_encode([
+                JobInterface::HANDLER_KEY => $handlerClass,
+                JobInterface::PAYLOAD_KEY => $payload
+            ]);
+        }, $payloads);
+
+        $this->redis->rpush($this->prefix . $queue, ...$encodedPayloads);
     }
 }

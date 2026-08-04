@@ -29,16 +29,15 @@ use Magma\enums\PasswordResetStatus;
  */
 class PasswordResetController extends BaseController
 {
-    protected Request $request;
-    protected PasswordResetService $passwordResetService;
-    protected Validator $validator;
-
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session, Request $request, PasswordResetService $passwordResetService, Validator $validator)
-    {
+    public function __construct(
+        TemplateEngine $templateEngine, 
+        \Magma\security\CsrfManager $csrfManager, 
+        \Magma\http\Session $session, 
+        protected Request $request, 
+        protected PasswordResetService $passwordResetService, 
+        protected Validator $validator
+    ) {
         parent::__construct($templateEngine, $csrfManager, $session);
-        $this->request = $request;
-        $this->passwordResetService = $passwordResetService;
-        $this->validator = $validator;
     }
     
     /**

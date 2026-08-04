@@ -148,4 +148,18 @@ class AuthenticationService
 
         return AuthenticationResult::failure()->clearCookie('remember_user');
     }
+
+    /**
+     * Retrieves the currently authenticated user from the session.
+     * 
+     * @return \Magma\domain\AuthUser|null
+     */
+    public function getAuthenticatedUser(): ?\Magma\domain\AuthUser
+    {
+        $userData = $this->session->get('user');
+        if ($userData) {
+            return new \Magma\domain\AuthUser($userData);
+        }
+        return null;
+    }
 }

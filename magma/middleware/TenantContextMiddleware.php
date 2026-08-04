@@ -27,12 +27,12 @@ use Magma\security\TenantContext;
 class TenantContextMiddleware implements MiddlewareInterface
 {
     private TenantContext $tenantContext;
-    private \Magma\http\Session $session;
+    private \Magma\services\AuthenticationService $authService;
 
-    public function __construct(TenantContext $tenantContext, \Magma\http\Session $session)
+    public function __construct(TenantContext $tenantContext, \Magma\services\AuthenticationService $authService)
     {
         $this->tenantContext = $tenantContext;
-        $this->session = $session;
+        $this->authService = $authService;
     }
 
     /**
@@ -54,10 +54,9 @@ class TenantContextMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $userData = $this->session->get('user');
+        $user = $this->authService->getAuthenticatedUser();
         
-        if ($userData) {
-            $user = new \Magma\domain\AuthUser($userData);
+        if ($user) {
             
             if ($user->hasVendorId()) {
                 $vendorId = $user->getVendorId();

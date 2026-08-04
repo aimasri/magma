@@ -22,8 +22,14 @@ class DashboardWidgetRegistry
     /** @var DashboardWidgetInterface[] */
     private array $widgets = [];
 
-    /**
      * Registers a new widget into the registry.
+     *
+     * Execution Flow:
+     * 1. Extract the unique identifier from the widget instance.
+     * 2. Store the widget in the internal array keyed by its identifier.
+     *
+     * Logic behind the logic:
+     * - Keying by identifier prevents duplicate widgets from being registered and ensures O(1) lookup.
      *
      * @param DashboardWidgetInterface $widget
      * @return void

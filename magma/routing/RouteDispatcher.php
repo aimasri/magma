@@ -88,7 +88,8 @@ class RouteDispatcher
         $resolvedMiddleware = $this->middlewareResolver->resolveAll($mergedMiddleware);
 
         try {
-            return (new Pipeline())
+            $pipeline = $this->container->has(Pipeline::class) ? $this->container->get(Pipeline::class) : new Pipeline();
+            return $pipeline
                 ->send($request)
                 ->through($resolvedMiddleware)
                 ->then($coreHandler);
@@ -121,7 +122,7 @@ class RouteDispatcher
 
             if (array_key_exists($name, $params)) {
                 $args[] = $params[$name];
-            } elseif ($className === \Magma\http\RequestInterface::class || $className === \Magma\http\Request::class) {
+            } elseif ($className && $request instanceof $className) {
                 $args[] = $request;
             } elseif ($className && $this->container->has($className)) {
                 $args[] = $this->container->get($className);
