@@ -59,7 +59,9 @@ class ReviewController extends BaseController
      */
     public function submitReview(): Response
     {
-        $this->validateOrRedirect(new ReviewRequest($this->request, $this->validator), '/');
+        if ($redirect = $this->validateOrRedirect(new ReviewRequest($this->request, $this->validator), '/')) {
+            return $redirect;
+        }
 
         $data = $this->request->request();
         $this->reviewSubmissionService->submit($data);

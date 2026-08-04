@@ -2,7 +2,7 @@
 
 namespace Magma\mail;
 
-use Magma\view\TemplateEngine;
+
 
 /**
  * Title: Welcome Mailable
@@ -33,10 +33,15 @@ class WelcomeEmail implements MailableInterface
         return 'Welcome to Magma!';
     }
 
-    public function renderBody(TemplateEngine $engine): string
+    public function getTemplate(): string
     {
-        return $engine->render('emails/welcome', [
+        return 'emails/welcome';
+    }
+
+    public function getVariables(): array
+    {
+        return [
             'toName' => $this->toName
-        ], null);
+        ];
     }
 }

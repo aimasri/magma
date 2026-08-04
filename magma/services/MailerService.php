@@ -55,7 +55,11 @@ class MailerService
     public function sendMailable(string $toEmail, MailableInterface $mailable): bool
     {
         $subject = $mailable->getSubject();
-        $body = $mailable->renderBody($this->templateEngine);
+        $body = $this->templateEngine->render(
+            $mailable->getTemplate(),
+            $mailable->getVariables(),
+            null
+        );
 
         return $this->send($toEmail, $subject, $body);
     }

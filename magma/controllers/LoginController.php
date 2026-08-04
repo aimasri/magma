@@ -11,6 +11,15 @@ use Magma\requests\LoginRequest;
 use Magma\validation\Validator;
 use Magma\view\TemplateEngine;
 
+/**
+ * Title: Login Controller
+ *
+ * Purpose:
+ * - Handles user login presentation and authentication logic.
+ *
+ * Why this design:
+ * - Delegates actual authentication to the AuthenticationService.
+ */
 class LoginController extends BaseController
 {
     protected Request $request;
@@ -38,16 +47,16 @@ class LoginController extends BaseController
         if ($token) {
             $result = $this->authService->attemptAutoLogin($token);
             if ($result->isSuccessful()) {
-                return $this->applyAuthResult($result, clone $this->redirectToDashboard($result->getUser()));
+                return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()));
             }
             
             $response = $this->render('auth/login', ['title' => 'Login']);
-            return $this->applyAuthResult($result, clone $response);
+            return $this->applyAuthResult($result, $response);
         }
 
         if ($this->session->get('user')) {
             $sessionUser = new \Magma\domain\AuthUser($this->session->get('user'));
-            return clone $this->redirectToDashboard($sessionUser);
+            return $this->redirectToDashboard($sessionUser);
         }
 
         return $this->render('auth/login', [
@@ -57,7 +66,9 @@ class LoginController extends BaseController
 
     public function authenticate(): Response
     {
-        $this->validateOrRedirect(new LoginRequest($this->request, $this->validator), '/login');
+        if ($redirect = $this->validateOrRedirect(new LoginRequest($this->request, $this->validator), '/login')) {
+            return $redirect;
+        }
 
         $data = $this->request->request();
         $email = trim($data['email'] ?? '');
@@ -72,7 +83,7 @@ class LoginController extends BaseController
             return new RedirectResponse('/login');
         }
 
-        return $this->applyAuthResult($result, clone $this->redirectToDashboard($result->getUser()));
+        return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()));
     }
 
     private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse

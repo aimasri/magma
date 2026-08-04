@@ -31,11 +31,8 @@ abstract class BaseCommandRepository
         $this->tenantContext = $tenantContext;
     }
 
-    public function __get(string $name)
+    protected function getDb(): \PDO
     {
-        if ($name === 'db') {
-            return $this->dbManager->getWriteConnection();
-        }
-        throw new \RuntimeException("Property {$name} not found");
+        return $this->dbManager->getWriteConnection();
     }
 }

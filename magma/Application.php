@@ -77,13 +77,14 @@ class Application
     public function run(): void
     {
         ob_start();
+        $bufferedOutput = '';
         try {
             // 1. Resolve the primary request object from the container
             $request = $this->container->get(RequestInterface::class);
 
             // 2. Process the request through the single unified middleware pipeline
             $response = $this->container->get(RouterInterface::class)->dispatch($request, $this->middleware);
-            echo ob_get_clean();
+            $bufferedOutput = ob_get_clean();
         } catch (\Throwable $e) {
             ob_end_clean();
             $response = $this->handleKernelError($e, $request ?? null);
@@ -91,6 +92,7 @@ class Application
 
         // 3. Send headers and body to the client
         $response->send();
+        echo $bufferedOutput;
     }
 
     /**

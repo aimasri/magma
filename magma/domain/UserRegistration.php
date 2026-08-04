@@ -18,6 +18,7 @@ namespace Magma\domain;
  * Teaching notes:
  * - Entities never query the database, so uniqueness checks (like duplicate emails) 
  *   still happen in the service, but the entity guarantees the data is well-formed.
+ * - Password hashing is injected into the entity during construction to avoid hidden side effects.
  */
 class UserRegistration
 {
@@ -30,24 +31,21 @@ class UserRegistration
      *
      * Execution Flow:
      * 1. Extracts the name and email from the raw data array, trimming whitespace.
-     * 2. Extracts the plain-text password.
-     * 3. Immediately hashes the plain-text password using bcrypt.
+     * 2. Sets the already-hashed password.
      *
      * Logic behind the logic:
      * - Trimming whitespace prevents accidental validation failures due to trailing spaces.
-     * - Hashing the password in the constructor ensures that the plain-text password 
-     *   never exists as a readable property within the domain layer, limiting exposure 
-     *   during debugging or error logging.
+     * - Injecting the hashed password ensures the entity is fully decoupled from the hashing mechanism.
      *
-     * @param array $data The raw input array, typically from a POST request.
+     * @param string $name The user's name.
+     * @param string $email The user's email.
+     * @param string $hashedPassword The pre-hashed password.
      */
-    public function __construct(array $data)
+    public function __construct(string $name, string $email, string $hashedPassword)
     {
-        $this->name = trim($data['name'] ?? '');
-        $this->email = trim($data['email'] ?? '');
-        $password = $data['password'] ?? '';
-        
-        $this->hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $this->name = trim($name);
+        $this->email = trim($email);
+        $this->hashedPassword = $hashedPassword;
     }
 
     /**

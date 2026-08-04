@@ -146,20 +146,22 @@ class Router implements RouterInterface
 
     private function checkDynamicRoutesForMethodNotAllowed(string $requestMethod, string $requestPath): void
     {
-        $dynamicRoutes = $this->collection->getDynamicRoutes();
-        foreach ($dynamicRoutes as $method => $routes) {
+        foreach ($this->compiledMegaRegexes as $method => $megaRegex) {
             if ($method === $requestMethod) continue;
             
-            foreach ($routes as $route) {
-                $path = $route[1];
-                $constraints = $route[3] ?? [];
-                $structuralPattern = $route[6] ?? RouteCompiler::compilePattern($path, $constraints);
+            if (preg_match($megaRegex, $requestPath, $matches)) {
+                if (!isset($matches['MARK'])) continue;
+
+                $routeIndex = (int)$matches['MARK'];
+                $routes = $this->collection->getDynamicRoutes();
+                $route = $routes[$method][$routeIndex];
                 
-                if (preg_match($structuralPattern, $requestPath, $matches)) {
-                    $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                    if ($this->parametersSatisfyConstraints($params, $constraints)) {
-                        throw new \Magma\routing\MethodNotAllowedException("Method Not Allowed for path: {$requestPath}", 405);
-                    }
+                $constraints = $route[3] ?? [];
+                $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+                unset($params['MARK']);
+
+                if ($this->parametersSatisfyConstraints($params, $constraints)) {
+                    throw new \Magma\routing\MethodNotAllowedException("Method Not Allowed for path: {$requestPath}", 405);
                 }
             }
         }

@@ -45,8 +45,15 @@ class ComboboxView {
         }
     }
 
+    /**
+     * Renders the combobox items into the dropdown using a DocumentFragment for performance.
+     * 
+     * @param {Array} items - The list of items to render.
+     */
     render(items) {
         this.dropdown.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+        
         items.forEach(item => {
             const wrapper = document.createElement('div');
             wrapper.className = 'magma-combobox-item';
@@ -63,8 +70,10 @@ class ComboboxView {
 
             wrapper.appendChild(title);
             wrapper.appendChild(subtitle);
-            this.dropdown.appendChild(wrapper);
+            fragment.appendChild(wrapper);
         });
+        
+        this.dropdown.appendChild(fragment);
     }
 
     clear() {
@@ -108,7 +117,7 @@ export class MagmaCombobox {
     constructor(inputElement, options = {}) {
         this.options = options;
         this.debounceDelay = options.debounceDelay || 300;
-        this.state = new MenuItemState();
+        this.state = options.state || new MenuItemState();
         
         this.model = new ComboboxModel(options.dataProvider);
         this.view = new ComboboxView(inputElement);

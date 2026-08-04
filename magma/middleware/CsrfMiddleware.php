@@ -22,6 +22,8 @@ use Magma\http\Response;
  */
 class CsrfMiddleware implements MiddlewareInterface
 {
+    private const UNSAFE_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
+
     private \Magma\security\CsrfManager $csrfManager;
 
     public function __construct(\Magma\security\CsrfManager $csrfManager)
@@ -51,9 +53,8 @@ class CsrfMiddleware implements MiddlewareInterface
         $this->csrfManager->getToken();
 
         $method = strtoupper($request->getMethod());
-        $unsafeMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
-        if (in_array($method, $unsafeMethods)) {
+        if (in_array($method, self::UNSAFE_METHODS)) {
             // Retrieve the token from the request body or from common AJAX headers.
             // This allows both standard form submissions and JSON-based AJAX requests.
             $submittedToken = $request->request('_token') 
@@ -64,7 +65,7 @@ class CsrfMiddleware implements MiddlewareInterface
                 return new Response("Forbidden: Invalid or missing CSRF token.", 403);
             }
 
-
+            $this->csrfManager->consumeToken($submittedToken);
         }
 
         return $next($request);

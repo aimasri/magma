@@ -18,11 +18,4 @@ namespace Magma\interfaces\cqrs;
  */
 interface CommandInterface
 {
-    /**
-     * Executes the command.
-     *
-     * @param array|object $payload Data required to perform the write operation.
-     * @return mixed Result of the command (e.g., ID of created resource, boolean status).
-     */
-    public function execute(mixed $payload): mixed;
 }

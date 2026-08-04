@@ -54,6 +54,7 @@ class DashboardWidgetRegistry
                 $data[$identifier] = $widget->render($vendorId);
             } catch (\Throwable $e) {
                 // Log the error internally, but allow the rest of the dashboard to render
+                error_log("Dashboard Widget Error [{$identifier}]: " . $e->getMessage());
                 $data[$identifier] = ['error' => 'Widget temporarily unavailable'];
             }
         }

@@ -1,6 +1,7 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
+use Magma\interfaces\cqrs\VendorQueryInterface;
 
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
@@ -44,7 +45,7 @@ class VendorQueryRepository extends BaseQueryRepository implements VendorQueryIn
         }
         $sql .= " ORDER BY id ASC LIMIT :limit";
         
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         if ($lastId !== null) {
             $stmt->bindValue(':last_id', $lastId, \PDO::PARAM_INT);
@@ -58,7 +59,7 @@ class VendorQueryRepository extends BaseQueryRepository implements VendorQueryIn
 
     public function find(int $id): ?VendorDTO
     {
-        $stmt = $this->db->prepare("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM vendors WHERE id = :id");
+        $stmt = $this->getDb()->prepare("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM vendors WHERE id = :id");
         $stmt->execute(['id' => $id]);
         $vendor = $stmt->fetch() ?: null;
         return $vendor ? $this->mapper->toDomain($vendor) : null;

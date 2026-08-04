@@ -2,7 +2,7 @@
 
 namespace Magma\services;
 
-use Magma\models\RememberTokenRepository;
+use Magma\repositories\RememberTokenRepository;
 
 /**
  * Persistent Authentication Service (Remember Me)

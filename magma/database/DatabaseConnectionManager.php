@@ -115,7 +115,7 @@ class DatabaseConnectionManager
                 PDO::ATTR_EMULATE_PREPARES   => $this->emulatePrepares,
             ]);
         } catch (PDOException $e) {
-            throw new RuntimeException("Database connection failed. Please check your configuration.");
+            throw new RuntimeException("Database connection failed. Please check your configuration.", 0, $e);
         }
     }
 

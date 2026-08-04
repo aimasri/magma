@@ -8,10 +8,10 @@ use Magma\view\TemplateEngine;
 use Magma\http\Request;
 use Magma\validation\Validator;
 
-use Magma\models\VendorRepositoryInterface;
-use Magma\models\UserRepositoryInterface;
+use Magma\repositories\VendorRepositoryInterface;
+use Magma\repositories\UserRepositoryInterface;
 
-use Magma\models\SiteReviewRepositoryInterface;
+use Magma\interfaces\cqrs\SiteReviewQueryInterface;
 use Magma\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
 use Magma\services\RegistrationService;
@@ -70,7 +70,7 @@ class HttpServiceProvider implements ServiceProviderInterface
         $container->set(ViewShareMiddleware::class, function ($c) {
             return new ViewShareMiddleware(
                 $c->get(TemplateEngine::class),
-                $c->get(\Magma\models\VendorQueryInterface::class)
+                $c->get(\Magma\interfaces\cqrs\VendorQueryInterface::class)
             );
         });
 
@@ -87,7 +87,8 @@ class HttpServiceProvider implements ServiceProviderInterface
             return new HomeController(
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\models\SiteReviewRepositoryInterface::class),
+                $c->get(\Magma\http\Session::class),
+                $c->get(\Magma\interfaces\cqrs\SiteReviewQueryInterface::class),
                 $c->get(Request::class),
                 $c->get(PaginationService::class)
             );

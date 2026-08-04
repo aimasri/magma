@@ -86,6 +86,18 @@ class CsrfManager
     }
 
     /**
+     * Consume a token to prevent replay attacks during the grace period.
+     */
+    public function consumeToken(string $token): void
+    {
+        $tokens = $this->session->get('_csrf_token', []);
+        if (is_array($tokens)) {
+            $tokens = array_filter($tokens, fn($t) => !hash_equals($t, $token));
+            $this->session->set('_csrf_token', array_values($tokens));
+        }
+    }
+
+    /**
      * Rotate the token array, preserving only up to GRACE_PERIOD_COUNT tokens.
      *
      * Execution Flow:

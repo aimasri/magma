@@ -56,16 +56,17 @@ abstract class BaseController
      * redirect. This prevents the user from losing their progress while 
      * keeping the controller code clean.
      */
-    protected function validateOrRedirect(FormRequest $formRequest, string $redirectPath): void
+    protected function validateOrRedirect(FormRequest $formRequest, string $redirectPath): ?RedirectResponse
     {
         try {
             $formRequest->validate();
+            return null;
         } catch (ValidationException $e) {
             $request = $formRequest->getRequest();
             $this->session->set('errors', $e->getErrors());
             $this->session->set('old', $request->request());
             
-            throw new HttpResponseException(new RedirectResponse($redirectPath));
+            return new RedirectResponse($redirectPath);
         }
     }
 }

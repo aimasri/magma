@@ -1,6 +1,8 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
+
+use Magma\database\BaseCommandRepository;
 
 use PDO;
 
@@ -15,14 +17,14 @@ use PDO;
  * Teaching notes:
  * - The `syncVendorInventory` method leverages `INSERT ... ON CONFLICT DO UPDATE`, which is a highly efficient, atomic "upsert" pattern standard in modern PostgreSQL/MySQL data warehousing.
  */
-class VendorInventoryRepository extends BaseRepository
+class VendorInventoryRepository extends BaseCommandRepository
 {
     /**
      * Fetch unique vendor IDs to process the sync in chunks, preventing an unbounded full-table scan.
      */
     public function getVendorIdsFromTransactions(): array
     {
-        $stmt = $this->dbRead->prepare("SELECT DISTINCT vendor_id FROM inventory_transactions");
+        $stmt = $this->getDb()->prepare("SELECT DISTINCT vendor_id FROM inventory_transactions");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
@@ -42,7 +44,7 @@ class VendorInventoryRepository extends BaseRepository
             DO UPDATE SET quantity_available = EXCLUDED.quantity_available
         ";
         
-        $syncStmt = $this->dbWrite->prepare($sql);
+        $syncStmt = $this->getDb()->prepare($sql);
         $syncStmt->execute(['vendor_id' => $vendorId]);
     }
 }

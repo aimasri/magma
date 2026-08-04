@@ -11,11 +11,11 @@ use Magma\http\Session;
 use Magma\queue\QueueInterface;
 use Magma\database\TransactionManagerInterface;
 
-use Magma\models\UserRepositoryInterface;
-use Magma\models\UserTokenRepository;
-use Magma\models\UserTokenRepositoryInterface;
-use Magma\models\SiteReviewRepository;
-use Magma\models\SiteReviewRepositoryInterface;
+use Magma\interfaces\cqrs\UserQueryInterface;
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\repositories\UserTokenRepository;
+use Magma\repositories\UserTokenRepositoryInterface;
+use Magma\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\services\MailerService;
 use Magma\services\AuthenticationService;
 use Magma\services\RegistrationService;
@@ -77,8 +77,10 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(PasswordResetService::class, function ($c) {
             return new PasswordResetService(
-                $c->get(UserRepositoryInterface::class),
-                $c->get(\Magma\models\PasswordResetTokenRepository::class),
+                $c->get(UserCommandInterface::class),
+                $c->get(UserQueryInterface::class),
+                $c->get(\Magma\repositories\PasswordResetTokenRepository::class),
+                $c->get(\Magma\repositories\RememberTokenRepository::class),
                 $c->get(QueueInterface::class),
                 $c->get(UrlGenerator::class),
                 $c->get(TransactionManagerInterface::class)
@@ -87,7 +89,7 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(AuthenticationService::class, function ($c) {
             return new AuthenticationService(
-                $c->get(UserRepositoryInterface::class),
+                $c->get(UserQueryInterface::class),
                 $c->get(Session::class),
                 $c->get(RememberMeService::class)
             );
@@ -95,13 +97,14 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(RememberMeService::class, function ($c) {
             return new RememberMeService(
-                $c->get(\Magma\models\RememberTokenRepository::class)
+                $c->get(\Magma\repositories\RememberTokenRepository::class)
             );
         });
 
         $container->set(RegistrationService::class, function ($c) {
             return new RegistrationService(
-                $c->get(UserRepositoryInterface::class),
+                $c->get(UserCommandInterface::class),
+                $c->get(UserQueryInterface::class),
                 $c->get(\Magma\interfaces\EventDispatcherInterface::class),
                 $c->get(TransactionManagerInterface::class)
             );
@@ -109,7 +112,7 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(ReviewSubmissionService::class, function ($c) {
             return new ReviewSubmissionService(
-                $c->get(SiteReviewRepositoryInterface::class)
+                $c->get(SiteReviewCommandInterface::class)
             );
         });
 

@@ -15,18 +15,11 @@ namespace Magma\dto;
  */
 class MenuDTO
 {
-    public int $id;
-    public int $vendorId;
-    public ?int $parentId;
-    public string $name;
-    public bool $isActive;
-
-    public function __construct(int $id, int $vendorId, ?int $parentId, string $name, bool $isActive)
-    {
-        $this->id = $id;
-        $this->vendorId = $vendorId;
-        $this->parentId = $parentId;
-        $this->name = $name;
-        $this->isActive = $isActive;
-    }
+    public function __construct(
+        public readonly int $id,
+        public readonly int $vendorId,
+        public readonly ?int $parentId,
+        public readonly string $name,
+        public readonly bool $isActive
+    ) {}
 }

@@ -2,7 +2,7 @@
 
 namespace Magma\mail;
 
-use Magma\view\TemplateEngine;
+
 
 /**
  * Title: Password Reset Mailable
@@ -35,11 +35,16 @@ class PasswordResetEmail implements MailableInterface
         return 'Password Reset Request for Magma Framework';
     }
 
-    public function renderBody(TemplateEngine $engine): string
+    public function getTemplate(): string
     {
-        return $engine->render('emails/password_reset', [
+        return 'emails/password_reset';
+    }
+
+    public function getVariables(): array
+    {
+        return [
             'toName' => $this->toName,
             'resetLink' => $this->resetLink
-        ], null);
+        ];
     }
 }

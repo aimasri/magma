@@ -49,4 +49,15 @@ interface QueueInterface
      * @return string|null
      */
     public function pop(string $queue, int $timeout = 0): ?string;
+
+    /**
+     * Push multiple jobs onto the end of the queue in a single batch.
+     *
+     * Purpose:
+     * - Reduces network round trips and prevents N+1 problems when queuing many jobs at once.
+     *
+     * @param string $queue
+     * @param string[] $payloads
+     */
+    public function pushBatch(string $queue, array $payloads): void;
 }

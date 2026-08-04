@@ -2,13 +2,14 @@
 
 namespace Magma\services;
 
-use Magma\models\UserRepositoryInterface;
-use Magma\models\PasswordResetTokenRepository;
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\interfaces\cqrs\UserQueryInterface;
+use Magma\repositories\PasswordResetTokenRepository;
 use Magma\queue\QueueInterface;
 use Magma\routing\UrlGenerator;
 use Magma\enums\PasswordResetStatus;
 use Magma\database\TransactionManagerInterface;
-use Magma\models\RememberTokenRepository;
+use Magma\repositories\RememberTokenRepository;
 
 /**
  * Password Reset Domain Service
@@ -32,7 +33,8 @@ use Magma\models\RememberTokenRepository;
  */
 class PasswordResetService
 {
-    protected UserRepositoryInterface $userRepository;
+    protected UserCommandInterface $userCommandRepository;
+    protected UserQueryInterface $userQueryRepository;
     protected PasswordResetTokenRepository $userTokenRepository;
     protected RememberTokenRepository $rememberTokenRepository;
     protected QueueInterface $queue;
@@ -40,14 +42,16 @@ class PasswordResetService
     protected TransactionManagerInterface $transactionManager;
 
     public function __construct(
-        UserRepositoryInterface $userRepository,
+        UserCommandInterface $userCommandRepository,
+        UserQueryInterface $userQueryRepository,
         PasswordResetTokenRepository $userTokenRepository,
         RememberTokenRepository $rememberTokenRepository,
         QueueInterface $queue,
         UrlGenerator $urlGenerator,
         TransactionManagerInterface $transactionManager
     ) {
-        $this->userRepository = $userRepository;
+        $this->userCommandRepository = $userCommandRepository;
+        $this->userQueryRepository = $userQueryRepository;
         $this->userTokenRepository = $userTokenRepository;
         $this->rememberTokenRepository = $rememberTokenRepository;
         $this->queue = $queue;
@@ -75,7 +79,7 @@ class PasswordResetService
      */
     public function requestReset(string $email): PasswordResetStatus
     {
-        $user = $this->userRepository->findByEmail($email);
+        $user = $this->userQueryRepository->findByEmail($email);
         if (!$user) {
             return PasswordResetStatus::USER_NOT_FOUND;
         }
@@ -156,7 +160,7 @@ class PasswordResetService
         
         try {
             return $this->transactionManager->transactional(function () use ($record, $hashed, $resetToken) {
-                $this->userRepository->updatePassword($record['user_id'], $hashed);
+                $this->userCommandRepository->updatePassword($record['user_id'], $hashed);
                 $this->userTokenRepository->deletePasswordResetToken($resetToken->getHashedToken());
                 $this->rememberTokenRepository->deleteAllRememberTokensForUser($record['user_id']);
                 return PasswordResetStatus::SUCCESS;

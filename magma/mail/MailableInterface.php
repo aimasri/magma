@@ -2,7 +2,7 @@
 
 namespace Magma\mail;
 
-use Magma\view\TemplateEngine;
+
 
 /**
  * Title: Mailable Interface
@@ -22,5 +22,6 @@ use Magma\view\TemplateEngine;
 interface MailableInterface
 {
     public function getSubject(): string;
-    public function renderBody(TemplateEngine $engine): string;
+    public function getTemplate(): string;
+    public function getVariables(): array;
 }

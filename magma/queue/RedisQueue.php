@@ -69,4 +69,19 @@ class RedisQueue implements QueueInterface
 
         return null;
     }
+
+    /**
+     * Pushes multiple job payloads onto the right side (tail) of the Redis list in a single batch.
+     *
+     * Execution Flow:
+     * 1. Prepend the queue name with the environment prefix.
+     * 2. Execute `RPUSH` with variadic unpacking to append all payloads atomically.
+     */
+    public function pushBatch(string $queue, array $payloads): void
+    {
+        if (empty($payloads)) {
+            return;
+        }
+        $this->redis->rpush($this->prefix . $queue, ...$payloads);
+    }
 }

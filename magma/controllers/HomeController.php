@@ -6,7 +6,7 @@ use Magma\http\Request;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
 use Magma\view\TemplateEngine;
-use Magma\models\SiteReviewRepositoryInterface;
+use Magma\interfaces\cqrs\SiteReviewQueryInterface;
 use Magma\services\PaginationService;
 
 /**
@@ -23,7 +23,7 @@ use Magma\services\PaginationService;
  */
 class HomeController extends BaseController
 {
-    private SiteReviewRepositoryInterface $siteReviewRepository;
+    private SiteReviewQueryInterface $siteReviewRepository;
     private Request $request;
     private PaginationService $paginationService;
     private \Magma\http\Session $session;
@@ -32,7 +32,7 @@ class HomeController extends BaseController
         TemplateEngine $templateEngine,
         \Magma\security\CsrfManager $csrfManager,
         \Magma\http\Session $session,
-        SiteReviewRepositoryInterface $siteReviewRepository,
+        SiteReviewQueryInterface $siteReviewRepository,
         Request $request,
         PaginationService $paginationService
     ) {
@@ -47,7 +47,7 @@ class HomeController extends BaseController
      * Orchestrates the rendering of the landing page.
      * 
      * Execution Flow:
-     * 1. Request review data from `SiteReviewRepositoryInterface`.
+     * 1. Request review data from `SiteReviewQueryInterface`.
      * 2. Extract and clear any flashed success messages from the session.
      * 3. Pass the payload to the TemplateEngine to render `home.php`.
      */

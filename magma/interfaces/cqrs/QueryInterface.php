@@ -18,11 +18,4 @@ namespace Magma\interfaces\cqrs;
  */
 interface QueryInterface
 {
-    /**
-     * Executes the query and returns a read model.
-     *
-     * @param array $criteria Search or filter criteria.
-     * @return mixed Query result (e.g., array of DTOs, single DTO, array of arrays).
-     */
-    public function fetch(array $criteria = []): mixed;
 }

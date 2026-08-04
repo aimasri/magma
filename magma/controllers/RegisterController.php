@@ -43,7 +43,9 @@ class RegisterController extends BaseController
 
     public function store(): Response
     {
-        $this->validateOrRedirect(new RegisterRequest($this->request, $this->validator), '/register');
+        if ($redirect = $this->validateOrRedirect(new RegisterRequest($this->request, $this->validator), '/register')) {
+            return $redirect;
+        }
 
         $data = $this->request->request();
         

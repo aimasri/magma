@@ -19,7 +19,7 @@ namespace Magma\modules\Inventory\models;
  *   are immutable. If an error is made, a compensating transaction (e.g., negative quantity) 
  *   must be added rather than updating an existing row.
  */
-class InventoryLedgerRepository extends BaseRepository implements InventoryLedgerRepositoryInterface
+class InventoryLedgerRepository extends \Magma\database\BaseCommandRepository implements InventoryLedgerRepositoryInterface
 {
     /**
      * Append a new transaction to the ledger.
@@ -43,7 +43,7 @@ class InventoryLedgerRepository extends BaseRepository implements InventoryLedge
             VALUES (:vendor_id, :product_id, :supplier_id, :transaction_type, :quantity, :unit_price)
         ";
 
-        $stmt = $this->dbWrite->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         $stmt->execute([
             'vendor_id'        => $movement->getVendorId(),
             'product_id'       => $movement->getProductId(),

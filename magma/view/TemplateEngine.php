@@ -166,6 +166,14 @@ class TemplateEngine
         echo $this->loadFile($templateFile, $data);
     }
 
+    /**
+     * Extracts variables and loads the template file into an output buffer.
+     *
+     * @param string $path The absolute path to the PHP template file.
+     * @param array $data The variables to expose within the template scope.
+     * @return string The rendered HTML string.
+     * @throws \Throwable If an error occurs during rendering.
+     */
     private function loadFile(string $path, array $data): string
     {
         $level = ob_get_level();

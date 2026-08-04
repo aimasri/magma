@@ -1,6 +1,6 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
 
 use PDO;
 
@@ -30,15 +30,14 @@ abstract class BaseRepository
         $this->dbManager = $dbManager;
     }
 
-    public function __get(string $name)
+    protected function getDbWrite(): \PDO
     {
-        if ($name === 'dbWrite') {
-            return $this->dbManager->getWriteConnection();
-        }
-        if ($name === 'dbRead') {
-            return $this->dbManager->getReadConnection();
-        }
-        throw new \RuntimeException("Property {$name} not found");
+        return $this->dbManager->getWriteConnection();
+    }
+
+    protected function getDbRead(): \PDO
+    {
+        return $this->dbManager->getReadConnection();
     }
 
     /**
@@ -72,9 +71,9 @@ abstract class BaseRepository
         $colCount = count($columns);
         $columnList = implode(', ', $columns);
 
-        $isNested = $this->dbWrite->inTransaction();
+        $isNested = $this->getDbWrite()->inTransaction();
         if (!$isNested) {
-            $this->dbWrite->beginTransaction();
+            $this->getDbWrite()->beginTransaction();
         }
         
         try {
@@ -89,7 +88,7 @@ abstract class BaseRepository
                 $allPlaceholders = implode(',', array_fill(0, $rowCount, $rowPlaceholders));
                 
                 $sql = "INSERT INTO {$table} ({$columnList}) VALUES {$allPlaceholders}";
-                $stmt = $this->dbWrite->prepare($sql);
+                $stmt = $this->getDbWrite()->prepare($sql);
                 
                 $flatValues = [];
                 foreach ($chunk as $row) {
@@ -102,11 +101,11 @@ abstract class BaseRepository
             }
 
             if (!$isNested) {
-                $this->dbWrite->commit();
+                $this->getDbWrite()->commit();
             }
         } catch (\Throwable $e) {
             if (!$isNested) {
-                $this->dbWrite->rollBack();
+                $this->getDbWrite()->rollBack();
             }
             throw $e;
         }

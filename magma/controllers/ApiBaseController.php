@@ -48,9 +48,12 @@ abstract class ApiBaseController
             $statusCode = 500;
             // You can inspect $e to return different HTTP status codes here if desired.
             
+            // Log the actual error internally to prevent information disclosure
+            error_log($e->getMessage());
+            
             $errorPayload = json_encode([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'An unexpected internal error occurred.'
             ]);
             
             return new Response($errorPayload, $statusCode, ['Content-Type' => 'application/json']);

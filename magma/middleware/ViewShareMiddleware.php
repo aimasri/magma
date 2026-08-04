@@ -5,7 +5,7 @@ namespace Magma\middleware;
 use Magma\http\Request;
 use Magma\http\Response;
 use Magma\view\TemplateEngine;
-use Magma\models\VendorQueryInterface;
+use Magma\interfaces\cqrs\VendorQueryInterface;
 
 /**
  * ViewShareMiddleware — injects global layout variables.

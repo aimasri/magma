@@ -46,11 +46,17 @@ class InventoryServiceProvider implements ServiceProviderInterface
     {
         // Repositories
         $container->set(InventoryLedgerRepositoryInterface::class, function ($c) {
-            return new InventoryLedgerRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+            return new InventoryLedgerRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         $container->set(VendorInventoryRepositoryInterface::class, function ($c) {
-            return new VendorInventoryRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+            return new VendorInventoryRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         // Services

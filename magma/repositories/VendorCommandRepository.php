@@ -1,6 +1,7 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
+use Magma\interfaces\cqrs\VendorCommandInterface;
 
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
@@ -31,10 +32,7 @@ class VendorCommandRepository extends BaseCommandRepository implements VendorCom
         $this->mapper = $mapper;
     }
 
-    public function execute(mixed $payload): mixed
-    {
-        return null;
-    }
+
 
     public function create(array $data): bool
     {
@@ -53,7 +51,7 @@ class VendorCommandRepository extends BaseCommandRepository implements VendorCom
             implode(', ', $placeholders)
         );
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         return $stmt->execute($bindings);
     }
 
@@ -77,13 +75,13 @@ class VendorCommandRepository extends BaseCommandRepository implements VendorCom
             implode(', ', $setClauses)
         );
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         return $stmt->execute($bindings);
     }
 
     public function delete(int $id): bool
     {
-        $stmt = $this->db->prepare("DELETE FROM vendors WHERE id = :id");
+        $stmt = $this->getDb()->prepare("DELETE FROM vendors WHERE id = :id");
         return $stmt->execute(['id' => $id]);
     }
 }

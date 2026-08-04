@@ -19,12 +19,9 @@ use Magma\modules\Inventory\models\VendorInventoryRepositoryInterface;
 class SyncVendorInventoryJob implements JobInterface
 {
     private VendorInventoryRepositoryInterface $repository;
-    private int $vendorId;
-
-    public function __construct(VendorInventoryRepositoryInterface $repository, int $vendorId)
+    public function __construct(VendorInventoryRepositoryInterface $repository)
     {
         $this->repository = $repository;
-        $this->vendorId = $vendorId;
     }
 
     /**
@@ -34,6 +31,9 @@ class SyncVendorInventoryJob implements JobInterface
      */
     public function handle(array $payload): void
     {
-        $this->repository->syncVendorInventory($this->vendorId);
+        $vendorId = $payload['vendor_id'] ?? null;
+        if ($vendorId) {
+            $this->repository->syncVendorInventory((int) $vendorId);
+        }
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
 
 /**
  * Vendor Data Mapper

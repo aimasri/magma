@@ -66,17 +66,7 @@ class InventoryService
      * @param float|null $unitPrice The cost per unit.
      * @return void
      */
-    public function recordMovement(\Magma\modules\Inventory\domain\RecordInventoryMovementCommand $command): void {
-        $movement = new \Magma\modules\Inventory\domain\InventoryMovement(
-            $command->vendorId,
-            $command->productId,
-            $command->quantity,
-            $command->transactionType,
-            $command->supplierId,
-            $command->unitPrice
-        );
-
-        // 1. Write the immutable event to the ledger (Single statement, inherently atomic)
+    public function recordMovement(\Magma\modules\Inventory\domain\InventoryMovement $movement): void {
         $this->ledgerRepository->addTransaction($movement);
 
         // 2. Dispatch the projection job ONLY after successful database write

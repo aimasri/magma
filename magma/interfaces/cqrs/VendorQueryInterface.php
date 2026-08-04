@@ -1,6 +1,6 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\interfaces\cqrs;
 
 /**
  * Title: Vendor Query Interface

@@ -2,7 +2,8 @@
 
 namespace Magma\services;
 
-use Magma\models\UserRepositoryInterface;
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\validation\ValidationException;
 use Magma\interfaces\EventDispatcherInterface;
 use Magma\domain\events\UserRegisteredEvent;
@@ -27,16 +28,19 @@ use Magma\database\TransactionManagerInterface;
  */
 class RegistrationService
 {
-    protected UserRepositoryInterface $userRepository;
+    protected UserCommandInterface $userCommandRepository;
+    protected UserQueryInterface $userQueryRepository;
     protected EventDispatcherInterface $dispatcher;
     protected TransactionManagerInterface $transactionManager;
 
     public function __construct(
-        UserRepositoryInterface $userRepository,
+        UserCommandInterface $userCommandRepository,
+        UserQueryInterface $userQueryRepository,
         EventDispatcherInterface $dispatcher,
         TransactionManagerInterface $transactionManager
     ) {
-        $this->userRepository = $userRepository;
+        $this->userCommandRepository = $userCommandRepository;
+        $this->userQueryRepository = $userQueryRepository;
         $this->dispatcher = $dispatcher;
         $this->transactionManager = $transactionManager;
     }
@@ -45,7 +49,8 @@ class RegistrationService
      * Registers a new user and automatically logs them in.
      * 
      * Execution Flow:
-     * 1. Instantiate a UserRegistration domain entity to handle data extraction and hashing.
+     * 1. Extract and hash the password.
+     * 2. Instantiate a UserRegistration domain entity.
      * 2. Query the repository to ensure the email is not already registered.
      * 3. Persist the new user to the database and retrieve their generated ID.
      * 4. Fetch the complete user record and dispatch a UserRegisteredEvent.
@@ -62,15 +67,16 @@ class RegistrationService
      */
     public function registerUser(array $data): \Magma\domain\AuthUser
     {
-        $registration = new \Magma\domain\UserRegistration($data);
+        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+        $registration = new \Magma\domain\UserRegistration($data['name'], $data['email'], $hashedPassword);
         
         return $this->transactionManager->transactional(function () use ($registration) {
-            if ($this->userRepository->findByEmail($registration->getEmail())) {
+            if ($this->userQueryRepository->findByEmail($registration->getEmail())) {
                 throw new ValidationException(['email' => 'This email is already registered.']);
             }
 
             try {
-                $userId = $this->userRepository->create($registration);
+                $userId = $this->userCommandRepository->create($registration);
             } catch (\PDOException $e) {
                 if ($e->getCode() === '23000') {
                     throw new ValidationException(['email' => 'This email is already registered.']);
@@ -79,7 +85,7 @@ class RegistrationService
             }
 
             // Fetch the newly created user
-            $user = $this->userRepository->findById($userId);
+            $user = $this->userQueryRepository->findById($userId);
             if ($user) {
                 // Dispatch domain event carrying the rich entity and record
                 $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $user));

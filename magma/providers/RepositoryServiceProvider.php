@@ -8,16 +8,21 @@ use Magma\config\Config;
 use Magma\database\TransactionManagerInterface;
 use Magma\database\DatabaseTransactionManager;
 
-use Magma\models\VendorCommandRepository;
-use Magma\models\VendorCommandInterface;
-use Magma\models\VendorQueryRepository;
-use Magma\models\VendorQueryInterface;
-use Magma\models\CachedVendorQueryRepository;
-use Magma\models\SiteReviewRepository;
-use Magma\models\UserRepository;
-use Magma\models\UserRepositoryInterface;
-use Magma\models\RememberTokenRepository;
-use Magma\models\PasswordResetTokenRepository;
+use Magma\repositories\VendorCommandRepository;
+use Magma\interfaces\cqrs\VendorCommandInterface;
+use Magma\repositories\VendorQueryRepository;
+use Magma\interfaces\cqrs\VendorQueryInterface;
+use Magma\repositories\CachedVendorQueryRepository;
+use Magma\repositories\SiteReviewQueryRepository;
+use Magma\interfaces\cqrs\SiteReviewQueryInterface;
+use Magma\repositories\SiteReviewCommandRepository;
+use Magma\interfaces\cqrs\SiteReviewCommandInterface;
+use Magma\repositories\UserQueryRepository;
+use Magma\interfaces\cqrs\UserQueryInterface;
+use Magma\repositories\UserCommandRepository;
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\repositories\RememberTokenRepository;
+use Magma\repositories\PasswordResetTokenRepository;
 
 
 /**
@@ -31,7 +36,7 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             return new VendorCommandRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class),
-                new \Magma\models\VendorMapper()
+                new \Magma\repositories\VendorMapper()
             );
         });
 
@@ -39,7 +44,7 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             $baseRepo = new VendorQueryRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class),
-                new \Magma\models\VendorMapper(),
+                new \Magma\repositories\VendorMapper(),
                 Config::get('PRIMARY_VENDOR_ID', 1)
             );
             $redisRepo = new CachedVendorQueryRepository(
@@ -47,26 +52,52 @@ class RepositoryServiceProvider implements ServiceProviderInterface
                 $c->get(\Redis::class),
                 Config::get('PRIMARY_VENDOR_ID', 1)
             );
-            return new \Magma\models\InMemoryVendorQueryRepository(
+            return new \Magma\repositories\InMemoryVendorQueryRepository(
                 $redisRepo, 
                 (int) Config::get('VENDOR_CACHE_LIMIT', 500)
             );
         });
 
-        $container->set(\Magma\models\SiteReviewRepositoryInterface::class, function ($c) {
-            return new SiteReviewRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+        $container->set(\Magma\interfaces\cqrs\SiteReviewQueryInterface::class, function ($c) {
+            return new SiteReviewQueryRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
+        });
+        
+        $container->set(\Magma\interfaces\cqrs\SiteReviewCommandInterface::class, function ($c) {
+            return new SiteReviewCommandRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
-        $container->set(UserRepositoryInterface::class, function ($c) {
-            return new UserRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+        $container->set(UserQueryInterface::class, function ($c) {
+            return new UserQueryRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
+        });
+        
+        $container->set(UserCommandInterface::class, function ($c) {
+            return new UserCommandRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         $container->set(RememberTokenRepository::class, function ($c) {
-            return new RememberTokenRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+            return new RememberTokenRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         $container->set(PasswordResetTokenRepository::class, function ($c) {
-            return new PasswordResetTokenRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+            return new PasswordResetTokenRepository(
+                $c->get(\Magma\database\DatabaseConnectionManager::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         $container->set(TransactionManagerInterface::class, function ($c) {

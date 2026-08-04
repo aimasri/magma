@@ -1,6 +1,7 @@
 <?php
 
-namespace Magma\models;
+namespace Magma\repositories;
+use Magma\interfaces\cqrs\VendorQueryInterface;
 
 use Magma\dto\VendorDTO;
 

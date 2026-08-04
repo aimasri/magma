@@ -2,7 +2,7 @@
 
 namespace Magma\services;
 
-use Magma\models\SiteReviewRepositoryInterface;
+use Magma\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\domain\Review;
 
 /**
@@ -24,9 +24,9 @@ use Magma\domain\Review;
  */
 class ReviewSubmissionService
 {
-    private SiteReviewRepositoryInterface $siteReviewRepository;
+    private SiteReviewCommandInterface $siteReviewRepository;
 
-    public function __construct(SiteReviewRepositoryInterface $siteReviewRepository)
+    public function __construct(SiteReviewCommandInterface $siteReviewRepository)
     {
         $this->siteReviewRepository = $siteReviewRepository;
     }

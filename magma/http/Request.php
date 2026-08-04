@@ -32,7 +32,19 @@ class Request implements RequestInterface
      * - This is static to comply with the Open/Closed Principle. Service providers can 
      *   append new methods (e.g., custom verbs) without modifying this core class.
      */
-    public static array $allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'];
+    private static array $allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'];
+    private static ?string $cachedRawBody = null;
+
+    /**
+     * Registers a custom HTTP method to bypass OCP violations.
+     */
+    public static function addAllowedMethod(string $method): void
+    {
+        $method = strtoupper($method);
+        if (!in_array($method, self::$allowedMethods, true)) {
+            self::$allowedMethods[] = $method;
+        }
+    }
 
     // Storage for various input sources to avoid direct global access.
     private array $get;
@@ -126,8 +138,10 @@ class Request implements RequestInterface
      */
     public static function createFromGlobals(): self
     {
-        $rawBody = file_get_contents('php://input');
-        return self::build($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, $rawBody);
+        if (self::$cachedRawBody === null) {
+            self::$cachedRawBody = file_get_contents('php://input');
+        }
+        return self::build($_GET, $_POST, $_SERVER, $_FILES, $_COOKIE, self::$cachedRawBody);
     }
 
     /**

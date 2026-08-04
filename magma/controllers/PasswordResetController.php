@@ -82,7 +82,9 @@ class PasswordResetController extends BaseController
      */
     public function sendResetLink(): Response
     {
-        $this->validateOrRedirect(new ForgotPasswordRequest($this->request, $this->validator), '/forgot-password');
+        if ($redirect = $this->validateOrRedirect(new ForgotPasswordRequest($this->request, $this->validator), '/forgot-password')) {
+            return $redirect;
+        }
 
         $data = $this->request->request();
         $email = trim($data['email'] ?? '');
@@ -148,7 +150,9 @@ class PasswordResetController extends BaseController
     {
         $token = $this->request->request('token', '');
 
-        $this->validateOrRedirect(new ResetPasswordRequest($this->request, $this->validator), '/reset-password?token=' . $token);
+        if ($redirect = $this->validateOrRedirect(new ResetPasswordRequest($this->request, $this->validator), '/reset-password?token=' . $token)) {
+            return $redirect;
+        }
 
         $data = $this->request->request();
 

@@ -19,7 +19,7 @@ namespace Magma\modules\Inventory\models;
  *   (an Upsert). This guarantees atomicity and prevents race conditions if multiple 
  *   jobs attempt to initialize the same product's inventory record simultaneously.
  */
-class VendorInventoryRepository extends BaseRepository implements VendorInventoryRepositoryInterface
+class VendorInventoryRepository extends \Magma\database\BaseCommandRepository implements VendorInventoryRepositoryInterface
 {
     /**
      * Retrieve the cached available quantity for a product.
@@ -44,7 +44,7 @@ class VendorInventoryRepository extends BaseRepository implements VendorInventor
             WHERE vendor_id = :vendor_id AND product_id = :product_id
         ";
 
-        $stmt = $this->dbRead->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         $stmt->execute([
             'vendor_id'  => $vendorId,
             'product_id' => $productId
@@ -83,7 +83,7 @@ class VendorInventoryRepository extends BaseRepository implements VendorInventor
             DO UPDATE SET quantity_available = vendor_inventory.quantity_available + EXCLUDED.quantity_available
         ";
 
-        $stmt = $this->dbWrite->prepare($sql);
+        $stmt = $this->getDb()->prepare($sql);
         $stmt->execute([
             'vendor_id'  => $vendorId,
             'product_id' => $productId,

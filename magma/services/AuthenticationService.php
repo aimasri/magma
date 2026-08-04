@@ -2,7 +2,7 @@
 
 namespace Magma\services;
 
-use Magma\models\UserRepositoryInterface;
+use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\http\Session;
 use Magma\services\RememberMeService;
 use Magma\services\AuthenticationResult;
@@ -25,12 +25,12 @@ use Magma\services\AuthenticationResult;
  */
 class AuthenticationService
 {
-    protected UserRepositoryInterface $userRepository;
+    protected UserQueryInterface $userRepository;
     protected Session $session;
     protected RememberMeService $rememberMeService;
 
     public function __construct(
-        UserRepositoryInterface $userRepository, 
+        UserQueryInterface $userRepository, 
         Session $session,
         RememberMeService $rememberMeService
     ) {
@@ -146,6 +146,6 @@ class AuthenticationService
         
         $this->session->destroy();
 
-        return AuthenticationResult::success([])->clearCookie('remember_user');
+        return AuthenticationResult::failure()->clearCookie('remember_user');
     }
 }
