@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\modules\Inventory\models;
 
 /**
@@ -37,5 +39,5 @@ interface VendorInventoryRepositoryInterface
      */
     public function getAvailableQuantity(int $vendorId, int $productId): float;
 
-    public function recalculateAvailableQuantity(int $vendorId, int $productId): void;
+    public function incrementAvailableQuantity(int $vendorId, int $productId, float $delta): void;
 }

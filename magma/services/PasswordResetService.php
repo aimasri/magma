@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\services;
 
 use Magma\interfaces\cqrs\UserCommandInterface;
@@ -155,16 +157,16 @@ class PasswordResetService
     public function completeReset(string $token, string $newPassword): PasswordResetStatus
     {
         $resetToken = \Magma\domain\PasswordResetToken::fromPlainText($token);
-        $record = $this->userTokenRepository->findValidPasswordResetToken($resetToken->getHashedToken());
-
-        if (!$record) {
-            return PasswordResetStatus::INVALID_TOKEN;
-        }
-
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
         
         try {
-            return $this->transactionManager->transactional(function () use ($record, $hashed, $resetToken) {
+            return $this->transactionManager->transactional(function () use ($hashed, $resetToken) {
+                $record = $this->userTokenRepository->findValidPasswordResetToken($resetToken->getHashedToken());
+
+                if (!$record) {
+                    return PasswordResetStatus::INVALID_TOKEN;
+                }
+
                 $this->userCommandRepository->updatePassword($record['user_id'], $hashed);
                 $this->userTokenRepository->deletePasswordResetToken($resetToken->getHashedToken());
                 $this->rememberTokenRepository->deleteAllRememberTokensForUser($record['user_id']);

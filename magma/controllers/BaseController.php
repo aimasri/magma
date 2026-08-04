@@ -24,16 +24,11 @@ use Magma\view\TemplateEngine;
  */
 abstract class BaseController
 {
-    protected TemplateEngine $templateEngine;
-    protected \Magma\security\CsrfManager $csrfManager;
-    protected \Magma\http\Session $session;
-
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session)
-    {
-        $this->templateEngine = $templateEngine;
-        $this->csrfManager = $csrfManager;
-        $this->session = $session;
-    }
+    public function __construct(
+        protected readonly TemplateEngine $templateEngine,
+        protected readonly \Magma\security\CsrfManager $csrfManager,
+        protected readonly \Magma\http\Session $session
+    ) {}
 
     /**
      * Syntactic sugar for rendering a view via the TemplateEngine.

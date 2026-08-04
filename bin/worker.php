@@ -45,6 +45,9 @@ while (true) {
         if (isset($job[\core\queue\JobInterface::HANDLER_KEY]) && class_exists($job[\core\queue\JobInterface::HANDLER_KEY])) {
             echo "Received job: " . $job[\core\queue\JobInterface::HANDLER_KEY] . "\n";
             try {
+                // Set max execution time per job to prevent hanging workers
+                set_time_limit(120);
+
                 $handlerClass = $job[\core\queue\JobInterface::HANDLER_KEY];
                 // Resolve the specific job class out of the DI container
                 $handler = $container->get($handlerClass);
@@ -54,7 +57,14 @@ while (true) {
                 echo "Successfully processed job.\n";
             } catch (\Throwable $e) {
                 echo "Failed to process job: " . $e->getMessage() . "\n";
-                // In a production app, push this back to a "failed_jobs" queue here.
+                $job['error'] = $e->getMessage();
+                $job['failed_at'] = date('c');
+                $queue->push('failed_jobs', json_encode($job));
+            } finally {
+                // Always disconnect to prevent connection exhaustion in daemon mode
+                $container->get(\Magma\database\DatabaseConnectionManager::class)->disconnect();
+                // Reset time limit for the polling loop
+                set_time_limit(0);
             }
         } else {
             echo "Invalid job payload or handler does not exist.\n";

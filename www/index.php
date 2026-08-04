@@ -36,6 +36,7 @@ use Magma\middleware\CsrfMiddleware;
 use Magma\middleware\UTMTrackerMiddleware;
 use Magma\middleware\ViewShareMiddleware;
 use Magma\middleware\SessionTimeoutMiddleware;
+use Magma\middleware\SecurityHeadersMiddleware;
 
 /**
  * Resolve the Application instance and register global middleware.
@@ -43,6 +44,7 @@ use Magma\middleware\SessionTimeoutMiddleware;
  */
 $app = $container->get(Application::class);
 $app->addMiddleware(UTMTrackerMiddleware::class);
+$app->addMiddleware(SecurityHeadersMiddleware::class);
 $app->addMiddleware(CsrfMiddleware::class);
 $app->addMiddleware(SessionTimeoutMiddleware::class);
 $app->addMiddleware(ViewShareMiddleware::class);

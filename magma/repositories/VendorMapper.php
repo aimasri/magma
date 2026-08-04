@@ -91,20 +91,21 @@ class VendorMapper
     {
         $bindings = [];
         foreach (self::ALLOWED_COLUMNS as $column) {
-            if (array_key_exists($column, $data)) {
-                $value = $data[$column];
-                
-                if ($column === 'theme_settings') {
-                    if (is_array($value) || is_object($value)) {
-                        $value = json_encode($value);
-                    } elseif (!is_string($value)) {
-                        // Fallback for nulls or other unhandled types
-                        $value = '{}'; 
-                    }
-                }
-                
-                $bindings[$column] = $value;
+            if (!array_key_exists($column, $data)) {
+                continue;
             }
+
+            $value = $data[$column];
+            
+            if ($column === 'theme_settings') {
+                $value = match (true) {
+                    is_array($value), is_object($value) => json_encode($value),
+                    is_string($value) => $value,
+                    default => '{}'
+                };
+            }
+            
+            $bindings[$column] = $value;
         }
         return $bindings;
     }

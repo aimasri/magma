@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\interfaces\cqrs;
 
 interface UserCommandInterface extends \Magma\database\CommandInterface

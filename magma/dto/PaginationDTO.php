@@ -18,9 +18,6 @@ namespace Magma\dto;
  */
 class PaginationDTO
 {
-    public readonly int $limit;
-    public readonly ?int $lastId;
-
     /**
      * Initialize Pagination DTO
      * 
@@ -34,9 +31,8 @@ class PaginationDTO
      * @param int $limit
      * @param int|null $lastId
      */
-    public function __construct(int $limit, ?int $lastId = null)
-    {
-        $this->limit = $limit;
-        $this->lastId = $lastId;
-    }
+    public function __construct(
+        public readonly int $limit,
+        public readonly ?int $lastId = null
+    ) {}
 }

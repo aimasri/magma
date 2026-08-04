@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\services;
 
 use Magma\interfaces\cqrs\UserCommandInterface;
@@ -70,10 +72,6 @@ class RegistrationService
         $registration = new \Magma\domain\UserRegistration($data['name'], $data['email'], $data['password']);
         
         $user = $this->transactionManager->transactional(function () use ($registration) {
-            if ($this->userQueryRepository->findByEmail($registration->getEmail())) {
-                throw new ValidationException(['email' => 'This email is already registered.']);
-            }
-
             try {
                 $userId = $this->userCommandRepository->create($registration);
             } catch (\PDOException $e) {

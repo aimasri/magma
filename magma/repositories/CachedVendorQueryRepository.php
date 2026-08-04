@@ -58,8 +58,13 @@ class CachedVendorQueryRepository implements VendorQueryInterface
     {
         $cacheKey = "vendor:{$this->primaryVendorId}";
 
+        $cached = false;
         if ($this->redis) {
-            $cached = $this->redis->get($cacheKey);
+            try {
+                $cached = $this->redis->get($cacheKey);
+            } catch (\RedisException $e) {
+                error_log("Redis cache read failed: " . $e->getMessage());
+            }
             if ($cached !== false) {
                 return unserialize($cached, ['allowed_classes' => [\Magma\dto\VendorDTO::class]]);
             }
@@ -68,7 +73,11 @@ class CachedVendorQueryRepository implements VendorQueryInterface
         $vendor = $this->repository->getPrimaryVendor();
 
         if ($this->redis && $vendor) {
-            $this->redis->setex($cacheKey, 86400, serialize($vendor));
+            try {
+                $this->redis->setex($cacheKey, 86400, serialize($vendor));
+            } catch (\RedisException $e) {
+                error_log("Redis cache write failed: " . $e->getMessage());
+            }
         }
 
         return $vendor;

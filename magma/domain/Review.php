@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\domain;
 
 /**
@@ -23,7 +25,7 @@ namespace Magma\domain;
  * - The constructor receives the raw array, extracts what it needs, applies 
  *   defaults, and strictly types the resulting properties.
  */
-class Review
+readonly class Review
 {
     private string $author;
     private string $comment;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\modules\Inventory\services;
 
 use Magma\modules\Inventory\models\InventoryLedgerRepositoryInterface;

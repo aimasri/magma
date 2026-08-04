@@ -73,13 +73,15 @@ class EventDispatcher implements EventDispatcherInterface
         foreach ($this->listeners[$eventName] as $listener) {
             if (is_callable($listener)) {
                 $listener($event);
-            } elseif (is_string($listener)) {
+                continue;
+            }
+            
+            if (is_string($listener)) {
                 $instance = $this->container->get($listener);
-                if (method_exists($instance, 'handle')) {
-                    $instance->handle($event);
-                } else {
+                if (!method_exists($instance, 'handle')) {
                     throw new \RuntimeException("Listener [{$listener}] must implement a 'handle' method.");
                 }
+                $instance->handle($event);
             }
         }
     }

@@ -16,7 +16,7 @@ namespace Magma\domain;
  * - Explicitly converting the array to an entity prevents password hashes or other 
  *   sensitive fields returned by the repository from accidentally leaking into the session payload.
  */
-class AuthUser
+readonly class AuthUser
 {
     private int $id;
     private string $name;

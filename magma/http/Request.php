@@ -67,8 +67,8 @@ class Request implements RequestInterface
     /** @var array|null Merged set of POST and JSON data for unified access */
     private ?array $requestData = null; 
     
-    /** @var array|null Cached path segments to avoid redundant string parsing */
-    private ?array $segments = null;
+    /** @var array Cached path segments to avoid redundant string parsing */
+    private readonly array $segments;
 
     private ?string $rawBody = null;
 
@@ -94,6 +94,13 @@ class Request implements RequestInterface
         $this->parsedJson = $parsedJson;
         $this->rawBody = $rawBody;
         $this->requestData = $this->parsedJson !== null ? $this->parsedJson : $this->post;
+        
+        $cleanPath = trim($this->path, " /");
+        if ($cleanPath === '') {
+            $this->segments = [];
+        } else {
+            $this->segments = array_values(array_filter(explode('/', $cleanPath), 'strlen'));
+        }
     }
 
     /**
@@ -186,15 +193,7 @@ class Request implements RequestInterface
      */
     public function pathSegments(): array
     {
-        if ($this->segments !== null) {
-            return $this->segments;
-        }
-
-        $cleanPath = trim($this->path, " /");
-        if ($cleanPath === '') {
-            return $this->segments = [];
-        }
-        return $this->segments = array_values(array_filter(explode('/', $cleanPath), 'strlen'));
+        return $this->segments;
     }
 
     /**

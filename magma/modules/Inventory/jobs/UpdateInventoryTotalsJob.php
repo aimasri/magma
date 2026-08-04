@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\modules\Inventory\jobs;
 
 use Magma\queue\JobInterface;
@@ -49,7 +51,8 @@ class UpdateInventoryTotalsJob implements JobInterface
     {
         $vendorId = $payload['vendor_id'];
         $productId = $payload['product_id'];
+        $delta = (float)($payload['quantity'] ?? 0);
 
-        $this->inventoryRepository->recalculateAvailableQuantity($vendorId, $productId);
+        $this->inventoryRepository->incrementAvailableQuantity($vendorId, $productId, $delta);
     }
 }

@@ -42,6 +42,10 @@ class SendWelcomeEmailListener
             ]
         ]);
         
-        $this->queue->push('emails', $payload);
+        try {
+            $this->queue->push('emails', $payload);
+        } catch (\Throwable $e) {
+            error_log("Failed to push welcome email to queue: " . $e->getMessage());
+        }
     }
 }

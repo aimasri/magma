@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\modules\Inventory\models;
 
 /**
@@ -55,21 +57,20 @@ class VendorInventoryRepository extends \Magma\database\BaseRepository implement
         return $result ? (float)$result['quantity_available'] : 0.0;
     }
 
-    public function recalculateAvailableQuantity(int $vendorId, int $productId): void
+    public function incrementAvailableQuantity(int $vendorId, int $productId, float $delta): void
     {
         $sql = "
             INSERT INTO vendor_inventory (vendor_id, product_id, quantity_available)
-            SELECT :vendor_id, :product_id, COALESCE(SUM(quantity), 0)
-            FROM inventory_transactions
-            WHERE vendor_id = :vendor_id AND product_id = :product_id
+            VALUES (:vendor_id, :product_id, :delta)
             ON CONFLICT (vendor_id, product_id) 
-            DO UPDATE SET quantity_available = EXCLUDED.quantity_available
+            DO UPDATE SET quantity_available = vendor_inventory.quantity_available + EXCLUDED.quantity_available
         ";
 
         $stmt = $this->getDbWrite()->prepare($sql);
         $stmt->execute([
             'vendor_id'  => $vendorId,
-            'product_id' => $productId
+            'product_id' => $productId,
+            'delta'      => $delta
         ]);
     }
 }

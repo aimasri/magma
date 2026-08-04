@@ -23,24 +23,15 @@ use Magma\services\PaginationService;
  */
 class HomeController extends BaseController
 {
-    private SiteReviewQueryInterface $siteReviewRepository;
-    private Request $request;
-    private PaginationService $paginationService;
-    private \Magma\http\Session $session;
-
     public function __construct(
         TemplateEngine $templateEngine,
         \Magma\security\CsrfManager $csrfManager,
         \Magma\http\Session $session,
-        SiteReviewQueryInterface $siteReviewRepository,
-        Request $request,
-        PaginationService $paginationService
+        private readonly SiteReviewQueryInterface $siteReviewRepository,
+        private readonly Request $request,
+        private readonly PaginationService $paginationService
     ) {
         parent::__construct($templateEngine, $csrfManager, $session);
-        $this->siteReviewRepository = $siteReviewRepository;
-        $this->request = $request;
-        $this->paginationService = $paginationService;
-        $this->session = $session;
     }
 
     /**
