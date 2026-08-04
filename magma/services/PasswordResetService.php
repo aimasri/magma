@@ -107,7 +107,12 @@ class PasswordResetService
             ]
         ]);
 
-        $this->queue->push('emails', $payload);
+        try {
+            $this->queue->push('emails', $payload);
+        } catch (\Throwable $e) {
+            error_log("Failed to queue password reset email: " . $e->getMessage());
+            return PasswordResetStatus::SYSTEM_ERROR;
+        }
         
         return PasswordResetStatus::SUCCESS;
     }

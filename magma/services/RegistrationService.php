@@ -67,10 +67,9 @@ class RegistrationService
      */
     public function registerUser(array $data): \Magma\domain\AuthUser
     {
-        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-        $registration = new \Magma\domain\UserRegistration($data['name'], $data['email'], $hashedPassword);
+        $registration = new \Magma\domain\UserRegistration($data['name'], $data['email'], $data['password']);
         
-        return $this->transactionManager->transactional(function () use ($registration) {
+        $user = $this->transactionManager->transactional(function () use ($registration) {
             if ($this->userQueryRepository->findByEmail($registration->getEmail())) {
                 throw new ValidationException(['email' => 'This email is already registered.']);
             }
@@ -86,12 +85,15 @@ class RegistrationService
 
             // Fetch the newly created user
             $user = $this->userQueryRepository->findById($userId);
-            if ($user) {
-                // Dispatch domain event carrying the rich entity and record
-                $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $user));
-            }
             
             return $user;
         });
+
+        if ($user) {
+            // Dispatch domain event carrying the rich entity and record
+            $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $user));
+        }
+        
+        return $user;
     }
 }

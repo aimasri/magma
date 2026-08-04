@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Title: Menu DOM Listener Component
  * 
@@ -45,11 +47,18 @@ export class MenuListeners {
      */
     bindEvents() {
         // Use event delegation for better performance and dynamic element support
-        this.container.addEventListener('click', (e) => {
+        this.clickHandler = (e) => {
             if (e.target.matches('.menu-item-toggle')) {
                 const itemId = e.target.dataset.id;
                 this.stateManager.update({ toggledItemId: itemId });
             }
-        });
+        };
+        this.container.addEventListener('click', this.clickHandler);
+    }
+
+    destroy() {
+        if (this.clickHandler) {
+            this.container.removeEventListener('click', this.clickHandler);
+        }
     }
 }

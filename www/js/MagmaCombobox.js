@@ -1,3 +1,5 @@
+'use strict';
+
 import { MenuItemState } from './MenuItemState.js';
 
 /**
@@ -86,16 +88,17 @@ class ComboboxView {
 
     onInput(callback, debounceDelay) {
         let debounceTimer;
-        this.input.addEventListener('input', (e) => {
+        this.inputHandler = (e) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 callback(e.target.value);
             }, debounceDelay);
-        });
+        };
+        this.input.addEventListener('input', this.inputHandler);
     }
 
     onSelect(callback) {
-        this.dropdown.addEventListener('click', (e) => {
+        this.selectHandler = (e) => {
             const item = e.target.closest('.magma-combobox-item');
             if (item) {
                 callback({
@@ -103,7 +106,20 @@ class ComboboxView {
                     name: item.dataset.name
                 });
             }
-        });
+        };
+        this.dropdown.addEventListener('click', this.selectHandler);
+    }
+
+    destroy() {
+        if (this.inputHandler) {
+            this.input.removeEventListener('input', this.inputHandler);
+        }
+        if (this.selectHandler) {
+            this.dropdown.removeEventListener('click', this.selectHandler);
+        }
+        if (this.dropdown.parentNode) {
+            this.dropdown.parentNode.removeChild(this.dropdown);
+        }
     }
 }
 
@@ -127,12 +143,16 @@ export class MagmaCombobox {
 
     bindEvents() {
         this.view.onInput(async (query) => {
-            if (!query) {
-                this.view.clear();
-                return;
+            try {
+                if (!query) {
+                    this.view.clear();
+                    return;
+                }
+                const data = await this.model.fetch(query);
+                this.view.render(data);
+            } catch (error) {
+                console.error("Error fetching combobox data:", error);
             }
-            const data = await this.model.fetch(query);
-            this.view.render(data);
         }, this.debounceDelay);
 
         this.view.onSelect((item) => {
@@ -140,5 +160,9 @@ export class MagmaCombobox {
             this.view.setInputValue(item.name);
             this.view.clear();
         });
+    }
+
+    destroy() {
+        this.view.destroy();
     }
 }

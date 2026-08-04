@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Title: Menu Item State Manager
  * 

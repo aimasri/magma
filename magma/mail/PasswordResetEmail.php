@@ -21,6 +21,9 @@ namespace Magma\mail;
 
 class PasswordResetEmail implements MailableInterface
 {
+    private const SUBJECT = 'Password Reset Request for Magma Framework';
+    private const TEMPLATE = 'emails/password_reset';
+
     private string $toName;
     private string $resetLink;
 
@@ -30,16 +33,31 @@ class PasswordResetEmail implements MailableInterface
         $this->resetLink = $resetLink;
     }
 
+    /**
+     * Retrieves the email subject.
+     *
+     * @return string
+     */
     public function getSubject(): string
     {
-        return 'Password Reset Request for Magma Framework';
+        return self::SUBJECT;
     }
 
+    /**
+     * Retrieves the view template path.
+     *
+     * @return string
+     */
     public function getTemplate(): string
     {
-        return 'emails/password_reset';
+        return self::TEMPLATE;
     }
 
+    /**
+     * Retrieves the variables to bind to the template.
+     *
+     * @return array
+     */
     public function getVariables(): array
     {
         return [

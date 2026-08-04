@@ -21,6 +21,9 @@ namespace Magma\mail;
 
 class WelcomeEmail implements MailableInterface
 {
+    private const SUBJECT = 'Welcome to Magma!';
+    private const TEMPLATE = 'emails/welcome';
+
     private string $toName;
 
     public function __construct(string $toName)
@@ -28,16 +31,31 @@ class WelcomeEmail implements MailableInterface
         $this->toName = $toName;
     }
 
+    /**
+     * Retrieves the email subject.
+     *
+     * @return string
+     */
     public function getSubject(): string
     {
-        return 'Welcome to Magma!';
+        return self::SUBJECT;
     }
 
+    /**
+     * Retrieves the view template path.
+     *
+     * @return string
+     */
     public function getTemplate(): string
     {
-        return 'emails/welcome';
+        return self::TEMPLATE;
     }
 
+    /**
+     * Retrieves the variables to bind to the template.
+     *
+     * @return array
+     */
     public function getVariables(): array
     {
         return [

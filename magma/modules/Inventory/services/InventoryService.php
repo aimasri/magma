@@ -79,6 +79,11 @@ class InventoryService
             ]
         ]);
 
-        $this->queue->push('default', $payload);
+        try {
+            $this->queue->push('default', $payload);
+        } catch (\Throwable $e) {
+            error_log("Failed to dispatch UpdateInventoryTotalsJob: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

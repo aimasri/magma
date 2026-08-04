@@ -53,6 +53,23 @@ class InventoryMovement
         ?int $supplierId = null,
         ?float $unitPrice = null
     ) {
+        if ($quantity === 0.0) {
+            throw new \InvalidArgumentException("Quantity cannot be zero.");
+        }
+        
+        $validTypes = ['restock', 'sale', 'adjustment', 'return'];
+        if (!in_array($transactionType, $validTypes, true)) {
+            throw new \InvalidArgumentException("Invalid transaction type.");
+        }
+
+        if ($transactionType === 'restock' && $quantity < 0) {
+            throw new \InvalidArgumentException("Restock quantity must be positive.");
+        }
+        
+        if ($transactionType === 'sale' && $quantity > 0) {
+            throw new \InvalidArgumentException("Sale quantity must be negative.");
+        }
+
         $this->vendorId = $vendorId;
         $this->productId = $productId;
         $this->quantity = $quantity;
