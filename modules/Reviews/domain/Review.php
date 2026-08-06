@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Magma\domain;
+namespace Modules\Reviews\domain;
 
 /**
  * Review Domain Entity

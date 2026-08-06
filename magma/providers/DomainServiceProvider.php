@@ -15,13 +15,13 @@ use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\interfaces\cqrs\UserCommandInterface;
 use Magma\repositories\UserTokenRepository;
 use Magma\repositories\UserTokenRepositoryInterface;
-use Magma\interfaces\cqrs\SiteReviewCommandInterface;
+use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\services\MailerService;
 use Magma\services\AuthenticationService;
 use Magma\services\RegistrationService;
 use Magma\services\PasswordResetService;
 use Magma\services\RememberMeService;
-use Magma\services\ReviewSubmissionService;
+use Modules\Reviews\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
 
 

@@ -16,7 +16,7 @@
  *   or compiled to avoid runtime overhead.
  */
 use App\controllers\HomeController;
-use Magma\controllers\ReviewController;
+use Modules\Reviews\controllers\ReviewController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],

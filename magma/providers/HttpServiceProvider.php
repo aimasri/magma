@@ -11,8 +11,8 @@ use Magma\validation\Validator;
 use Magma\repositories\VendorRepositoryInterface;
 use Magma\repositories\UserRepositoryInterface;
 
-use Magma\interfaces\cqrs\SiteReviewQueryInterface;
-use Magma\services\ReviewSubmissionService;
+use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
+use Modules\Reviews\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
 use Magma\services\RegistrationService;
 use Magma\services\AuthenticationService;
@@ -88,16 +88,17 @@ class HttpServiceProvider implements ServiceProviderInterface
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
                 $c->get(\Magma\http\Session::class),
-                $c->get(\Magma\interfaces\cqrs\SiteReviewQueryInterface::class),
+                $c->get(\Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface::class),
                 $c->get(Request::class),
                 $c->get(PaginationService::class)
             );
         });
 
-        $container->set(\Magma\controllers\ReviewController::class, function ($c) {
-            return new \Magma\controllers\ReviewController(
-                $c->get(TemplateEngine::class),
+        $container->set(\Modules\Reviews\controllers\ReviewController::class, function ($c) {
+            return new \Modules\Reviews\controllers\ReviewController(
+                $c->get(\Magma\view\TemplateEngine::class),
                 $c->get(\Magma\security\CsrfManager::class),
+                $c->get(\Magma\http\Session::class),
                 $c->get(ReviewSubmissionService::class),
                 $c->get(Request::class),
                 $c->get(Validator::class)

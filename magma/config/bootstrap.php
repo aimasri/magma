@@ -56,7 +56,6 @@ $providers = [
     new HttpServiceProvider(),
     new \Magma\providers\EventServiceProvider(),
     // Uncomment to enable the Inventory module
-    // new \Magma\modules\Inventory\providers\InventoryServiceProvider(),
 ];
 
 foreach ($providers as $provider) {

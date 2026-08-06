@@ -1,10 +1,10 @@
 <?php
 
-namespace Magma\repositories;
+namespace Modules\Reviews\repositories;
 
-use Magma\interfaces\cqrs\SiteReviewCommandInterface;
+use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\database\BaseCommandRepository;
-use Magma\domain\Review;
+use Modules\Reviews\domain\Review;
 
 class SiteReviewCommandRepository extends BaseCommandRepository implements SiteReviewCommandInterface
 {

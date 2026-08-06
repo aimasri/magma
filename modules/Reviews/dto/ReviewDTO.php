@@ -1,6 +1,6 @@
 <?php
 
-namespace Magma\dto;
+namespace Modules\Reviews\dto;
 
 /**
  * Review Data Transfer Object

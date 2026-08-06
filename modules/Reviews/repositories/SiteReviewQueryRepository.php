@@ -1,10 +1,10 @@
 <?php
 
-namespace Magma\repositories;
+namespace Modules\Reviews\repositories;
 
-use Magma\interfaces\cqrs\SiteReviewQueryInterface;
+use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
 use Magma\database\BaseQueryRepository;
-use Magma\dto\ReviewDTO;
+use Modules\Reviews\dto\ReviewDTO;
 
 class SiteReviewQueryRepository extends BaseQueryRepository implements SiteReviewQueryInterface
 {

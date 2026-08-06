@@ -37,6 +37,7 @@ spl_autoload_register(static function (string $class) {
     $map = [
         'Magma\\' => ROOT_DIR . '/magma/',
         'App\\' => ROOT_DIR . '/app/',
+        'Modules\\' => ROOT_DIR . '/modules/',
     ];
 
     foreach ($map as $prefix => $baseDir) {

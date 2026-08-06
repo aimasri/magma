@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Magma\controllers;
+namespace Modules\Reviews\controllers;
 
 use Magma\http\Request;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
-use Magma\services\ReviewSubmissionService;
+use Modules\Reviews\services\ReviewSubmissionService;
 use Magma\validation\Validator;
-use Magma\requests\ReviewRequest;
+use Modules\Reviews\requests\ReviewRequest;
 use Magma\view\TemplateEngine;
+use Magma\controllers\BaseController;
 use Magma\security\CsrfManager;
 
 /**

@@ -1,9 +1,9 @@
 <?php
 
-namespace Magma\services;
+namespace Modules\Reviews\services;
 
-use Magma\interfaces\cqrs\SiteReviewCommandInterface;
-use Magma\domain\Review;
+use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
+use Modules\Reviews\domain\Review;
 
 /**
  * Review Submission Service

@@ -1,6 +1,6 @@
 <?php
 
-namespace Magma\requests;
+namespace Modules\Reviews\requests;
 
 
 use Magma\validation\FormRequest;

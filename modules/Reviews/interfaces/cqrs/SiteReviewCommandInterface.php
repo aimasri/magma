@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Magma\interfaces\cqrs;
+namespace Modules\Reviews\interfaces\cqrs;
 
 interface SiteReviewCommandInterface extends \Magma\database\CommandInterface
 {

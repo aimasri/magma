@@ -6,7 +6,7 @@ use Magma\http\Request;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
 use Magma\view\TemplateEngine;
-use Magma\interfaces\cqrs\SiteReviewQueryInterface;
+use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
 use Magma\services\PaginationService;
 
 /**
