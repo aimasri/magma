@@ -70,7 +70,8 @@ class HttpServiceProvider implements ServiceProviderInterface
         $container->set(ViewShareMiddleware::class, function ($c) {
             return new ViewShareMiddleware(
                 $c->get(TemplateEngine::class),
-                $c->get(\Magma\interfaces\cqrs\VendorQueryInterface::class)
+                $c->get(\Magma\interfaces\cqrs\VendorQueryInterface::class),
+                $c->get(\Magma\http\Session::class)
             );
         });
 

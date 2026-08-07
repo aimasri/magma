@@ -165,7 +165,7 @@ class TemplateEngine
         $data['engine'] = $this;
         echo $this->loadFile($templateFile, $data);
     }
-
+    /**
      * Extracts variables and loads the template file into an output buffer.
      *
      * Execution Flow:
