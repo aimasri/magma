@@ -40,15 +40,15 @@ abstract class AbstractCommandRepository
     /**
      * Security multi-tenant context provider.
      */
-    protected TenantContext $tenantContext;
+    protected ?TenantContext $tenantContext = null;
 
     /**
      * Initializes the Abstract Command Repository.
      *
      * @param DatabaseConnectionManager $dbManager
-     * @param TenantContext $tenantContext
+     * @param TenantContext|null $tenantContext
      */
-    public function __construct(DatabaseConnectionManager $dbManager, TenantContext $tenantContext)
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext = null)
     {
         $this->dbManager = $dbManager;
         $this->tenantContext = $tenantContext;
@@ -71,7 +71,7 @@ abstract class AbstractCommandRepository
      */
     protected function getTenantId(): ?int
     {
-        return $this->tenantContext->hasVendorId() ? $this->tenantContext->getVendorId() : null;
+        return ($this->tenantContext !== null && $this->tenantContext->hasVendorId()) ? $this->tenantContext->getVendorId() : null;
     }
 
     /**
@@ -111,7 +111,7 @@ abstract class AbstractCommandRepository
      * @return int Number of affected rows.
      * @throws RuntimeException If $data is empty.
      */
-    protected function update(string $table, array $data, string $where, array $whereParams = []): int
+    protected function executeUpdate(string $table, array $data, string $where, array $whereParams = []): int
     {
         if (empty($data)) {
             throw new RuntimeException("Update operation on table [{$table}] requires at least one column.");
@@ -149,7 +149,7 @@ abstract class AbstractCommandRepository
      * @param array<string, mixed> $whereParams Parameter bindings.
      * @return int Number of deleted rows.
      */
-    protected function delete(string $table, string $where, array $whereParams = []): int
+    protected function executeDelete(string $table, string $where, array $whereParams = []): int
     {
         $sql = "DELETE FROM \"{$table}\" WHERE {$where}";
         $stmt = $this->getDb()->prepare($sql);

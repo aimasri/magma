@@ -45,6 +45,9 @@ class TemplateEngine
     /** @var array<string, mixed> Global data injected by middleware (e.g., vendor theme, auth user). */
     private array $sharedData = [];
 
+    /** @var array<string, string> Cache for resolved layout paths. */
+    private array $resolvedLayoutCache = [];
+
     /**
      * Initializes the template engine with directory paths and optional view loader.
      *
@@ -286,25 +289,36 @@ class TemplateEngine
      */
     private function resolveLayoutPath(string $layout): ?string
     {
+        if (isset($this->resolvedLayoutCache[$layout])) {
+            return $this->resolvedLayoutCache[$layout];
+        }
+
         if (str_contains($layout, '::') && $this->loader !== null) {
-            return $this->loader->resolvePath($layout);
+            $path = $this->loader->resolvePath($layout);
+            $this->resolvedLayoutCache[$layout] = $path;
+            return $path;
         }
 
-        $baseDir = !empty($this->layoutPath) ? $this->layoutPath : $this->viewsPath;
-        if (empty($baseDir)) {
-            return null;
+        $searchPaths = array_filter([
+            $this->layoutPath,
+            $this->viewsPath . 'layouts',
+            $this->viewsPath . 'partials',
+            $this->viewsPath,
+            $this->partialsPath,
+        ]);
+
+        foreach ($searchPaths as $baseDir) {
+            $candidate = rtrim((string)$baseDir, '/\\') . DIRECTORY_SEPARATOR . ltrim($layout, '/\\');
+            if (!str_ends_with($candidate, '.php')) {
+                $candidate .= '.php';
+            }
+            if (file_exists($candidate)) {
+                $this->resolvedLayoutCache[$layout] = $candidate;
+                return $candidate;
+            }
         }
 
-        $layoutFile = $baseDir . ltrim($layout, '/\\');
-        if (!str_ends_with($layoutFile, '.php')) {
-            $layoutFile .= '.php';
-        }
-
-        if (!file_exists($layoutFile)) {
-            throw new \RuntimeException("Layout file not found: {$layoutFile}");
-        }
-
-        return $layoutFile;
+        throw new \RuntimeException("Layout file not found: {$layout}");
     }
 
     /**

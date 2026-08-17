@@ -38,15 +38,15 @@ abstract class AbstractQueryRepository
     /**
      * Security multi-tenant context provider.
      */
-    protected TenantContext $tenantContext;
+    protected ?TenantContext $tenantContext = null;
 
     /**
      * Initializes the Abstract Query Repository.
      *
      * @param DatabaseConnectionManager $dbManager
-     * @param TenantContext $tenantContext
+     * @param TenantContext|null $tenantContext
      */
-    public function __construct(DatabaseConnectionManager $dbManager, TenantContext $tenantContext)
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext = null)
     {
         $this->dbManager = $dbManager;
         $this->tenantContext = $tenantContext;
@@ -69,7 +69,7 @@ abstract class AbstractQueryRepository
      */
     protected function getTenantId(): ?int
     {
-        return $this->tenantContext->hasVendorId() ? $this->tenantContext->getVendorId() : null;
+        return ($this->tenantContext !== null && $this->tenantContext->hasVendorId()) ? $this->tenantContext->getVendorId() : null;
     }
 
     /**
