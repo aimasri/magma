@@ -1,0 +1,186 @@
+/**
+ * Title: Welcome Page Component Styles
+ *
+ * Purpose:
+ * - Single Responsibility: Encapsulates layout, hero showcase, metric pills, and terminal blocks for the Welcome landing view.
+ * - Adheres strictly to dark theme palette matching the debug diagnostics view.
+ */
+
+@layer components {
+    .welcome-page {
+        min-height: 100vh;
+        background-color: var(--bg-canvas);
+        color: var(--text-main);
+        font-family: var(--font-sans);
+        padding: var(--space-2xl) var(--space-lg);
+    }
+
+    .welcome-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2xl);
+    }
+
+    .welcome-hero {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-left: 6px solid var(--brand-flame);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .welcome-hero__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-md);
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+    }
+
+    .welcome-hero__title {
+        font-size: 2.25rem;
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        color: #ffffff;
+        margin-bottom: var(--space-xs);
+    }
+
+    .welcome-hero__tagline {
+        font-size: 1.15rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        max-width: 750px;
+        margin-bottom: var(--space-lg);
+    }
+
+    .welcome-hero__actions {
+        display: flex;
+        gap: var(--space-md);
+        flex-wrap: wrap;
+    }
+
+    /* Metric & Diagnostic Pill Bar */
+    .metric-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .metric-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: var(--bg-code);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 0.4rem 0.85rem;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--text-main);
+    }
+
+    .metric-pill__label {
+        color: var(--text-subtle);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .metric-pill__val {
+        color: var(--color-info);
+        font-weight: 600;
+    }
+
+    /* Command Terminal Card */
+    .command-terminal {
+        background-color: var(--bg-code);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .command-terminal__header {
+        background-color: var(--bg-surface);
+        padding: 0.65rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+
+    .command-terminal__body {
+        padding: var(--space-lg);
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        line-height: 1.8;
+        color: #e2e8f0;
+    }
+
+    .command-line {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-xs);
+    }
+
+    .command-line__prompt {
+        color: var(--brand-flame);
+        user-select: none;
+        font-weight: bold;
+    }
+
+    .command-line__cmd {
+        color: var(--text-main);
+    }
+
+    .command-line__comment {
+        color: var(--text-subtle);
+        margin-left: auto;
+        font-size: 0.8rem;
+    }
+
+    @media (max-width: 768px) {
+        .command-line {
+            flex-direction: column;
+            gap: 0;
+            margin-bottom: var(--space-sm);
+        }
+        .command-line__comment {
+            margin-left: 0;
+        }
+    }
+
+    /* Section Headers */
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-md);
+    }
+
+    .section-header__title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+    }
+
+    /* Footer */
+    .welcome-footer {
+        text-align: center;
+        color: var(--text-subtle);
+        font-size: 0.85rem;
+        padding-top: var(--space-xl);
+        border-top: 1px solid var(--border-subtle);
+    }
+}

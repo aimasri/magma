@@ -34,10 +34,20 @@ class HomeController extends BaseController
      *
      * @return \Magma\http\Response
      */
-    public function index()
+    public function index(): \Magma\http\Response
     {
+        $memoryBytes = memory_get_peak_usage(true);
+        $memoryMb = round($memoryBytes / (1024 * 1024), 2);
+
         return $this->render('welcome', [
-            'title' => 'Welcome to Magma Framework'
-        ], null); // Pass null as layout since we don't have a layout system setup in welcome.php
+            'title'        => 'Magma Framework Core',
+            'phpVersion'   => PHP_VERSION,
+            'phpSapi'      => PHP_SAPI,
+            'environment'  => \Magma\config\Config::get('APP_ENV', 'development'),
+            'debug'        => \Magma\config\Config::get('APP_DEBUG', 'true') === 'true',
+            'dbDriver'     => \Magma\config\Config::get('DB_DRIVER', 'pgsql'),
+            'memoryUsage'  => "{$memoryMb} MB",
+            'serverOs'     => PHP_OS . ' (' . php_uname('m') . ')',
+        ], null);
     }
 }

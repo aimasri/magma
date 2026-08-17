@@ -1,0 +1,70 @@
+/**
+ * Title: Card Component Styles
+ *
+ * Purpose:
+ * - Single Responsibility: Encapsulates surface containers, panels, and card grids.
+ * - Open/Closed: Allows extension through variant modifier classes (`.card--elevated`, `.card--accent-flame`, `.card--interactive`).
+ */
+
+@layer components {
+    .card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-md);
+        transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .card--accent-flame {
+        border-left: 6px solid var(--brand-flame);
+    }
+
+    .card--accent-info {
+        border-left: 6px solid var(--color-info);
+    }
+
+    .card--interactive:hover {
+        border-color: var(--border-medium);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .card__header {
+        margin-bottom: var(--space-md);
+    }
+
+    .card__title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: var(--space-xs);
+    }
+
+    .card__subtitle {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .card__body {
+        color: var(--text-muted);
+        line-height: 1.6;
+        font-size: 0.95rem;
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--space-lg);
+    }
+
+    .card-grid--2col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 768px) {
+        .card-grid--2col {
+            grid-template-columns: 1fr;
+        }
+    }
+}

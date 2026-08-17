@@ -1,0 +1,58 @@
+/**
+ * Title: Badge and Pill Component Styles
+ *
+ * Purpose:
+ * - Single Responsibility: Encapsulates status indicators, code pills, and tags.
+ */
+
+@layer components {
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    .badge--brand {
+        background-color: var(--brand-flame);
+        color: #ffffff;
+    }
+
+    .badge--pill {
+        border-radius: var(--radius-full);
+        padding: 0.3rem 0.85rem;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    .badge--success {
+        background-color: var(--color-success-subtle);
+        color: var(--color-success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge--info {
+        background-color: var(--color-info-subtle);
+        color: var(--color-info);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge--warning {
+        background-color: var(--color-warning-subtle);
+        color: var(--color-warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge--neutral {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-muted);
+        border: 1px solid var(--border-subtle);
+    }
+}

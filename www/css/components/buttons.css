@@ -1,0 +1,63 @@
+/**
+ * Title: Button Component Styles
+ *
+ * Purpose:
+ * - Single Responsibility: Encapsulates interactive button and link trigger styling.
+ * - Interface Segregation: Distinguishes between primary, secondary, outline, and small modifiers.
+ */
+
+@layer components {
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-sm);
+        padding: 0.65rem 1.25rem;
+        font-family: var(--font-sans);
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.2;
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+        user-select: none;
+    }
+
+    .btn--primary {
+        background-color: var(--brand-flame);
+        color: #ffffff;
+    }
+    .btn--primary:hover {
+        background-color: var(--brand-flame-hover);
+    }
+
+    .btn--info {
+        background-color: var(--color-info);
+        color: var(--bg-canvas);
+    }
+    .btn--info:hover {
+        opacity: 0.9;
+    }
+
+    .btn--outline {
+        background-color: transparent;
+        color: var(--text-main);
+        border-color: var(--border-medium);
+    }
+    .btn--outline:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-color: var(--text-muted);
+    }
+
+    .btn--sm {
+        padding: 0.4rem 0.85rem;
+        font-size: 0.82rem;
+    }
+
+    .btn--icon {
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+    }
+}

@@ -1,8 +1,16 @@
-@import url('components/utilities.css');
+/**
+ * Title: Magma Main Application Stylesheet
+ *
+ * Purpose:
+ * - Single Responsibility: Acts as the root manifest file importing domain component stylesheets in explicit @layer hierarchy.
+ * - Adheres strictly to DRY, SOLID, and native CSS Cascade Layers (@layer reset, tokens, components, utilities, states).
+ */
+
+@import url('components/tokens.css');
+@import url('components/buttons.css');
+@import url('components/badges.css');
+@import url('components/cards.css');
 @import url('components/combobox.css');
 @import url('components/editor.css');
-
-.magma-theme-root { font-family: var(--font-sans, sans-serif); background: var(--color-bg-base, #f8fafc); color: var(--color-body, #1e293b); }
-.welcome-card { background: var(--color-bg-surface, white); padding: 3rem; border-radius: var(--radius-lg, 8px); box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.1)); text-align: center; }
-.welcome-card__title { margin-top: 0; color: #e74c3c; }
-.welcome-card__text { margin-bottom: 0; }
+@import url('components/welcome.css');
+@import url('components/utilities.css');

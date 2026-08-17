@@ -1,32 +1,38 @@
 <?php
 
-namespace Magma\repositories;
-use Magma\interfaces\cqrs\VendorQueryInterface;
+declare(strict_types=1);
 
+namespace Magma\repositories;
+
+use Magma\interfaces\cqrs\VendorQueryInterface;
 use Magma\dto\VendorDTO;
+use Redis;
+use Throwable;
 
 /**
  * Title: Cached Vendor Query Repository
+ *
  * Purpose:
- * - Decorates the base vendor query repository to cache frequent reads.
- * - Handles caching specific to the primary vendor entity.
+ * - Decorates the base vendor query repository to cache frequent reads in Redis.
+ * - Handles caching specific to the primary vendor entity with automatic deserialization fault tolerance.
  * - Coordinates between the cache store (Redis) and the database repository.
- * Why/Why this design:
- * - Implements the Decorator pattern to add caching transparently without modifying the base logic.
- * - Uses the read-through cache pattern to alleviate database load for highly accessed entities.
+ *
+ * Why / Why this design:
+ * - Implements the Decorator pattern to add caching transparently without modifying the base repository.
+ * - Deserialization Resilience: Prevents fatal TypeErrors when cached Redis payloads are corrupted, stale, or fail `unserialize()` by gracefully falling back to a fresh database query and evicting the corrupted cache key.
+ *
  * Teaching notes:
- * - A classic example of separation of concerns where caching logic is entirely segregated from data fetching.
- * - Industry standard approach for mitigating high-read throughput bottlenecks in multi-tenant architectures.
+ * - In high-concurrency SaaS apps, cache deserialization mismatch is a common cause of 500 crashes after code deployments. A robust decorator must never trust cached binary strings unconditionally.
  */
 class CachedVendorQueryRepository implements VendorQueryInterface
 {
     private VendorQueryInterface $repository;
-    private ?\Redis $redis;
+    private ?Redis $redis;
     private int $primaryVendorId;
 
     public function __construct(
         VendorQueryInterface $repository,
-        ?\Redis $redis = null,
+        ?Redis $redis = null,
         int $primaryVendorId = 1
     ) {
         $this->repository = $repository;
@@ -41,41 +47,73 @@ class CachedVendorQueryRepository implements VendorQueryInterface
 
     public function find(int $id): ?VendorDTO
     {
-        return $this->repository->find($id);
+        $cacheKey = "vendor:{$id}";
+
+        if ($this->redis) {
+            try {
+                $cached = $this->redis->get($cacheKey);
+                if ($cached !== false && is_string($cached)) {
+                    $unserialized = @unserialize($cached, ['allowed_classes' => [VendorDTO::class]]);
+                    if ($unserialized instanceof VendorDTO) {
+                        return $unserialized;
+                    }
+                    $this->redis->del($cacheKey);
+                }
+            } catch (Throwable $e) {
+                error_log("Redis cache read/deserialization failed for vendor {$id}: " . $e->getMessage());
+            }
+        }
+
+        $vendor = $this->repository->find($id);
+
+        if ($this->redis && $vendor instanceof VendorDTO) {
+            try {
+                $this->redis->setex($cacheKey, 86400, serialize($vendor));
+            } catch (Throwable $e) {
+                error_log("Redis cache write failed for vendor {$id}: " . $e->getMessage());
+            }
+        }
+
+        return $vendor;
     }
 
     /**
-     * Retrieves the primary vendor, leveraging the Redis cache layer.
-     * 
+     * Retrieves the primary vendor, leveraging the Redis cache layer with safe fallback.
+     *
+     * Execution Flow:
      * 1. Checks if a cached instance exists in Redis using the vendor ID key.
-     * 2. Returns the unserialized cached data if found.
-     * 3. Falls back to the base repository to fetch the data from the database.
-     * 4. Caches the newly fetched vendor object in Redis for 24 hours.
-     * 
-     * Logic behind the logic: This read-through cache minimizes DB calls for the primary vendor entity, which is frequently accessed on almost every request, thus drastically improving overall response times.
+     * 2. Safely attempts to unserialize the cached data with type checks.
+     * 3. If invalid or corrupted, evicts the key and falls back to the database repository.
+     * 4. Caches the newly fetched vendor DTO in Redis for 24 hours.
+     *
+     * @return VendorDTO|null
      */
     public function getPrimaryVendor(): ?VendorDTO
     {
         $cacheKey = "vendor:{$this->primaryVendorId}";
 
-        $cached = false;
         if ($this->redis) {
             try {
                 $cached = $this->redis->get($cacheKey);
-            } catch (\RedisException $e) {
-                error_log("Redis cache read failed: " . $e->getMessage());
-            }
-            if ($cached !== false) {
-                return unserialize($cached, ['allowed_classes' => [\Magma\dto\VendorDTO::class]]);
+                if ($cached !== false && is_string($cached)) {
+                    $unserialized = @unserialize($cached, ['allowed_classes' => [VendorDTO::class]]);
+                    if ($unserialized instanceof VendorDTO) {
+                        return $unserialized;
+                    }
+                    // Evict corrupted or outdated cache entry
+                    $this->redis->del($cacheKey);
+                }
+            } catch (Throwable $e) {
+                error_log("Redis cache read/deserialization failed: " . $e->getMessage());
             }
         }
 
         $vendor = $this->repository->getPrimaryVendor();
 
-        if ($this->redis && $vendor) {
+        if ($this->redis && $vendor instanceof VendorDTO) {
             try {
                 $this->redis->setex($cacheKey, 86400, serialize($vendor));
-            } catch (\RedisException $e) {
+            } catch (Throwable $e) {
                 error_log("Redis cache write failed: " . $e->getMessage());
             }
         }

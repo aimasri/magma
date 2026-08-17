@@ -1,0 +1,74 @@
+/**
+ * Title: Magma Framework Design Tokens
+ *
+ * Purpose:
+ * - Single Responsibility Principle (SRP): Centralizes all design tokens (colors, typography, spacing, elevations, transitions).
+ * - Open/Closed Principle (OCP): Provides a standardized token contract allowing theme switching (dark/light) without editing components.
+ *
+ * Teaching notes:
+ * - Uses native CSS variables scoped to :root and CSS Cascade Layer (@layer tokens).
+ */
+
+@layer tokens {
+    :root {
+        /* Color Palette - Dark Canvas System (Matches Diagnostic View) */
+        --bg-canvas: #0f172a;
+        --bg-surface: #1e293b;
+        --bg-surface-elevated: #334155;
+        --bg-code: #090d16;
+        
+        /* Text Colors */
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --text-subtle: #64748b;
+        --text-danger: #fecdd3;
+        
+        /* Accent & Brand Colors */
+        --brand-flame: #f43f5e;
+        --brand-flame-hover: #e11d48;
+        --brand-flame-subtle: rgba(244, 63, 94, 0.15);
+        
+        --color-info: #38bdf8;
+        --color-info-subtle: rgba(56, 189, 248, 0.15);
+        
+        --color-success: #10b981;
+        --color-success-subtle: rgba(16, 185, 129, 0.15);
+        
+        --color-warning: #f59e0b;
+        --color-warning-subtle: rgba(245, 158, 11, 0.15);
+
+        /* Borders & Outlines */
+        --border-subtle: #334155;
+        --border-medium: #475569;
+        --border-focus: #38bdf8;
+
+        /* Typography */
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
+        
+        /* Sizing & Spacing */
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+        --space-xl: 2rem;
+        --space-2xl: 3rem;
+
+        /* Radius */
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
+        --radius-xl: 12px;
+        --radius-full: 9999px;
+
+        /* Elevations / Shadows */
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+        --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+        /* Transitions */
+        --transition-fast: 0.15s ease;
+        --transition-normal: 0.25s ease;
+    }
+}
