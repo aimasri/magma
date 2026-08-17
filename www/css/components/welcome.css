@@ -2,7 +2,8 @@
  * Title: Welcome Page Component Styles
  *
  * Purpose:
- * - Single Responsibility: Encapsulates layout, hero showcase, metric pills, and terminal blocks for the Welcome landing view.
+ * - Single Responsibility: Encapsulates layout, hero showcase, metric pills, lifecycle stepper,
+ *   syllabus modules, philosophy cards, and terminal blocks for the Welcome landing view.
  * - Adheres strictly to dark theme palette matching the debug diagnostics view.
  */
 
@@ -53,7 +54,7 @@
         font-size: 1.15rem;
         color: var(--text-muted);
         line-height: 1.6;
-        max-width: 750px;
+        max-width: 780px;
         margin-bottom: var(--space-lg);
     }
 
@@ -95,6 +96,153 @@
     .metric-pill__val {
         color: var(--color-info);
         font-weight: 600;
+    }
+
+    /* Section Headers */
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-md);
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+    }
+
+    .section-header__title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+    }
+
+    /* Philosophy Highlights Grid */
+    .philosophy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-md);
+    }
+
+    .philosophy-item {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+    }
+
+    .philosophy-item__title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .philosophy-item__desc {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+
+    /* Request Lifecycle Stepper */
+    .lifecycle-stepper {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: var(--space-sm);
+    }
+
+    .lifecycle-step {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--space-md);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .lifecycle-step__num {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--brand-flame);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .lifecycle-step__title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .lifecycle-step__desc {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+    }
+
+    /* Syllabus 10-Module Grid */
+    .syllabus-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: var(--space-lg);
+    }
+
+    .module-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: var(--space-lg);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+        transition: transform var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .module-card:hover {
+        border-color: var(--border-medium);
+        transform: translateY(-2px);
+    }
+
+    .module-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.25rem;
+    }
+
+    .module-card__num {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--text-subtle);
+        font-weight: 600;
+    }
+
+    .module-card__title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #ffffff;
+    }
+
+    .module-card__desc {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        flex: 1;
+    }
+
+    .module-card__tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+        padding-top: var(--space-sm);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     /* Command Terminal Card */
@@ -158,21 +306,6 @@
         .command-line__comment {
             margin-left: 0;
         }
-    }
-
-    /* Section Headers */
-    .section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--space-md);
-    }
-
-    .section-header__title {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.01em;
     }
 
     /* Footer */
