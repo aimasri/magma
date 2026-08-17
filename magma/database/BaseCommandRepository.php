@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\database;
 
+use PDO;
 use Magma\security\TenantContext;
 
 /**
@@ -18,7 +21,7 @@ use Magma\security\TenantContext;
  *
  * Teaching notes:
  * - All queries issued by classes inheriting this base should be INSERT, UPDATE, or DELETE operations.
- * - Complex reads should be offloaded to classes extending BaseQueryRepository.
+ * - Complex reads should be offloaded to classes extending BaseQueryRepository or AbstractQueryRepository.
  */
 abstract class BaseCommandRepository
 {
@@ -31,7 +34,7 @@ abstract class BaseCommandRepository
         $this->tenantContext = $tenantContext;
     }
 
-    protected function getDb(): \PDO
+    protected function getDb(): PDO
     {
         return $this->dbManager->getWriteConnection();
     }

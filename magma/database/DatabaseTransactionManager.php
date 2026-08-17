@@ -6,73 +6,202 @@ namespace Magma\database;
 
 use PDO;
 use Throwable;
+use RuntimeException;
 
 /**
- * Database Transaction Manager
+ * Title: PostgreSQL Savepoint Transaction Manager
  *
  * Purpose:
- * - Implement the `TransactionManagerInterface` using a raw PDO connection.
- * - Manage the explicit boundaries of `BEGIN`, `COMMIT`, and `ROLLBACK`.
+ * - Implement `TransactionManagerInterface` with robust nested savepoint support.
+ * - Manage explicit boundaries of `BEGIN`, `COMMIT`, `ROLLBACK`, `SAVEPOINT`, `RELEASE SAVEPOINT`, 
+ *   and `ROLLBACK TO SAVEPOINT`.
  *
  * Why / Why this design:
- * - Centralizes the PDO transaction API. If we ever needed to implement savepoints 
- *   for nested transactions, we only have to modify this single class rather than 
- *   hunting down raw `$pdo->beginTransaction()` calls scattered across the codebase.
+ * - In PostgreSQL, any SQL error or unhandled exception within an active transaction transitions the connection 
+ *   into an aborted transaction state (`ERROR: current transaction is aborted, commands ignored until end of transaction block`).
+ * - Savepoints allow nested service workflows to fail and recover without aborting or corrupting the master PDO transaction.
+ * - Centralizes database transaction boundaries, adhering strictly to the Single Responsibility Principle (SRP).
  *
  * Teaching notes:
- * - The transaction manager safely supports nested calls by checking `inTransaction()`. 
- *   This ensures that inner service calls inherit the outermost transaction boundary 
- *   without throwing PDO exceptions or committing prematurely.
+ * - Top-level transactions open a physical PDO transaction (`BEGIN`). Nested calls create SQL savepoints (`SAVEPOINT trans_N`).
+ * - Catching `Throwable` guarantees that fatal PHP `Error` and `TypeError` exceptions roll back database mutations safely.
  */
 class DatabaseTransactionManager implements TransactionManagerInterface
 {
+    /**
+     * Database connection manager.
+     */
     private DatabaseConnectionManager $dbManager;
 
+    /**
+     * Current transaction nesting level counter.
+     */
+    private int $transactionLevel = 0;
+
+    /**
+     * Initializes the Transaction Manager.
+     *
+     * @param DatabaseConnectionManager $dbManager
+     */
     public function __construct(DatabaseConnectionManager $dbManager)
     {
         $this->dbManager = $dbManager;
     }
 
     /**
-     * Executes a callback within a PDO transaction block.
+     * Executes a callback within a managed transaction or savepoint block.
      *
      * Execution Flow:
-     * 1. Trigger `beginTransaction()` on the Write connection.
-     * 2. Execute the `$callback`.
-     * 3. Trigger `commit()` if execution reaches the end without exceptions.
-     * 4. Catch any `Throwable` (Exceptions or Errors), trigger `rollBack()`, and re-throw.
+     * 1. Inspect current transaction level.
+     * 2. If level is 0, start a physical transaction (`beginTransaction()`) and set level to 1.
+     * 3. If level >= 1, issue a `SAVEPOINT trans_{level}` statement and increment level.
+     * 4. Execute the callback.
+     * 5. If successful:
+     *    a. If level > 1, decrement level and issue `RELEASE SAVEPOINT trans_{level}`.
+     *    b. If level == 1, decrement level to 0 and issue `commit()`.
+     *    c. Return callback result.
+     * 6. If any Throwable is caught:
+     *    a. If level > 1, decrement level and issue `ROLLBACK TO SAVEPOINT trans_{level}`.
+     *    b. If level == 1, decrement level to 0 and issue `rollBack()`.
+     *    c. Re-throw the original Throwable.
      *
      * Logic behind the logic:
-     * - By catching `Throwable`, we guarantee that even fatal PHP TypeErrors or 
-     *   Engine Errors will successfully roll back the database state, preventing 
-     *   partial inserts or corruption.
+     * - Nested transactions inherit the outer boundary while maintaining isolated recovery points.
      *
-     * @param callable $callback
-     * @return mixed
+     * @param callable $callback The business operation to execute.
+     * @return mixed The result returned by the callback.
      * @throws Throwable
      */
     public function transactional(callable $callback): mixed
     {
         $dbWrite = $this->dbManager->getWriteConnection();
-        $isNested = $dbWrite->inTransaction();
 
-        if (!$isNested) {
+        if ($this->transactionLevel === 0) {
             $dbWrite->beginTransaction();
+            $this->transactionLevel = 1;
+        } else {
+            $savepoint = 'trans_' . $this->transactionLevel;
+            $dbWrite->exec("SAVEPOINT {$savepoint}");
+            $this->transactionLevel++;
         }
 
         try {
             $result = $callback();
-            
-            if (!$isNested) {
-                $dbWrite->commit();
+
+            if ($this->transactionLevel > 1) {
+                $this->transactionLevel--;
+                $savepoint = 'trans_' . $this->transactionLevel;
+                $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
+            } else {
+                $this->transactionLevel = 0;
+                if ($dbWrite->inTransaction()) {
+                    $dbWrite->commit();
+                }
             }
-            
+
             return $result;
         } catch (Throwable $e) {
-            if (!$isNested && $dbWrite->inTransaction()) {
-                $dbWrite->rollBack();
+            if ($this->transactionLevel > 1) {
+                $this->transactionLevel--;
+                $savepoint = 'trans_' . $this->transactionLevel;
+                $dbWrite->exec("ROLLBACK TO SAVEPOINT {$savepoint}");
+            } else {
+                $this->transactionLevel = 0;
+                if ($dbWrite->inTransaction()) {
+                    $dbWrite->rollBack();
+                }
             }
+
             throw $e;
         }
+    }
+
+    /**
+     * Manually begins a transaction or savepoint.
+     *
+     * @return void
+     */
+    public function begin(): void
+    {
+        $dbWrite = $this->dbManager->getWriteConnection();
+
+        if ($this->transactionLevel === 0) {
+            $dbWrite->beginTransaction();
+            $this->transactionLevel = 1;
+        } else {
+            $savepoint = 'trans_' . $this->transactionLevel;
+            $dbWrite->exec("SAVEPOINT {$savepoint}");
+            $this->transactionLevel++;
+        }
+    }
+
+    /**
+     * Manually commits the current transaction or releases the savepoint.
+     *
+     * @return void
+     */
+    public function commit(): void
+    {
+        $dbWrite = $this->dbManager->getWriteConnection();
+
+        if ($this->transactionLevel === 0) {
+            throw new RuntimeException("Cannot commit: No active transaction.");
+        }
+
+        if ($this->transactionLevel > 1) {
+            $this->transactionLevel--;
+            $savepoint = 'trans_' . $this->transactionLevel;
+            $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
+        } else {
+            $this->transactionLevel = 0;
+            if ($dbWrite->inTransaction()) {
+                $dbWrite->commit();
+            }
+        }
+    }
+
+    /**
+     * Manually rolls back the current transaction or rolls back to the savepoint.
+     *
+     * @return void
+     */
+    public function rollBack(): void
+    {
+        $dbWrite = $this->dbManager->getWriteConnection();
+
+        if ($this->transactionLevel === 0) {
+            throw new RuntimeException("Cannot roll back: No active transaction.");
+        }
+
+        if ($this->transactionLevel > 1) {
+            $this->transactionLevel--;
+            $savepoint = 'trans_' . $this->transactionLevel;
+            $dbWrite->exec("ROLLBACK TO SAVEPOINT {$savepoint}");
+        } else {
+            $this->transactionLevel = 0;
+            if ($dbWrite->inTransaction()) {
+                $dbWrite->rollBack();
+            }
+        }
+    }
+
+    /**
+     * Returns the current transaction nesting level (0 = none, 1 = root transaction, >1 = nested savepoints).
+     *
+     * @return int
+     */
+    public function getLevel(): int
+    {
+        return $this->transactionLevel;
+    }
+
+    /**
+     * Determines whether a transaction or savepoint is currently active.
+     *
+     * @return bool
+     */
+    public function inTransaction(): bool
+    {
+        return $this->transactionLevel > 0;
     }
 }

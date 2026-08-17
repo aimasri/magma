@@ -1,56 +1,71 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
+use Magma\http\SessionInterface;
 
 /**
- * AuthMiddleware — route access protection.
- * 
+ * Title: Authentication Access Guard Middleware
+ *
  * Purpose:
- * - Ensures the user is authenticated before allowing access to the route.
- * - Redirects guests to the login page.
- * 
+ * - Guarantees that only authenticated users with an active session can access protected routes.
+ * - Inspects client content-negotiation to return structured 401 JSON payloads for API/AJAX requests or 302 redirects to `/login` for HTML browser navigation.
+ *
  * Why / Why this design:
- * - Utilizes the Onion Architecture (Middleware pipeline). It intercepts the 
- *   request early, preventing protected controllers from ever booting if the 
- *   session is invalid.
- * 
+ * - Content-Negotiated Access Control: Prevents SPA/AJAX fetch calls from receiving a 302 HTML login redirect which causes CORS and JSON parsing crashes.
+ * - Dependency Inversion: Injects `SessionInterface` rather than concrete session classes, facilitating unit testing without global state.
+ *
  * Teaching notes:
- * - Using middleware for authentication keeps controllers thin and prevents 
- *   duplication of security checks across multiple routes.
+ * - Intercepting requests at the middleware boundary prevents protected controllers and domain services from ever executing on unauthenticated requests.
  */
 class AuthMiddleware implements MiddlewareInterface
 {
-    private \Magma\http\Session $session;
+    private SessionInterface $session;
 
-    public function __construct(\Magma\http\Session $session)
+    public function __construct(SessionInterface $session)
     {
         $this->session = $session;
     }
 
     /**
-     * Executes the middleware layer to verify authentication.
-     * 
+     * Filters the incoming request for active authentication credentials.
+     *
      * Execution Flow:
-     * 1. Inspects the session for a valid 'user' payload.
-     * 2. If the user is missing, it immediately halts the request and issues a RedirectResponse to the login page.
-     * 3. If the user is present, it passes the request down the pipeline to the next layer.
-     * 
+     * 1. Inspects the active session for an authenticated user payload.
+     * 2. If user is absent:
+     *    a. Checks if client expects JSON (`isJsonExpected()`).
+     *    b. If JSON expected, returns an immediate 401 Unauthorized JSON response.
+     *    c. Otherwise, returns a RedirectResponse to `/login`.
+     * 3. If user is authenticated, passes execution to `$next`.
+     *
      * Logic behind the logic:
-     * Validating authentication at the middleware layer prevents unauthorized users from executing any controller code, thereby ensuring zero unintended side effects from protected routes.
-     * 
-     * @param Request $request
+     * - Differentiating between API and HTML clients preserves REST contracts while maintaining standard web browser UX.
+     *
+     * @param RequestInterface $request
      * @param callable $next
      * @return Response
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         if (!$this->session->get('user')) {
+            if ($request->isJsonExpected() || $request->expectsJson()) {
+                $payload = json_encode([
+                    'success' => false,
+                    'error'   => 'Unauthenticated access.',
+                    'code'    => 401,
+                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+                return new Response($payload, 401, ['Content-Type' => 'application/json; charset=utf-8']);
+            }
+
             return new RedirectResponse('/login');
         }
+
         return $next($request);
     }
 }

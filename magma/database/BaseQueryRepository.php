@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\database;
 
+use PDO;
 use Magma\security\TenantContext;
 
 /**
@@ -17,7 +20,7 @@ use Magma\security\TenantContext;
  * - Tenant Isolation: Automatically provides the TenantContext to enforce strict multi-tenant filtering on reads.
  *
  * Teaching notes:
- * - If you are writing an UPDATE, INSERT, or DELETE, you should NOT be using or extending this class. Extend BaseCommandRepository instead.
+ * - If you are writing an UPDATE, INSERT, or DELETE, you should NOT be using or extending this class. Extend BaseCommandRepository or AbstractCommandRepository instead.
  */
 abstract class BaseQueryRepository
 {
@@ -30,7 +33,7 @@ abstract class BaseQueryRepository
         $this->tenantContext = $tenantContext;
     }
 
-    protected function getDb(): \PDO
+    protected function getDb(): PDO
     {
         return $this->dbManager->getReadConnection();
     }

@@ -94,6 +94,29 @@ CREATE TABLE IF NOT EXISTS countries (
     name VARCHAR(255) NOT NULL UNIQUE
 );
 
+-- Section: 5. Asynchronous Outbox & Projections
+
+CREATE TABLE IF NOT EXISTS outbox_jobs (
+    id BIGSERIAL PRIMARY KEY,
+    queue VARCHAR(255) NOT NULL,
+    handler VARCHAR(255) NOT NULL,
+    payload JSONB NOT NULL,
+    headers JSONB DEFAULT '{}'::jsonb,
+    attempts INTEGER DEFAULT 0,
+    locked_at TIMESTAMP,
+    last_error TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS projection_checkpoints (
+    projection_name VARCHAR(255) NOT NULL,
+    event_id VARCHAR(255) NOT NULL,
+    tenant_id INTEGER,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    PRIMARY KEY (projection_name, event_id)
+);
+
 -- Section: Indexes
 
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
@@ -101,6 +124,8 @@ CREATE INDEX IF NOT EXISTS idx_vendors_plan_id ON vendors(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_lookup ON user_tokens(type, expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash) WHERE type = 'password_reset';
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_tenant ON projection_checkpoints(tenant_id);
 
 -- Section: Triggers
 
@@ -109,3 +134,4 @@ CREATE TRIGGER set_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE 
 
 DROP TRIGGER IF EXISTS set_vendors_updated_at ON vendors;
 CREATE TRIGGER set_vendors_updated_at BEFORE UPDATE ON vendors FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+

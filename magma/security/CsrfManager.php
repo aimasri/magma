@@ -1,77 +1,80 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\security;
 
-use Magma\http\Session;
+use Magma\http\SessionInterface;
 
 /**
- * Cross-Site Request Forgery Token Manager
+ * Title: Cross-Site Request Forgery (CSRF) Token Manager
  * 
  * Purpose:
- * - Centralizes CSRF token generation, validation, and HTML field creation.
- * - Decouples the TemplateEngine and Request from security logic.
+ * - Centralizes CSRF token generation, validation, rotation, and HTML field rendering.
+ * - Enforces the Synchronizer Token Pattern across both state-mutating HTML forms and AJAX endpoints.
  * 
  * Why / Why this design:
- * - By encapsulating CSRF logic here, we prevent the TemplateEngine from 
- *   acting as a pseudo-security service, enforcing the Single Responsibility 
- *   Principle (SRP).
+ * - Decoupling & Interface Inversion: Injects `SessionInterface` rather than a concrete session class, allowing CSRF testing without touching superglobals.
+ * - Token Grace Period: Retains a sliding window of recent tokens (up to 5) to prevent race conditions when users operate across multiple browser tabs.
  * 
  * Teaching notes:
- * - It implements a Token Grace Period to allow for smooth navigation when users 
- *   use the browser's "Back" button or open multiple tabs.
+ * - Uses `hash_equals()` for constant-time string comparisons to prevent timing side-channel attacks.
  */
 class CsrfManager
 {
-    private Session $session;
+    private SessionInterface $session;
     private const GRACE_PERIOD_COUNT = 5;
 
-    public function __construct(Session $session)
+    public function __construct(SessionInterface $session)
     {
         $this->session = $session;
     }
 
     /**
-     * Get the active CSRF token, generating one if it doesn't exist.
+     * Retrieves the active CSRF token, generating one if none exists.
      *
      * Execution Flow:
-     * 1. Retrieve the existing array of tokens from the session.
-     * 2. If the array is empty, generate a new cryptographically secure 32-byte token.
-     * 3. Store the new token array back into the session.
-     * 4. Return the most recent token (the last element).
+     * 1. Retrieve the existing token array from session storage.
+     * 2. If missing or empty, generate a cryptographically secure 32-byte hexadecimal token.
+     * 3. Save the new token list to the session.
+     * 4. Return the latest active token.
      *
      * Logic behind the logic:
-     * - `random_bytes` ensures cryptographically strong pseudo-randomness, making brute-forcing impossible.
+     * - `random_bytes(32)` provides 256 bits of cryptographic entropy, preventing brute-force token prediction.
+     *
+     * @return string
      */
     public function getToken(): string
     {
         $tokens = $this->session->get('_csrf_token', []);
-        
+
         if (empty($tokens) || !is_array($tokens)) {
             $token = bin2hex(random_bytes(32));
             $this->session->set('_csrf_token', [$token]);
             return $token;
         }
-        
-        return end($tokens);
+
+        return (string)end($tokens);
     }
 
     /**
-     * Validate a submitted token against the valid tokens in the session grace period.
+     * Validates a submitted token against active tokens in the session grace period.
      *
      * Execution Flow:
-     * 1. Retrieve the list of active tokens from the session.
-     * 2. Iterate through the tokens to find a match with the submitted token.
-     * 3. Use `hash_equals` to perform the comparison.
-     * 4. Return true if a match is found, otherwise false.
+     * 1. Retrieve the token array from session storage.
+     * 2. Perform constant-time string comparisons (`hash_equals`) against each active token.
+     * 3. Return true if a valid match is found, false otherwise.
      *
      * Logic behind the logic:
-     * - `hash_equals` mitigates timing attacks by ensuring that the comparison time is constant,
-     *   regardless of whether the tokens match completely or fail early.
+     * - Constant-time comparison eliminates timing side-channel information leakage.
+     *
+     * @param string $submittedToken
+     * @return bool
      */
     public function validateToken(string $submittedToken): bool
     {
         $validTokens = $this->session->get('_csrf_token', []);
-        
+
         if (!is_array($validTokens) || empty($submittedToken)) {
             return false;
         }
@@ -81,62 +84,51 @@ class CsrfManager
                 return true;
             }
         }
-        
+
         return false;
     }
 
     /**
-     * Consume a token to prevent replay attacks during the grace period.
+     * Consumes a specific token from the session grace list.
+     *
+     * @param string $token
+     * @return void
      */
     public function consumeToken(string $token): void
     {
         $tokens = $this->session->get('_csrf_token', []);
         if (is_array($tokens)) {
-            $tokens = array_filter($tokens, fn($t) => !hash_equals($t, $token));
+            $tokens = array_filter($tokens, fn($t) => is_string($t) && !hash_equals($t, $token));
             $this->session->set('_csrf_token', array_values($tokens));
         }
     }
 
     /**
-     * Rotate the token array, preserving only up to GRACE_PERIOD_COUNT tokens.
+     * Rotates the token array, appending a new token and trimming older entries past the grace window.
      *
-     * Execution Flow:
-     * 1. Retrieve the existing tokens from the session.
-     * 2. Generate and append a new token.
-     * 3. If the array size exceeds the grace period, slice off the oldest tokens.
-     * 4. Save the truncated array back to the session.
-     *
-     * Logic behind the logic:
-     * - Limiting the array size prevents session bloat, while still providing UX grace for 
-     *   multi-tab forms.
+     * @return void
      */
     public function regenerateToken(): void
     {
         $tokens = $this->session->get('_csrf_token', []);
-        
+
         if (!is_array($tokens)) {
             $tokens = [];
         }
-        
+
         $tokens[] = bin2hex(random_bytes(32));
-        
+
         if (count($tokens) > self::GRACE_PERIOD_COUNT) {
             $tokens = array_slice($tokens, -self::GRACE_PERIOD_COUNT);
         }
-        
+
         $this->session->set('_csrf_token', $tokens);
     }
 
     /**
-     * Generate the hidden HTML input field containing the CSRF token.
+     * Generates a hidden HTML input field containing the active CSRF token.
      *
-     * Execution Flow:
-     * 1. Retrieves the active token.
-     * 2. Returns an HTML hidden input string securely escaping the token value.
-     *
-     * Logic behind the logic:
-     * - Pre-rendering the field allows templates to blindly drop in the token without 
-     *   worrying about HTML escaping intricacies.
+     * @return string
      */
     public function csrfField(): string
     {

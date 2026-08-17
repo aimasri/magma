@@ -100,6 +100,14 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             );
         });
 
+        $container->set(\Magma\database\OutboxJobRepositoryInterface::class, function ($c) {
+            return new \Magma\database\OutboxJobRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+        });
+
+        $container->set(\Magma\database\OutboxJobRepository::class, function ($c) {
+            return new \Magma\database\OutboxJobRepository($c->get(\Magma\database\DatabaseConnectionManager::class));
+        });
+
         $container->set(TransactionManagerInterface::class, function ($c) {
             return new DatabaseTransactionManager($c->get(\Magma\database\DatabaseConnectionManager::class));
         });

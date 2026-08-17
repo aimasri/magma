@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma;
 
 use Magma\container\Container;
@@ -74,23 +76,46 @@ class Application
      *   or a controller, the output buffer is wiped (`ob_end_clean()`) preventing partial 
      *   HTML from bleeding out. It enforces a strict, reliable error boundary for the application.
      */
+    /**
+     * Handles an incoming HTTP request and returns an HTTP Response object without sending it.
+     * Ideal for functional testing and CLI simulations.
+     *
+     * @param RequestInterface $request
+     * @return Response
+     */
+    public function handle(RequestInterface $request): Response
+    {
+        try {
+            return $this->container->get(RouterInterface::class)->dispatch($request, $this->middleware);
+        } catch (\Throwable $e) {
+            return $this->handleKernelError($e, $request);
+        }
+    }
+
+    /**
+     * Executes the application lifecycle.
+     * 
+     * Execution Flow:
+     * 1. Resolve the primary RequestInterface object from the container.
+     * 2. Process the request through handle().
+     * 3. Send the HTTP headers and body to the client.
+     * 
+     * @return void
+     */
     public function run(): void
     {
         ob_start();
         $bufferedOutput = '';
         try {
-            // 1. Resolve the primary request object from the container
             $request = $this->container->get(RequestInterface::class);
-
-            // 2. Process the request through the single unified middleware pipeline
-            $response = $this->container->get(RouterInterface::class)->dispatch($request, $this->middleware);
+            $response = $this->handle($request);
             $bufferedOutput = ob_get_clean();
         } catch (\Throwable $e) {
             ob_end_clean();
             $response = $this->handleKernelError($e, $request ?? null);
         }
 
-        // 3. Send headers and body to the client
+        // Send headers and body to the client
         $response->send();
         echo $bufferedOutput;
     }
@@ -112,7 +137,7 @@ class Application
     {
         if ($e instanceof \Magma\routing\RouteNotFoundException) {
             try {
-                return $this->errorHandler->renderNotFound();
+                return $this->errorHandler->renderNotFound($request);
             } catch (\Throwable $fatal) {
                 return new Response('Not Found', 404);
             }

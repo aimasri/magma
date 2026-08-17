@@ -10,21 +10,23 @@ use Magma\http\Response;
 use Magma\http\HttpResponseException;
 use Magma\middleware\MiddlewareResolver;
 use Magma\pipeline\Pipeline;
+use Magma\validation\FormRequest;
+use Magma\validation\Validator;
 
 /**
- * Title: Route Dispatcher
+ * Title: Route Dispatcher & Pipeline Middleware Runner
  *
  * Purpose:
- * - Instantiates controllers, injects dependencies into handler methods, and executes them.
- * - Wraps handlers in middleware pipelines (global and route-specific).
+ * - Executes matched route handlers inside the application middleware pipeline.
+ * - Manages reflection parameter resolution, FormRequest validation, and DI container auto-wiring.
+ * - Handles early HTTP exceptions (`HttpResponseException`) cleanly without leaking errors.
  *
- * Why this design:
- * - Separation of Concerns: Keeps parameter resolution, DI, and middleware orchestration separate from the regex matching engine.
- * - Reflection Caching: Uses static arrays to cache Reflection metadata, avoiding expensive reflection overhead on repeated requests (especially in worker environments).
+ * Why / Why this design:
+ * - Separation of Concerns: Keeps middleware execution and reflection auto-wiring cleanly decoupled from regex URI matching in the Router.
+ * - Onion Middleware Architecture: Wraps controller execution as the innermost core closure of the Pipeline, ensuring all outward/inward middleware filters execute symmetrically.
  *
  * Teaching notes:
- * - Automatically injects container services into controller actions based on type-hinting.
- * - Any thrown HttpResponseException is elegantly caught and returned as a normal response, simplifying early-exit logic in controllers.
+ * - When an action requires a `FormRequest`, validation is automatically fired before the controller action starts.
  */
 class RouteDispatcher
 {
@@ -39,49 +41,77 @@ class RouteDispatcher
     }
 
     /**
-     * Executes the matched route handler through a middleware pipeline.
+     * Executes the matched route handler through the middleware onion.
      *
-     * 1. Wraps the handler (closure or controller method) inside a core closure.
-     * 2. Within the core closure, uses reflection (or cached reflection) to resolve dependencies and route parameters.
-     * 3. Merges global and route-specific middleware and resolves their instances.
-     * 4. Passes the request through the Pipeline architecture, culminating at the core closure.
+     * Execution Flow:
+     * 1. Wraps the handler inside a core closure.
+     * 2. Resolves handler parameters with reflection auto-wiring and FormRequest validation.
+     * 3. Resolves and merges global and route-specific middleware instances.
+     * 4. Passes the request through the Pipeline architecture, hitting the core closure.
+     * 5. Catches any `HttpResponseException` and returns its internal Response.
      *
      * Logic behind the logic:
-     * - Wrapping the controller execution in a closure allows the Pipeline to treat the final destination as just another middleware.
-     * - Caching reflection metadata significantly cuts down execution time under high load.
+     * - Treating the controller execution as the innermost destination closure allows uniform middleware composition.
      *
-     * @param array|callable $handler
+     * @param array|callable|Route $handler
      * @param array $params
      * @param array $middlewareList
      * @param RequestInterface $request
      * @param array $globalMiddleware
+     * @param Router|null $router
      * @return Response
      */
-    public function dispatch(array|callable $handler, array $params, array $middlewareList, RequestInterface $request, array $globalMiddleware = []): Response
-    {
-        $coreHandler = function (RequestInterface $request) use ($handler, $params): Response {
+    public function dispatch(
+        mixed $handler,
+        array $params,
+        array $middlewareList,
+        RequestInterface $request,
+        array $globalMiddleware = [],
+        ?Router $router = null
+    ): Response {
+        $coreHandler = function (RequestInterface $request) use ($handler, $params, $router): Response {
+            if ($router !== null) {
+                return $router->executeHandler($handler, $params, $request);
+            }
+
+            if ($handler instanceof Route) {
+                $handler = $handler->getHandler();
+            }
+
             if (is_array($handler)) {
                 [$controllerClass, $action] = $handler;
                 $controller = $this->container->get($controllerClass);
-                
+
                 $cacheKey = $controllerClass . '@' . $action;
                 if (!isset(self::$reflectionCache[$cacheKey])) {
                     $ref = new \ReflectionMethod($controller, $action);
                     self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
                 }
-                
+
                 $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
-                return $controller->$action(...$args);
-            }
-            
-            $cacheKey = 'closure_' . spl_object_hash($handler);
-            if (!isset(self::$reflectionCache[$cacheKey])) {
-                $ref = new \ReflectionFunction($handler);
-                self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
+                $result = $controller->$action(...$args);
+            } elseif ($handler instanceof \Closure || is_callable($handler)) {
+                $cacheKey = 'closure_' . spl_object_hash(\Closure::fromCallable($handler));
+                if (!isset(self::$reflectionCache[$cacheKey])) {
+                    $ref = new \ReflectionFunction(\Closure::fromCallable($handler));
+                    self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
+                }
+
+                $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
+                $result = $handler(...$args);
+            } else {
+                throw new \InvalidArgumentException('Invalid route handler.');
             }
 
-            $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
-            return $handler(...$args);
+            if ($result instanceof Response) {
+                return $result;
+            }
+
+            if (is_array($result) || is_object($result)) {
+                return new Response(json_encode($result, JSON_THROW_ON_ERROR), 200, ['Content-Type' => 'application/json']);
+            }
+
+            return new Response((string)$result, 200);
         };
 
         $mergedMiddleware = array_merge($globalMiddleware, $middlewareList);
@@ -107,7 +137,8 @@ class RouteDispatcher
                 'name' => $param->getName(),
                 'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
                 'hasDefault' => $param->isDefaultValueAvailable(),
-                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null
+                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null,
+                'allowsNull' => $param->allowsNull(),
             ];
         }
         return $meta;
@@ -120,16 +151,30 @@ class RouteDispatcher
             $name = $meta['name'];
             $className = $meta['class'];
 
+            // FormRequest auto-wiring & validation
+            if ($className !== null && is_subclass_of($className, FormRequest::class)) {
+                $validator = $this->container->has(Validator::class)
+                    ? $this->container->get(Validator::class)
+                    : new Validator();
+                /** @var FormRequest $formRequest */
+                $formRequest = new $className($request, $validator);
+                $formRequest->validate();
+                $args[] = $formRequest;
+                continue;
+            }
+
             if (array_key_exists($name, $params)) {
                 $args[] = $params[$name];
-            } elseif ($className && $request instanceof $className) {
+            } elseif ($className && ($className === RequestInterface::class || is_a($request, $className))) {
                 $args[] = $request;
             } elseif ($className && $this->container->has($className)) {
                 $args[] = $this->container->get($className);
             } elseif ($meta['hasDefault']) {
                 $args[] = $meta['default'];
+            } elseif ($meta['allowsNull']) {
+                $args[] = null;
             } else {
-                throw new \RuntimeException("Unable to resolve dependency '{$name}' for class '" . ($className ?? 'unknown') . "'.");
+                throw new \RuntimeException("Unable to resolve dependency '\${$name}' for class '" . ($className ?? 'unknown') . "'.");
             }
         }
         return $args;

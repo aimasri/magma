@@ -1,45 +1,65 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\pipeline;
 
-use Magma\container\Container;
+use Closure;
+use RuntimeException;
 
 /**
- * Generic Pipeline Processor
+ * Title: Generic Dual-Mode Pipeline Processor
  * 
  * Purpose:
- * - Pass an object (the "passable", like an HTTP Request) through a series of sequential 
- *   stages (the "pipes", like Middleware) before finally hitting a core destination handler.
+ * - Pass an object (the "passable", such as an HTTP Request or Command) through a series of sequential 
+ *   stages (the "pipes", such as Middleware or Guards) before reaching a final core destination handler.
+ * - Flexibly handle both functional closures/callables (`$pipe($passable, $next)`), object-based 
+ *   pipeline stages (`$pipe->process($passable, $next)` or `$pipe->handle($passable, $next)`), 
+ *   and PSR-15 adapted middleware components.
  * 
  * Why / Why this design:
- * - The Onion architecture pattern perfectly encapsulates request processing. Extracting 
- *   this out of the Router completely resolves SRP violations, making the Router strictly 
- *   responsible for path matching, and making this Pipeline fully reusable for other 
- *   tasks (like queued jobs or command buses).
+ * - Implements the Onion Architecture / Chain of Responsibility pattern.
+ * - Decouples request processing, authentication, validation, and rate-limiting from core routing 
+ *   and controller dispatch logic.
+ * - Strict typing and dual-mode dispatch eliminate runtime `TypeError` exceptions when closures or 
+ *   diverse middleware implementations are composed together.
  * 
  * Teaching notes:
- * - The `array_reduce` function builds a nested set of closures from the inside out. 
- *   When the final pipeline is executed, the passable travels sequentially inward 
- *   through each layer of the onion, hits the destination, and then the responses 
- *   bubble back outward through the same layers.
+ * - Functional composition via `array_reduce` builds nested closures from the innermost destination outward.
+ * - When invoked, execution flows sequentially inward through each layer, executes the core destination, 
+ *   and returns outward through the same layers, allowing pre-processing and post-processing.
  */
 class Pipeline
 {
-    private mixed $passable;
-    private array $pipes = [];
-    private string $method = 'process'; // Default method to call on pipes
-
-    public function __construct()
-    {
-    }
+    /**
+     * The payload object being transported through the pipeline.
+     */
+    private mixed $passable = null;
 
     /**
-     * Set the object being sent through the pipeline.
+     * Ordered list of pipes/middleware to pass the payload through.
+     * @var array<int, object|callable|string>
+     */
+    private array $pipes = [];
+
+    /**
+     * Method name to invoke on object-based pipes.
+     */
+    private string $method = 'process';
+
+    /**
+     * Sets the object being sent through the pipeline.
+     *
+     * Execution Flow:
+     * 1. Clone the current pipeline instance to preserve immutability.
+     * 2. Store the passable payload on the cloned instance.
+     * 3. Return the clone.
      *
      * Logic behind the logic:
-     * - Stores the primary payload (e.g., an HTTP request) that will be mutated or inspected by each pipe.
+     * - Immutability via cloning prevents race conditions or shared state mutation when 
+     *   reusing pipeline templates across concurrent requests or asynchronous workers.
      *
-     * @param mixed $passable The object to pass through the pipeline.
+     * @param mixed $passable The request, command, or context object.
      * @return self
      */
     public function send(mixed $passable): self
@@ -50,12 +70,17 @@ class Pipeline
     }
 
     /**
-     * Set the array of pipes.
+     * Sets the array of pipes or middleware layers.
+     *
+     * Execution Flow:
+     * 1. Clone the current pipeline instance.
+     * 2. Store the pipes array on the cloned instance.
+     * 3. Return the clone.
      *
      * Logic behind the logic:
-     * - Accepts the layers (middleware/handlers) that the passable must travel through, allowing dynamic configuration of the pipeline.
+     * - Allows dynamic middleware composition per route, controller, or command bus dispatch.
      *
-     * @param array $pipes The array of middleware/pipes.
+     * @param array<int, object|callable|string> $pipes List of middleware stages.
      * @return self
      */
     public function through(array $pipes): self
@@ -66,12 +91,17 @@ class Pipeline
     }
 
     /**
-     * Set the method to call on the pipes.
+     * Sets the method name to invoke on object-based pipes.
+     *
+     * Execution Flow:
+     * 1. Clone the current pipeline instance.
+     * 2. Set the custom method name.
+     * 3. Return the clone.
      *
      * Logic behind the logic:
-     * - Allows flexibility in the interface of the pipes. While 'process' or 'handle' are common, this makes the pipeline completely agnostic.
+     * - Enables the pipeline to process standard 'process', 'handle', or custom domain methods.
      *
-     * @param string $method The method name to invoke on each pipe.
+     * @param string $method Method name to invoke.
      * @return self
      */
     public function via(string $method): self
@@ -82,15 +112,18 @@ class Pipeline
     }
 
     /**
-     * Run the pipeline with a final destination callback.
+     * Executes the pipeline and resolves with the final destination callback.
      * 
      * Execution Flow:
-     * 1. Reverses the array of pipes so the innermost pipe is processed first by `array_reduce`.
-     * 2. Uses `array_reduce` and `getSlice()` to wrap each pipe around the destination callback.
-     * 3. Executes the fully constructed "onion" with the initial `$passable` payload.
+     * 1. Reverse the pipes list so array_reduce wraps the innermost handler first.
+     * 2. Construct the nested closure stack using getSlice().
+     * 3. Execute the outermost closure with the initial passable payload and return the result.
      * 
-     * @param callable $destination The final core handler to execute.
-     * @return mixed The final response bubbling back out of the pipeline.
+     * Logic behind the logic:
+     * - array_reduce elegantly folds the list of middlewares into a single callable onion stack.
+     * 
+     * @param callable $destination Core handler executed after all pipes pass.
+     * @return mixed The final response or result bubbling out of the pipeline.
      */
     public function then(callable $destination): mixed
     {
@@ -104,25 +137,48 @@ class Pipeline
     }
 
     /**
-     * Get a Closure that represents a slice of the application onion.
+     * Creates a closure representing a single layer slice of the onion architecture.
      *
      * Execution Flow:
-     * 1. Returns a closure that wraps the current pipe and the next closure.
-     * 2. When executed, it calls the specified method on the current pipe, passing the passable payload and the next layer.
+     * 1. Receive the next inner callable and the current pipe stage.
+     * 2. Return a closure accepting $passable.
+     * 3. When called:
+     *    a. If pipe is callable / closure, execute $pipe($passable, $next).
+     *    b. If pipe is an object with the configured method ($this->method), execute $pipe->{$this->method}($passable, $next).
+     *    c. If pipe is an object with 'handle' method, execute $pipe->handle($passable, $next).
+     *    d. If pipe has '__invoke', execute $pipe($passable, $next).
+     *    e. Otherwise throw RuntimeException.
      *
      * Logic behind the logic:
-     * - This creates the recursive nested structure necessary for the Onion architecture. Each slice acts as a wrapper around the core, allowing pre- and post-processing of the payload.
+     * - Dual-mode dispatch eliminates fragile type errors, seamlessly bridging PSR-15 objects, 
+     *   Magma MiddlewareInterface objects, and inline PHP closures into a unified execution pipeline.
      *
-     * @return \Closure
+     * @return Closure
      */
-    private function getSlice(): \Closure
+    private function getSlice(): Closure
     {
-        return function (callable $next, object|callable $pipe) {
-            return function (mixed $passable) use ($next, $pipe) {
+        return function (callable $next, object|callable $pipe): Closure {
+            return function (mixed $passable) use ($next, $pipe): mixed {
                 if (is_callable($pipe)) {
                     return $pipe($passable, $next);
                 }
-                return $pipe->{$this->method}($passable, $next);
+
+                if (is_object($pipe)) {
+                    if (method_exists($pipe, $this->method)) {
+                        return $pipe->{$this->method}($passable, $next);
+                    }
+
+                    if (method_exists($pipe, 'handle')) {
+                        return $pipe->handle($passable, $next);
+                    }
+
+                    if (is_callable([$pipe, '__invoke'])) {
+                        return $pipe($passable, $next);
+                    }
+                }
+
+                $type = is_object($pipe) ? get_class($pipe) : gettype($pipe);
+                throw new RuntimeException("Pipeline stage [{$type}] is not callable or does not implement [{$this->method}].");
             };
         };
     }

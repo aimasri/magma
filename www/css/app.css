@@ -1,4 +1,8 @@
-.magma-theme-root { font-family: sans-serif; background: #f4f4f4; color: #333; }
-.welcome-card { background: white; padding: 3rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+@import url('components/utilities.css');
+@import url('components/combobox.css');
+@import url('components/editor.css');
+
+.magma-theme-root { font-family: var(--font-sans, sans-serif); background: var(--color-bg-base, #f8fafc); color: var(--color-body, #1e293b); }
+.welcome-card { background: var(--color-bg-surface, white); padding: 3rem; border-radius: var(--radius-lg, 8px); box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.1)); text-align: center; }
 .welcome-card__title { margin-top: 0; color: #e74c3c; }
 .welcome-card__text { margin-bottom: 0; }

@@ -1,28 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\events;
 
 use Magma\interfaces\EventDispatcherInterface;
+use Magma\interfaces\EventInterface;
 use Magma\container\Container;
+use ReflectionMethod;
+use ReflectionNamedType;
+use RuntimeException;
 
 /**
- * Core Event Dispatcher
+ * Title: Strongly-Typed Enterprise Event Dispatcher
  *
  * Purpose:
- * - Manages the registry of event listeners and routes fired events to them.
+ * - Manages the registry of domain event listeners and routes dispatched events to registered handlers.
+ * - Provides strongly-typed payload resolution for listeners implementing `DomainEventInterface` and `EventPayloadInterface`.
  *
  * Why / Why this design:
- * - Implements the Mediator / Pub-Sub pattern. It decouples the "Subject" (the service
- *   triggering the event) from the "Observers" (the listeners executing side effects).
+ * - Mediator & Pub/Sub Pattern: Decouples domain services triggering business events from observers executing side-effects.
+ * - Typed Payload Resolution: Eliminates fragile reflection duck-typing and untyped array casting in listeners
+ *   by automatically matching handler parameter typehints (DomainEventInterface vs EventPayloadInterface vs array).
+ * - Just-In-Time DI Resolution: Resolves string-based listener classes lazily from the DI container at runtime.
  *
  * Teaching notes:
- * - We inject the Dependency Injection Container here so we can resolve string-based
- *   listener class names "just in time". If we instantiated all listeners at boot time,
- *   a large app would consume massive memory for listeners that never get executed.
+ * - The dispatcher caches listener reflection parameter types in memory to avoid repeated reflection overhead
+ *   during high-throughput event storms.
  */
 class EventDispatcher implements EventDispatcherInterface
 {
+    /** @var array<string, array<int, callable|string|object>> */
     private array $listeners = [];
+
+    /** @var array<string, string|null> Reflection type cache for listener handle() parameters */
+    private array $parameterTypeCache = [];
+
     private Container $container;
 
     public function __construct(Container $container)
@@ -31,72 +44,150 @@ class EventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * Registers a listener for a specific event.
-     * 
+     * Registers a listener for a specific event class name.
+     *
      * Execution Flow:
-     * 1. Appends the given listener (callable or class name) to the array of listeners for the specified event name.
-     * 
+     * 1. Sanitize the event class name.
+     * 2. Append the listener (callable, class name string, or object) to the listener registry.
+     *
      * Logic behind the logic:
-     * - Storing class names as strings rather than instantiated objects allows for lazy instantiation, saving memory and processing time during application boot.
-     * 
+     * - Storing class names as strings permits deferred instantiation via the container until the event
+     *   actually fires, reducing memory allocation during bootstrap.
+     *
      * @param string $eventName The fully qualified class name of the event.
-     * @param callable|string $listener The listener to register.
+     * @param callable|string|object $listener The listener callable, class string, or instance.
      */
-    public function listen(string $eventName, callable|string $listener): void
+    public function listen(string $eventName, callable|string|object $listener): void
     {
-        $this->listeners[$eventName][] = $listener;
+        $this->listeners[trim($eventName, '\\')][] = $listener;
     }
 
     /**
      * Dispatches an event to all registered listeners.
-     * 
+     *
      * Execution Flow:
-     * 1. Determine the event name by getting the class name of the passed event object.
-     * 2. Check if there are any listeners registered for this event. If not, return early.
-     * 3. Iterate over each registered listener.
-     * 4. If the listener is a callable, execute it directly with the event as an argument.
-     * 5. If the listener is a string (class name), resolve it from the DI container.
-     * 6. Verify the resolved instance has a 'handle' method and invoke it, throwing an exception otherwise.
-     * 
+     * 1. Resolve event class name and locate matching listeners.
+     * 2. Iterate through each registered listener.
+     * 3. If listener is a callable, resolve arguments and invoke.
+     * 4. If listener is a class string, resolve instance from DI container.
+     * 5. Verify the listener implements `handle()`.
+     * 6. Resolve typed payload/event arguments and invoke `handle()`.
+     *
      * Logic behind the logic:
-     * - Using the container to resolve string-based listeners guarantees that any dependencies the listener requires are automatically injected just prior to execution.
-     * 
+     * - By inspecting parameter types, listeners can cleanly receive either the full `DomainEventInterface`
+     *   envelope, the strongly-typed `EventPayloadInterface` DTO, or a raw array without manual extraction code.
+     *
      * @param object $event The event object to dispatch.
+     * @throws RuntimeException If a listener class lacks a `handle` method.
      */
     public function dispatch(object $event): void
     {
-        $eventName = get_class($event);
-        if (!isset($this->listeners[$eventName])) {
+        $eventClass = get_class($event);
+        $normalizedClass = trim($eventClass, '\\');
+
+        if (!isset($this->listeners[$normalizedClass])) {
             return;
         }
 
-        foreach ($this->listeners[$eventName] as $listener) {
-            if (is_callable($listener)) {
-                $listener($event);
-                continue;
-            }
-            
-            if (is_string($listener)) {
-                $instance = $this->container->get($listener);
-                if (!method_exists($instance, 'handle')) {
-                    throw new \RuntimeException("Listener [{$listener}] must implement a 'handle' method.");
-                }
-                $instance->handle($event);
-            }
+        foreach ($this->listeners[$normalizedClass] as $listener) {
+            $this->invokeListener($listener, $event);
         }
     }
 
     /**
-     * Clears all registered listeners.
-     * 
+     * Clears all registered listeners and reflection caches.
+     *
      * Execution Flow:
-     * 1. Resets the internal listeners array to an empty array.
-     * 
+     * 1. Empty internal listeners array.
+     * 2. Clear parameter type reflection cache.
+     *
      * Logic behind the logic:
-     * - Provides a straightforward way to tear down state, which is especially useful during unit testing to prevent state bleed between tests.
+     * - Essential for unit testing environments to prevent state bleeding between test cases.
      */
     public function clear(): void
     {
         $this->listeners = [];
+        $this->parameterTypeCache = [];
+    }
+
+    /**
+     * Resolves and executes an individual listener with strongly-typed arguments.
+     *
+     * @param callable|string|object $listener
+     * @param object $event
+     */
+    private function invokeListener(callable|string|object $listener, object $event): void
+    {
+        if (is_callable($listener)) {
+            $listener($event);
+            return;
+        }
+
+        $instance = is_object($listener) ? $listener : $this->container->get((string) $listener);
+
+        if (!method_exists($instance, 'handle')) {
+            $className = is_object($listener) ? get_class($listener) : (string) $listener;
+            throw new RuntimeException("Listener [{$className}] must implement a 'handle' method.");
+        }
+
+        $arg = $this->resolveListenerArgument($instance, $event);
+        $instance->handle($arg);
+    }
+
+    /**
+     * Resolves the appropriate strongly-typed argument for a listener's `handle` method.
+     *
+     * Execution Flow:
+     * 1. Inspect cached expected parameter type for the listener class.
+     * 2. If not cached, reflect on `handle()` first parameter.
+     * 3. If parameter expects `EventPayloadInterface` (or subclass) and `$event` is `DomainEventInterface`,
+     *    pass `$event->getPayload()`.
+     * 4. If parameter expects `array` and `$event` is `DomainEventInterface`, pass `$event->getPayload()->toArray()`.
+     * 5. Otherwise, pass the `$event` object directly.
+     *
+     * Logic behind the logic:
+     * - Provides seamless backward compatibility for classic event objects while fully empowering
+     *   modern DDD applications with strongly-typed payload DTOs.
+     *
+     * @param object $listenerInstance
+     * @param object $event
+     * @return mixed
+     */
+    private function resolveListenerArgument(object $listenerInstance, object $event): mixed
+    {
+        $listenerClass = get_class($listenerInstance);
+
+        if (!array_key_exists($listenerClass, $this->parameterTypeCache)) {
+            $refMethod = new ReflectionMethod($listenerInstance, 'handle');
+            $params = $refMethod->getParameters();
+
+            if (empty($params)) {
+                $this->parameterTypeCache[$listenerClass] = null;
+            } else {
+                $type = $params[0]->getType();
+                $this->parameterTypeCache[$listenerClass] = ($type instanceof ReflectionNamedType)
+                    ? $type->getName()
+                    : null;
+            }
+        }
+
+        $expectedType = $this->parameterTypeCache[$listenerClass];
+
+        if ($expectedType === null) {
+            return $event;
+        }
+
+        // If the event is a DomainEventInterface and handler expects EventPayloadInterface
+        if ($event instanceof DomainEventInterface) {
+            if ($expectedType === EventPayloadInterface::class || is_subclass_of($expectedType, EventPayloadInterface::class)) {
+                return $event->getPayload();
+            }
+
+            if ($expectedType === 'array') {
+                return $event->getPayload()->toArray();
+            }
+        }
+
+        return $event;
     }
 }

@@ -1,0 +1,86 @@
+/**
+ * Title: Magma WYSIWYG Editor Component Styles
+ *
+ * Purpose:
+ * - Styles the zero-dependency MagmaEditor container, toolbar buttons, and contenteditable area.
+ */
+
+@layer components {
+    .magma-editor-container {
+        border: 1px solid #cbd5e1;
+        border-radius: 0.375rem;
+        background-color: #ffffff;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .magma-editor-container:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .magma-editor-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.5rem;
+        background-color: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .magma-editor-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: #475569;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        transition: background-color 0.12s ease, color 0.12s ease;
+    }
+
+    .magma-editor-btn:hover {
+        background-color: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .magma-editor-btn:active {
+        background-color: #cbd5e1;
+    }
+
+    .magma-editor-content {
+        padding: 0.75rem 0.875rem;
+        min-height: 140px;
+        outline: none;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        color: #1e293b;
+    }
+
+    .magma-editor-content[data-placeholder]:empty:before {
+        content: attr(data-placeholder);
+        color: #94a3b8;
+        pointer-events: none;
+        display: block;
+    }
+
+    .magma-editor-content blockquote {
+        margin: 0.5rem 0;
+        padding-left: 0.875rem;
+        border-left: 3px solid #cbd5e1;
+        color: #64748b;
+        font-style: italic;
+    }
+
+    .magma-editor-content ul,
+    .magma-editor-content ol {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+}

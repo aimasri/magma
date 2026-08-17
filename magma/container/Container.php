@@ -10,42 +10,74 @@ use ReflectionException;
 use RuntimeException;
 
 /**
- * Dependency Resolver & Service Registry
+ * Title: Dependency Resolver & Service Registry
  *
  * Purpose:
- * - Manage the instantiation and lifecycle of application services.
- * - Auto-wire dependencies by inspecting constructor type-hints.
- * - Cache instantiated services to ensure singleton behavior per request.
+ * - Manage the instantiation, auto-wiring, and lifecycle of application services.
+ * - Auto-wire constructor dependencies dynamically using Reflection API inspection.
+ * - Cache singleton instances per request and support dynamic instantiation with runtime arguments (`makeWithArgs`).
  *
  * Why / Why this design:
- * - Implements the Dependency Injection (DI) Container pattern. This keeps object creation 
- *   out of business logic, ensuring classes are loosely coupled, highly testable, and adhere 
- *   to the Inversion of Control principle.
+ * - Implements the Inversion of Control (IoC) and Dependency Injection (DI) Container pattern.
+ * - Completely decouples object creation and dependency resolution from business and domain logic.
+ * - Enables strict adherence to the Dependency Inversion Principle (DIP) and Open/Closed Principle (OCP).
  *
  * Teaching notes:
- * - Auto-wiring is convenient but relies on Reflection, which has CPU overhead. We mitigate this 
- *   using an in-memory `$reflectionCache` to prevent redundant ReflectionAPI calls within the same 
- *   request lifecycle or across long-lived CLI worker jobs.
- * - In a massive production environment, this container could still be replaced by a compiled PSR-11 
- *   container (like PHP-DI) that caches factory closures directly to disk for absolute zero overhead.
+ * - Reflection auto-wiring has CPU overhead; this container mitigates overhead by caching constructor 
+ *   parameter metadata in `$reflectionCache`.
+ * - Autoloader delegation in `has()` ensures that uninstantiated PSR-4 classes and interfaces are discovered 
+ *   reliably without requiring manual static pre-registration.
  */
 class Container
 {
+    /**
+     * Explicitly registered factory closures.
+     * @var array<string, callable>
+     */
     private array $definitions = [];
+
+    /**
+     * Singleton instances cached for the lifecycle of the container.
+     * @var array<string, mixed>
+     */
     private array $instances = [];
+
+    /**
+     * Stack tracker to detect circular dependency loops during resolution.
+     * @var array<string, bool>
+     */
     private array $resolving = [];
+
+    /**
+     * In-memory cache for constructor reflection parameter metadata.
+     * @var array<string, array>
+     */
     private static array $reflectionCache = [];
+
+    /**
+     * In-memory cache for class and interface existence checks.
+     * @var array<string, bool>
+     */
     private static array $classExistsCache = [];
+
+    /**
+     * Interface and alias mappings to concrete implementations.
+     * @var array<string, string>
+     */
     private array $aliases = [];
 
     /**
-     * Manually registers a service definition.
+     * Registers a manual factory definition for a service identifier.
+     *
+     * Execution Flow:
+     * 1. Store the factory closure in the definitions registry keyed by $id.
      *
      * Logic behind the logic:
-     * - Allows developers to bypass auto-wiring for complex objects that require custom factory logic or specific configuration values.
+     * - Allows complex services requiring custom constructor arguments, PDO handles, or environment
+     *   configuration to be lazily instantiated via factory callbacks rather than auto-wiring.
      *
-     * @param string $id The service identifier.
-     * @param callable $concrete The factory closure to create the service.
+     * @param string $id The service identifier or interface name.
+     * @param callable $concrete The factory closure to instantiate the service.
      */
     public function set(string $id, callable $concrete): void
     {
@@ -53,13 +85,17 @@ class Container
     }
 
     /**
-     * Binds an interface or alias to a concrete class.
+     * Binds an interface or alias name to a concrete class implementation.
+     *
+     * Execution Flow:
+     * 1. Store the alias mapping in the aliases array.
      *
      * Logic behind the logic:
-     * - Essential for the Dependency Inversion Principle, letting the container know which concrete implementation to inject when an interface is type-hinted.
+     * - Fundamental to the Dependency Inversion Principle; enables controllers and services to type-hint
+     *   abstract interfaces while the container resolves the bound concrete class.
      *
-     * @param string $alias The interface or alias name.
-     * @param string $concrete The fully qualified class name of the implementation.
+     * @param string $alias The interface or alias identifier.
+     * @param string $concrete The fully-qualified concrete class name.
      */
     public function bind(string $alias, string $concrete): void
     {
@@ -67,48 +103,53 @@ class Container
     }
 
     /**
-     * Determines if a service can be resolved.
-     * 
-     * Logic behind the logic:
-     * - We cache the result of `class_exists()` to prevent the PHP SPL autoloader 
-     *   from repeatedly scanning the filesystem for non-existent classes.
+     * Determines if a service, class, or interface can be resolved by the container.
      *
-     * @param string $id The service identifier.
-     * @return bool True if the service can be resolved, false otherwise.
+     * Execution Flow:
+     * 1. Resolve alias if present.
+     * 2. Check if a manual definition or singleton instance exists.
+     * 3. Check cached class/interface existence.
+     * 4. Invoke class_exists($id, true) and interface_exists($id, true) with autoloader delegation.
+     * 5. Cache and return the boolean result.
+     *
+     * Logic behind the logic:
+     * - Enabling autoloader delegation (`true`) ensures PSR-4 autoloadable classes are discovered 
+     *   on demand without requiring pre-loading, while caching prevents repeated filesystem disk hits.
+     *
+     * @param string $id The service or class identifier.
+     * @return bool True if resolvable, false otherwise.
      */
     public function has(string $id): bool
     {
         $id = $this->aliases[$id] ?? $id;
 
-        if (isset($this->definitions[$id])) {
+        if (isset($this->definitions[$id]) || isset($this->instances[$id])) {
             return true;
         }
 
         if (!array_key_exists($id, self::$classExistsCache)) {
-            if (class_exists($id, false)) {
-                self::$classExistsCache[$id] = true;
-            } else {
-                return false;
-            }
+            self::$classExistsCache[$id] = class_exists($id, true) || interface_exists($id, true);
         }
 
         return self::$classExistsCache[$id];
     }
 
     /**
-     * Retrieves a service instance.
-     * 
-     * Execution Flow:
-     * 1. Checks if the requested ID has an alias and resolves it.
-     * 2. Returns an already instantiated cached instance if it exists.
-     * 3. Executes a manual definition factory if registered.
-     * 4. Falls back to auto-wiring via `resolve()`.
-     * 
-     * Logic behind the logic:
-     * - Implements a Singleton pattern for manually defined services by caching them in `$this->instances`, ensuring state is shared across the application lifecycle. Auto-wired dependencies are kept transient.
+     * Retrieves a resolved service instance from the container.
      *
-     * @param string $id The service identifier.
-     * @return mixed The resolved service instance.
+     * Execution Flow:
+     * 1. Resolve alias mapping if registered.
+     * 2. Return cached singleton instance if previously instantiated.
+     * 3. If a factory definition exists, guard against circular dependencies, invoke factory, cache singleton, and return.
+     * 4. Otherwise, delegate to auto-wiring resolution via resolve().
+     *
+     * Logic behind the logic:
+     * - Singleton caching is applied to explicit definitions. Auto-wired dependencies remain transient 
+     *   by default to prevent memory leaks for request-scoped objects (DTOs, Requests, Jobs).
+     *
+     * @param string $id The service, interface, or class identifier.
+     * @return mixed The instantiated service.
+     * @throws RuntimeException If circular dependency or resolution error occurs.
      */
     public function get(string $id): mixed
     {
@@ -131,24 +172,90 @@ class Container
             return $this->instances[$id];
         }
 
-        // Auto-wired dependencies are transient by default, so we DO NOT cache them in $this->instances.
-        // This prevents memory leaks for per-request objects like Requests, Jobs, and DTOs.
         return $this->resolve($id);
     }
 
     /**
-     * Automatically instantiates a class by resolving its dependencies.
-     * 
+     * Dynamically instantiates a class combining resolved DI container dependencies with runtime arguments.
+     *
      * Execution Flow:
-     * 1. Check for circular dependencies to prevent infinite loops.
-     * 2. Use `ReflectionClass` to inspect the target class constructor.
-     * 3. Iterate over constructor parameters, recursively calling `get()` for typed dependencies.
-     * 4. Instantiate the class with the resolved dependencies.
-     * 
+     * 1. Resolve alias if $class is aliased.
+     * 2. Inspect target class constructor using Reflection.
+     * 3. For each constructor parameter:
+     *    a. Check if passed in $args by parameter name or numeric position.
+     *    b. If not in $args and typed as a container-resolvable class/interface, resolve via get().
+     *    c. If not resolvable and default value exists, use default value.
+     *    d. Otherwise throw RuntimeException.
+     * 4. Instantiate and return the object instance.
+     *
      * Logic behind the logic:
-     * - "Auto-wiring" drastically reduces boilerplate configuration. However, we use a `resolving` 
-     *   array to track active instantiations. Without this, if Class A depends on Class B, and 
-     *   Class B depends on Class A, the container would crash with a memory exhaustion error.
+     * - Allows factory patterns, command handlers, and middleware to inject runtime data (e.g. model IDs, 
+     *   options, request DTOs) while preserving container auto-wiring for underlying infrastructure services.
+     *
+     * @param string $class Fully-qualified class name to instantiate.
+     * @param array<string|int, mixed> $args Associative or positional runtime arguments.
+     * @return object The instantiated class instance.
+     * @throws RuntimeException If class does not exist, is not instantiable, or parameter cannot be resolved.
+     */
+    public function makeWithArgs(string $class, array $args): object
+    {
+        $class = $this->aliases[$class] ?? $class;
+
+        try {
+            $reflectionClass = new ReflectionClass($class);
+        } catch (ReflectionException $e) {
+            throw new RuntimeException("Target class [{$class}] does not exist.", 0, $e);
+        }
+
+        if (!$reflectionClass->isInstantiable()) {
+            throw new RuntimeException("Target class [{$class}] is not instantiable.");
+        }
+
+        $constructor = $reflectionClass->getConstructor();
+        if ($constructor === null) {
+            return new $class();
+        }
+
+        $parameters = $constructor->getParameters();
+        $dependencies = [];
+
+        foreach ($parameters as $parameter) {
+            $paramName = $parameter->getName();
+            $paramPos = $parameter->getPosition();
+            $type = $parameter->getType();
+
+            if (array_key_exists($paramName, $args)) {
+                $dependencies[] = $args[$paramName];
+            } elseif (array_key_exists($paramPos, $args)) {
+                $dependencies[] = $args[$paramPos];
+            } elseif ($type instanceof ReflectionNamedType && !$type->isBuiltin() && $this->has($type->getName())) {
+                $dependencies[] = $this->get($type->getName());
+            } elseif ($parameter->isDefaultValueAvailable()) {
+                $dependencies[] = $parameter->getDefaultValue();
+            } else {
+                throw new RuntimeException("Cannot resolve constructor parameter [{$paramName}] for class [{$class}].");
+            }
+        }
+
+        return $reflectionClass->newInstanceArgs($dependencies);
+    }
+
+    /**
+     * Automatically instantiates a class by recursively resolving its constructor dependencies.
+     *
+     * Execution Flow:
+     * 1. Check for circular dependencies to prevent stack overflows.
+     * 2. Inspect constructor parameters and resolve cached metadata.
+     * 3. Recursively call get() for type-hinted service dependencies.
+     * 4. Return new instance created with resolved dependencies.
+     *
+     * Logic behind the logic:
+     * - Auto-wiring dramatically reduces manual service configuration. Metadata caching ensures 
+     *   reflection overhead is paid exactly once per unique class.
+     *
+     * @param string $id Class name to resolve.
+     * @return mixed Instantiated object.
+     * @throws RuntimeException If class is unresolvable or circular dependency is detected.
      */
     private function resolve(string $id): mixed
     {

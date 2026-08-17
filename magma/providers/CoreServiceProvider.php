@@ -10,6 +10,7 @@ use Magma\config\Config;
 use Magma\http\Request;
 use Magma\http\RequestInterface;
 use Magma\http\Session;
+use Magma\http\SessionInterface;
 use Magma\error\ErrorHandler;
 use Magma\error\ErrorHandlerInterface;
 use Magma\view\TemplateEngine;
@@ -44,6 +45,10 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new Session($handler);
         });
 
+        $container->set(SessionInterface::class, function ($c) {
+            return $c->get(Session::class);
+        });
+
         $container->set(RequestInterface::class, function ($c) {
             return Request::createFromGlobals();
         });
@@ -53,13 +58,41 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(CsrfManager::class, function ($c) {
-            return new CsrfManager($c->get(Session::class));
+            return new CsrfManager($c->get(SessionInterface::class));
+        });
+
+        $container->set(\Magma\view\ViewLoaderInterface::class, function ($c) {
+            $loader = new \Magma\view\LocalFileViewLoader(ROOT_DIR . '/app/views');
+            $loader->addNamespace('App', ROOT_DIR . '/app/views');
+            if (is_dir(ROOT_DIR . '/modules')) {
+                $modules = glob(ROOT_DIR . '/modules/*', GLOB_ONLYDIR);
+                if ($modules) {
+                    foreach ($modules as $moduleDir) {
+                        $moduleName = basename($moduleDir);
+                        $moduleViews = $moduleDir . '/views';
+                        if (is_dir($moduleViews)) {
+                            $loader->addNamespace($moduleName, $moduleViews);
+                        }
+                    }
+                }
+            }
+            return $loader;
+        });
+
+        $container->set(\Magma\view\LocalFileViewLoader::class, function ($c) {
+            return $c->get(\Magma\view\ViewLoaderInterface::class);
         });
 
         $container->set(TemplateEngine::class, function ($c) {
+            $loader = $c->has(\Magma\view\ViewLoaderInterface::class) 
+                ? $c->get(\Magma\view\ViewLoaderInterface::class) 
+                : null;
+
             return new TemplateEngine(
                 ROOT_DIR . '/app/views', 
-                ROOT_DIR . '/app/views/partials'
+                ROOT_DIR . '/app/views', 
+                ROOT_DIR . '/app/views/partials',
+                $loader
             );
         });
 
@@ -68,9 +101,13 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(ErrorHandlerInterface::class, function ($c) {
+            $appDebug = Config::get('APP_DEBUG');
+            $appEnv = Config::get('APP_ENV');
+            $isDebug = ($appDebug === 'true' || $appDebug === true || $appDebug === '1' || $appEnv === 'development' || (defined('ENVIRONMENT') && ENVIRONMENT === 'development'));
+
             return new ErrorHandler(
                 $c->get(TemplateEngine::class),
-                defined('ENVIRONMENT') && ENVIRONMENT === 'development'
+                $isDebug
             );
         });
 

@@ -1,188 +1,363 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\view;
 
 /**
- * PHP-based View Renderer
+ * Title: Decoupled PHP Template Engine
  *
  * Purpose:
- * - Render PHP templates into safe HTML strings.
- * - Support global layouts and reusable partials.
- * - Return compiled HTML markup as a raw string rather than echoing directly to the output buffer.
+ * - Render PHP view templates, decoupled layout wrappers, and modular partial components into safe HTML strings.
+ * - Support namespaced modular views (e.g. 'Services::index', 'Menu::item_card') via ViewLoaderInterface.
+ * - Isolate output buffers so rendering errors never leak malformed HTML markup to the client.
  *
  * Why / Why this design:
- * - Keeps presentation logic strictly in templates using PHP as the engine. The two-stage 
- *   output buffering approach (`ob_start()`) enables composition (page -> layout -> string) 
- *   and ensures that if a rendering error occurs, partial HTML is never leaked to the client.
+ * - Decoupled Layouts & Partials: Separating `layoutPath` (full page shells) from `partialsPath`
+ *   (reusable UI sub-components) prevents path collision and enables clear directory organization.
+ * - Dependency Inversion Principle (DIP): View loading is abstracted behind `ViewLoaderInterface`,
+ *   allowing local filesystem, database, or cached template resolution without modifying the engine.
+ * - Two-Stage Output Buffer Isolation: Protects HTTP output by trapping buffer levels and swallowing
+ *   partial output if an unhandled exception occurs inside a template.
  *
  * Teaching notes:
- * - Flash data (like `errors` and `old` input) and CSRF tokens are injected from outside 
- *   (e.g., by global middleware or view composers) prior to rendering to keep the engine 
- *   completely independent of the HTTP transport layer. In production, this lightweight engine 
- *   might be replaced by a dedicated templating system (like Twig) that provides stricter 
- *   sandboxing and automatic XSS escaping by default.
+ * - Controller data and global shared variables (CSRF token, flash messages, user session) are merged
+ *   at runtime. Specific controller data overrides shared globals.
+ * - Use `escape()` for all dynamic user input to prevent Cross-Site Scripting (XSS).
  */
 class TemplateEngine
 {
-
     /** @var string Root directory for specific page templates. */
     private string $viewsPath;
 
-    /** @var string Directory for shared layouts and UI partials. */
+    /** @var string Directory for shared layouts (e.g., default.php, auth.php). */
     private string $layoutPath = '';
 
+    /** @var string Directory for reusable UI partials (e.g., header.php, sidebar.php). */
+    private string $partialsPath = '';
 
-    /** @var array Shared data accessible across partials and layouts. */
+    /** @var ViewLoaderInterface|null Optional decoupled view loader for namespaced templates. */
+    private ?ViewLoaderInterface $loader = null;
+
+    /** @var array<string, mixed> Shared data accessible across partials and layouts. */
     private array $viewData = [];
 
-    /** @var array Global data injected by middleware (e.g., vendor theme). */
+    /** @var array<string, mixed> Global data injected by middleware (e.g., vendor theme, auth user). */
     private array $sharedData = [];
 
     /**
-     * Initializes the engine with paths for templates and layouts.
-     * 
+     * Initializes the template engine with directory paths and optional view loader.
+     *
      * Execution Flow:
-     * 1. Accept the injected ViewLoaderInterface.
-     * 2. Accept the base views path and an optional layout path.
-     * 3. Normalize the paths with a trailing directory separator.
-     * 4. Store the loader and paths in the class properties for later rendering.
-     * 
-     * Logic behind the logic:
-     * - The `ViewLoaderInterface` is injected rather than instantiated here (Dependency Inversion).
-     *   This allows the framework to swap local file loading with cached or database-driven 
-     *   loaders without touching this engine.
-     * - Paths are typically defined in the bootstrap process relative to 
-     *   the application root. Normalizing the paths here ensures developers 
-     *   don't have to worry about whether they included a trailing slash.
+     * 1. Normalize view, layout, and partial directory paths with trailing directory separators.
+     * 2. Store or instantiate the ViewLoaderInterface instance.
+     * 3. Register root paths with the loader if namespaces are supported.
+     *
+     * @param string $viewsPath Base directory for application view templates.
+     * @param string $layoutPath Directory for full-page layout shells.
+     * @param string $partialsPath Directory for modular UI partials.
+     * @param ViewLoaderInterface|null $loader Optional decoupled view loader instance.
      */
-    public function __construct(string $viewsPath = '', string $layoutPath = '')
-    {
-        $this->viewsPath = rtrim($viewsPath, '/\\') . DIRECTORY_SEPARATOR;
-        if (!empty($layoutPath)) {
-            $this->layoutPath = rtrim($layoutPath, '/\\') . DIRECTORY_SEPARATOR;
+    public function __construct(
+        string $viewsPath = '',
+        string $layoutPath = '',
+        string $partialsPath = '',
+        ?ViewLoaderInterface $loader = null
+    ) {
+        $this->viewsPath = !empty($viewsPath) ? rtrim($viewsPath, '/\\') . DIRECTORY_SEPARATOR : '';
+        $this->layoutPath = !empty($layoutPath) ? rtrim($layoutPath, '/\\') . DIRECTORY_SEPARATOR : '';
+        $this->partialsPath = !empty($partialsPath) ? rtrim($partialsPath, '/\\') . DIRECTORY_SEPARATOR : '';
+
+        if ($loader !== null) {
+            $this->loader = $loader;
+        } elseif (!empty($this->viewsPath)) {
+            $this->loader = new LocalFileViewLoader($this->viewsPath);
         }
     }
 
+    /**
+     * Gets the current base views directory path.
+     *
+     * @return string Normalized views directory path.
+     */
+    public function getViewsPath(): string
+    {
+        return $this->viewsPath;
+    }
 
     /**
-     * Globally shares a variable with all templates.
-     * 
-     * Execution Flow:
-     * 1. Accept a string key and any mixed value.
-     * 2. Store it in the internal `$sharedData` dictionary.
-     * 
-     * Logic behind the logic:
-     * - Storing these separately from `$viewData` allows us to merge them at 
-     *   the exact moment of rendering, ensuring that specifically passed 
-     *   controller data can override global defaults if necessary.
+     * Sets the base views directory path.
+     *
+     * @param string $path Directory path for application views.
+     * @return void
+     */
+    public function setViewsPath(string $path): void
+    {
+        $this->viewsPath = rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
+        if ($this->loader instanceof LocalFileViewLoader) {
+            $this->loader = new LocalFileViewLoader($this->viewsPath);
+        }
+    }
+
+    /**
+     * Gets the current layouts directory path.
+     *
+     * @return string Normalized layout directory path.
+     */
+    public function getLayoutPath(): string
+    {
+        return $this->layoutPath;
+    }
+
+    /**
+     * Sets the layouts directory path.
+     *
+     * @param string $path Directory path for layout shells.
+     * @return void
+     */
+    public function setLayoutPath(string $path): void
+    {
+        $this->layoutPath = rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Gets the current partials directory path.
+     *
+     * @return string Normalized partials directory path.
+     */
+    public function getPartialsPath(): string
+    {
+        return $this->partialsPath;
+    }
+
+    /**
+     * Sets the partials directory path.
+     *
+     * @param string $path Directory path for UI partials.
+     * @return void
+     */
+    public function setPartialsPath(string $path): void
+    {
+        $this->partialsPath = rtrim($path, '/\\') . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Gets the underlying view loader instance.
+     *
+     * @return ViewLoaderInterface|null
+     */
+    public function getLoader(): ?ViewLoaderInterface
+    {
+        return $this->loader;
+    }
+
+    /**
+     * Sets the decoupled view loader instance.
+     *
+     * @param ViewLoaderInterface $loader
+     * @return void
+     */
+    public function setLoader(ViewLoaderInterface $loader): void
+    {
+        $this->loader = $loader;
+    }
+
+    /**
+     * Globally shares a variable with all rendered templates, layouts, and partials.
+     *
+     * @param string $key Variable name.
+     * @param mixed $value Variable value.
+     * @return void
      */
     public function share(string $key, mixed $value): void
     {
         $this->sharedData[$key] = $value;
     }
 
+    /**
+     * Retrieves all globally shared variables.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSharedData(): array
+    {
+        return $this->sharedData;
+    }
 
     /**
-     * Transforms a PHP template and its layout into a compiled HTML string.
-     * 
+     * Transforms a PHP template and optional layout shell into a compiled HTML string.
+     *
      * Execution Flow:
-     * 1. Start output buffering to capture the inner page template content.
-     * 2. Pass the `$data` array directly into the local scope for the view.
-     * 3. Capture the template output into `$content` and clear the buffer.
-     * 4. If a layout is specified, start a second buffer, append `$content` to `$data`, and include the layout.
-     * 5. Return the final captured HTML string.
-     * 
-     * Logic behind the logic:
-     * - By avoiding `extract()`, we prevent scope pollution and make it immediately clear 
-     *   where template variables originate (`$data['key']`).
-     * 
-     * @param string $template The view file to load.
-     * @param array $data Variables to make available to the view.
-     * @param string|null $layout The layout wrapper (defaults to 'default').
+     * 1. Merge global shared data with specific template data.
+     * 2. Expose the TemplateEngine instance as `$data['engine']`.
+     * 3. Resolve the template file path (handling namespaced templates via ViewLoader if available).
+     * 4. Execute the template in an isolated output buffer.
+     * 5. If a layout is requested, resolve the layout template, inject `$data['content']`, and wrap the output.
+     * 6. Return the fully compiled HTML markup.
+     *
+     * @param string $template The view file name or namespaced identifier (e.g., 'welcome' or 'Services::index').
+     * @param array<string, mixed> $data Variables to pass to the view.
+     * @param string|null $layout The layout wrapper template name (defaults to 'default', null for standalone).
      * @return string The rendered HTML markup.
+     * @throws \RuntimeException If the view or layout file cannot be found.
      */
     public function render(string $template, array $data = [], ?string $layout = 'default'): string
     {
-        // Merge global shared data with specific template data. 
-        // Specific data overrides shared data.
         $data = array_merge($this->sharedData, $data);
         $data['engine'] = $this;
-
         $this->viewData = $data;
-        $templateFile = $this->viewsPath . $template . '.php';
-        
-        if (!file_exists($templateFile)) {
-            throw new \RuntimeException("View file not found: {$templateFile}");
-        }
 
+        $templateFile = $this->resolveTemplatePath($template, $this->viewsPath);
         $content = $this->loadFile($templateFile, $data);
 
-        if ($layout && !empty($this->layoutPath)) {
-            $layoutFile = $this->layoutPath . $layout . '.php';
-            
-            if (!file_exists($layoutFile)) {
-                throw new \RuntimeException("Layout file not found: {$layoutFile}");
+        if ($layout !== null && $layout !== '') {
+            $layoutFile = $this->resolveLayoutPath($layout);
+            if ($layoutFile !== null) {
+                $data['content'] = $content;
+                return $this->loadFile($layoutFile, $data);
             }
-            
-            $data['content'] = $content;
-            $finalContent = $this->loadFile($layoutFile, $data);
-
-            return $finalContent;
         }
 
         return $content;
     }
 
     /**
-     * Injects a partial template directly into the current output buffer.
-     * 
+     * Injects a partial template directly into the current active output buffer.
+     *
      * Execution Flow:
-     * 1. Determine the correct directory path based on whether a layout path is defined.
-     * 2. Construct the full path to the partial view file and verify its existence.
-     * 3. Merge the global shared data, parent view data, and the specific partial data.
-     * 4. Make the merged data array available as `$data` in the local scope.
-     * 5. Require the partial file, executing it directly into the current output buffer.
-     * 
-     * Logic behind the logic:
-     * - Partials are "sub-templates" used for building reusable components like sidebars 
-     *   or nav menus. Unlike render(), partial() is designed to be called from within 
-     *   another template (while an output buffer is already active) to promote UI modularity 
-     *   without creating nested output buffers.
-     * 
-     * @param string $template The partial file name (without .php extension).
-     * @param array $data Local variables specific to this partial instance.
+     * 1. Resolve the partial file path using the dedicated `partialsPath` (falling back to `layoutPath` then `viewsPath`).
+     * 2. Merge global shared data, parent view data, and partial-specific data.
+     * 3. Execute the partial file within an isolated buffer and echo its content to the parent stream.
+     *
+     * @param string $template The partial template name or namespaced identifier (e.g., 'sidebar' or 'Menu::card').
+     * @param array<string, mixed> $data Local variables specific to this partial instance.
+     * @return void
+     * @throws \RuntimeException If the partial file cannot be found.
      */
     public function partial(string $template, array $data = []): void
     {
-        $path = !empty($this->layoutPath) ? $this->layoutPath : $this->viewsPath;
-        $templateFile = $path . $template . '.php';
+        $mergedData = array_merge($this->sharedData, $this->viewData, $data);
+        $mergedData['engine'] = $this;
 
-        if (!file_exists($templateFile)) {
-            throw new \RuntimeException("Partial view file not found: {$templateFile}");
+        $partialFile = $this->resolvePartialPath($template);
+        echo $this->loadFile($partialFile, $mergedData);
+    }
+
+    /**
+     * Resolves a view template path using the ViewLoader or local directory fallback.
+     *
+     * @param string $template Template identifier.
+     * @param string $fallbackDir Fallback base directory.
+     * @return string Absolute file path.
+     * @throws \RuntimeException If file cannot be resolved.
+     */
+    private function resolveTemplatePath(string $template, string $fallbackDir): string
+    {
+        // 1. Namespaced template (e.g. 'Services::index')
+        if (str_contains($template, '::') && $this->loader !== null) {
+            return $this->loader->resolvePath($template);
         }
 
-        $data = array_merge($this->sharedData, $this->viewData, $data);
-        $data['engine'] = $this;
-        echo $this->loadFile($templateFile, $data);
+        // 2. Direct file lookup via fallback directory
+        if (!empty($fallbackDir)) {
+            $file = $fallbackDir . ltrim($template, '/\\');
+            if (!str_ends_with($file, '.php')) {
+                $file .= '.php';
+            }
+            if (file_exists($file)) {
+                return $file;
+            }
+        }
+
+        // 3. Fallback to loader if available
+        if ($this->loader !== null && $this->loader->exists($template)) {
+            return $this->loader->resolvePath($template);
+        }
+
+        throw new \RuntimeException("View template file not found: {$template} in base path '{$fallbackDir}'");
     }
+
     /**
-     * Extracts variables and loads the template file into an output buffer.
+     * Resolves a layout template path.
+     *
+     * @param string $layout Layout identifier.
+     * @return string|null Absolute file path, or null if layout cannot be resolved.
+     * @throws \RuntimeException If layout is specified but missing.
+     */
+    private function resolveLayoutPath(string $layout): ?string
+    {
+        if (str_contains($layout, '::') && $this->loader !== null) {
+            return $this->loader->resolvePath($layout);
+        }
+
+        $baseDir = !empty($this->layoutPath) ? $this->layoutPath : $this->viewsPath;
+        if (empty($baseDir)) {
+            return null;
+        }
+
+        $layoutFile = $baseDir . ltrim($layout, '/\\');
+        if (!str_ends_with($layoutFile, '.php')) {
+            $layoutFile .= '.php';
+        }
+
+        if (!file_exists($layoutFile)) {
+            throw new \RuntimeException("Layout file not found: {$layoutFile}");
+        }
+
+        return $layoutFile;
+    }
+
+    /**
+     * Resolves a partial template path, prioritizing partialsPath -> layoutPath -> viewsPath.
+     *
+     * @param string $template Partial identifier.
+     * @return string Absolute file path.
+     * @throws \RuntimeException If partial cannot be resolved.
+     */
+    private function resolvePartialPath(string $template): string
+    {
+        if (str_contains($template, '::') && $this->loader !== null) {
+            return $this->loader->resolvePath($template);
+        }
+
+        $searchPaths = array_filter([
+            $this->partialsPath,
+            $this->layoutPath,
+            $this->viewsPath,
+        ]);
+
+        foreach ($searchPaths as $baseDir) {
+            $candidate = $baseDir . ltrim($template, '/\\');
+            if (!str_ends_with($candidate, '.php')) {
+                $candidate .= '.php';
+            }
+            if (file_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if ($this->loader !== null && $this->loader->exists($template)) {
+            return $this->loader->resolvePath($template);
+        }
+
+        $searched = implode(', ', $searchPaths);
+        throw new \RuntimeException("Partial view file not found: '{$template}' (searched in: [{$searched}])");
+    }
+
+    /**
+     * Executes a PHP template file within an isolated output buffer.
      *
      * Execution Flow:
-     * 1. Get current output buffer level.
-     * 2. Start new output buffer.
-     * 3. Require the template, which outputs to buffer.
-     * 4. Get buffer contents and clear it.
-     * 5. Catch any exceptions and clean buffers up to the original level.
+     * 1. Record current buffer depth via `ob_get_level()`.
+     * 2. Start a new output buffer.
+     * 3. Require the template file in local scope (with `$data` available).
+     * 4. Retrieve and clean buffer contents.
+     * 5. If an unhandled exception/error occurs, unwind buffers to original level before rethrowing.
      *
-     * Logic behind the logic:
-     * - Using try/catch with `ob_get_level()` ensures that if a template throws an error
-     *   halfway through rendering, the partial HTML is swallowed and not sent to the client.
-     *
-     * @param string $path The absolute path to the PHP template file.
-     * @param array $data The variables to expose within the template scope.
-     * @return string The rendered HTML string.
-     * @throws \Throwable If an error occurs during rendering.
+     * @param string $path Absolute filesystem path to the PHP template file.
+     * @param array<string, mixed> $data Variables exposed to the template scope.
+     * @return string Rendered HTML content.
+     * @throws \Throwable If rendering encounters an error.
      */
     private function loadFile(string $path, array $data): string
     {
@@ -190,7 +365,7 @@ class TemplateEngine
         ob_start();
         try {
             require $path;
-            return ob_get_clean();
+            return (string) ob_get_clean();
         } catch (\Throwable $e) {
             while (ob_get_level() > $level) {
                 ob_end_clean();
@@ -200,21 +375,13 @@ class TemplateEngine
     }
 
     /**
-     * Sanitizes strings for safe HTML output.
-     * 
-     * Execution Flow:
-     * 1. Receive a potentially null or unsafe string.
-     * 2. Pass the string through `htmlspecialchars()`.
-     * 3. Return the sanitized string safe for browser rendering.
-     * 
-     * Logic behind the logic:
-     * - This is the primary defense against Cross-Site Scripting (XSS). 
-     *   ENT_QUOTES ensures both single and double quotes are escaped. 
-     *   A null coalescing operator is used because database results or optional 
-     *   form inputs might legitimately be null.
+     * Sanitizes strings for safe HTML output, preventing Cross-Site Scripting (XSS).
+     *
+     * @param string|null $value Potentially unsafe string input.
+     * @return string HTML-escaped string.
      */
     public function escape(?string $value): string
     {
-        return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($value ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

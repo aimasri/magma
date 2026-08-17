@@ -1,52 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\interfaces;
 
+use Magma\infrastructure\storage\StorageInterface as BaseStorageInterface;
+
 /**
- * Title: Storage Interface
+ * Title: Storage Interface (Legacy Compatibility Contract)
  *
  * Purpose:
- * - Abstraction for file system operations (Base64 & multipart form payloads).
+ * - Provides backward compatibility for components expecting `Magma\interfaces\StorageInterface`.
+ * - Extends the enterprise `Magma\infrastructure\storage\StorageInterface`.
  *
- * Why this design:
- * - Dependency Inversion Principle (DIP): Removes direct `move_uploaded_file()` and `mkdir()` usage and hardcoded file paths from controllers.
- * - Testing & Portability: Improves unit testability by enabling disk mocking, and paves the way for cloud-native setups (e.g., AWS S3 integration).
+ * Why / Why this design:
+ * - Preserves Liskov Substitution Principle (LSP) across legacy and modern module boundaries.
  *
  * Teaching notes:
- * - When saving files, always typehint this interface, never concrete local disk classes, to maintain cloud readiness.
+ * - For new development, type-hint `Magma\infrastructure\storage\StorageInterface`.
  */
-interface StorageInterface
+interface StorageInterface extends BaseStorageInterface
 {
-    /**
-     * Stores an uploaded file or raw content.
-     *
-     * @param string $path The destination path/key.
-     * @param mixed $contents The file contents or resource.
-     * @return bool True on success, false on failure.
-     */
-    public function put(string $path, mixed $contents): bool;
-
-    /**
-     * Retrieves the contents of a file.
-     *
-     * @param string $path The file path/key.
-     * @return string|null The file contents, or null if not found.
-     */
-    public function get(string $path): ?string;
-
-    /**
-     * Checks if a file exists.
-     *
-     * @param string $path
-     * @return bool
-     */
-    public function exists(string $path): bool;
-
-    /**
-     * Deletes a file.
-     *
-     * @param string $path
-     * @return bool True on success, false on failure.
-     */
-    public function delete(string $path): bool;
 }

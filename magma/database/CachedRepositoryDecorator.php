@@ -1,73 +1,102 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\database;
 
-use CacheInterface; // Assumes a PSR-16 like or internal CacheInterface exists
+use Magma\interfaces\CacheInterface;
 
 /**
- * Title: Cached Repository Decorator
+ * Title: Cached Repository Decorator Base
  *
  * Purpose:
- * - Intercepts calls to repositories to supply cached values.
- * - Standardizes the TTL cache-aside pattern across dictionary/taxonomy layers.
+ * - Intercept read calls to underlying repositories to supply cached values.
+ * - Standardize the Cache-Aside pattern with automated TTL resolution and driver-agnostic serialization.
  *
- * Why this design:
- * - Decorator Pattern: Enhances repository reads transparently without mutating the underlying data access logic.
- * - Single Responsibility Principle (SRP): Decouples caching logic from database queries.
+ * Why / Why this design:
+ * - Decorator Pattern: Enhances repository reads transparently without mutating underlying SQL persistence logic.
+ * - Single Responsibility Principle (SRP) & Dependency Inversion: Decouples caching logic from database queries 
+ *   and abstracts physical cache driver dependencies behind `CacheInterface`.
  *
  * Teaching notes:
- * - Use this for relatively static data (e.g., country lists, status enums) that undergo low-frequency updates.
- * - Note how `remember()` elegantly handles the fallback query if the cache is missed.
+ * - Ideal for low-frequency mutation dictionaries (e.g. system tax rates, unit conversion matrices, taxonomies).
+ * - `remember()` handles cache-hit retrieval, cache-miss fallback invocation, and storage coordination in one call.
  */
 abstract class CachedRepositoryDecorator
 {
-    protected \Redis $cache;
-    protected int $ttl;
+    /**
+     * Cache driver instance.
+     */
+    protected CacheInterface $cache;
 
-    public function __construct(\Redis $cache, int $ttl = 3600)
+    /**
+     * Default Time-To-Live duration in seconds.
+     */
+    protected int $defaultTtl;
+
+    /**
+     * Initializes the Cached Repository Decorator.
+     *
+     * @param CacheInterface $cache Standardized cache driver.
+     * @param int $defaultTtl Default expiration time in seconds (default 3600).
+     */
+    public function __construct(CacheInterface $cache, int $defaultTtl = 3600)
     {
         $this->cache = $cache;
-        $this->ttl = $ttl;
+        $this->defaultTtl = $defaultTtl;
     }
 
     /**
-     * Retrieves a cached value or executes the callback on a cache miss.
-     * 
-     * 1. Checks the cache for the given key.
-     * 2. If found, unserializes and returns the value.
-     * 3. If missed, invokes the callable `$callback` to retrieve fresh data.
-     * 4. Serializes and stores the new data with the configured TTL.
-     * 
-     * Logic behind the logic:
-     * - The "cache-aside" pattern defers caching until data is explicitly requested. Serialization is safely used to store arrays or objects in Redis.
+     * Retrieves a cached value or executes the fallback callback on a cache miss.
      *
-     * @param string $key The cache key.
-     * @param callable $callback The fallback function to fetch data if cache misses.
+     * Execution Flow:
+     * 1. Attempt to fetch value from cache using $key.
+     * 2. If item is cached and not null, return it immediately.
+     * 3. On cache miss, execute the $callback closure to fetch fresh data from repository.
+     * 4. Persist the fresh data in cache with specified or default TTL.
+     * 5. Return the fresh result.
+     *
+     * Logic behind the logic:
+     * - The "Cache-Aside" pattern defers cache population until explicitly requested, 
+     *   ensuring minimal cache memory waste for untouched records.
+     *
+     * @param string $key Unique cache key.
+     * @param int|null $ttl Expiration TTL in seconds (or null to use default).
+     * @param callable $callback Fallback closure returning data on cache miss.
      * @return mixed
      */
-    protected function remember(string $key, callable $callback): mixed
+    protected function remember(string $key, ?int $ttl, callable $callback): mixed
     {
         $cached = $this->cache->get($key);
-        if ($cached !== false) {
-            return json_decode($cached, true);
+        if ($cached !== null) {
+            return $cached;
         }
 
         $result = $callback();
-        $this->cache->setex($key, $this->ttl, json_encode($result));
+        $this->cache->set($key, $result, $ttl ?? $this->defaultTtl);
 
         return $result;
     }
 
     /**
-     * Invalidates a specific cache key.
-     * 
-     * Logic behind the logic:
-     * - Eager invalidation ensures stale entries are purged instantly when source data is mutated, maintaining cache consistency.
+     * Eagerly invalidates a specific cache key.
      *
-     * @param string $key
+     * @param string $key Cache key to purge.
+     * @return bool True if successfully deleted.
      */
-    protected function invalidate(string $key): void
+    protected function invalidate(string $key): bool
     {
-        $this->cache->del($key);
+        return $this->cache->delete($key);
+    }
+
+    /**
+     * Eagerly invalidates a list of cache keys.
+     *
+     * @param iterable<string> $keys List of cache keys to purge.
+     * @return bool True on success.
+     */
+    protected function invalidateMultiple(iterable $keys): bool
+    {
+        return $this->cache->deleteMultiple($keys);
     }
 }

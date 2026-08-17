@@ -120,5 +120,8 @@ class DomainServiceProvider implements ServiceProviderInterface
             return new PaginationService();
         });
 
+        $container->set(\Magma\queue\IdempotentProjectionGuard::class, function ($c) {
+            return new \Magma\queue\IdempotentProjectionGuard($c->get(\Magma\database\DatabaseConnectionManager::class));
+        });
     }
 }

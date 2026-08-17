@@ -1,58 +1,59 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\error;
 
 use Magma\http\RequestInterface;
-use Magma\http\RedirectResponse;
 use Magma\http\Response;
 use Magma\validation\ValidationException;
 use Magma\view\TemplateEngine;
 
 /**
- * ErrorHandler — application-level exception normalization.
+ * Title: Application Error Handler & Content-Negotiated Exception Boundary
  *
  * Purpose:
- * - Capture uncaught exceptions, log diagnostics for developers, and
- *   present a safe, user-friendly HTTP response.
+ * - Captures uncaught `\Throwable` instances at the kernel boundary.
+ * - Inspects client content-negotiation headers (`Accept: application/json`, `X-Requested-With: XMLHttpRequest`, or `/api/*` URIs) to dynamically return structured JSON error payloads or styled HTML views.
+ * - Prevents partial HTML output buffer leaks and system information disclosure.
  *
  * Why / Why this design:
- * - Centralizes the application's failure mode. Catching all exceptions at the boundary 
- *   prevents partial HTML rendering and stops internal stack traces from leaking to end users.
+ * - Content-Negotiated Error Boundary: APIs and SPA clients require predictable JSON payloads during 404s and 500s rather than HTML error pages that crash JSON parsers.
+ * - Robust Output Buffer Recovery: Wiping all nested output buffers (`ob_end_clean`) ensures fatal crashes midway through template rendering never bleed corrupted markup.
  *
  * Teaching notes:
- * - In production, this handler should be expanded to integrate with monitoring 
- *   services (like Sentry or Datadog) to alert developers of critical failures.
+ * - Catching `\Throwable` instead of `\Exception` captures PHP 7/8 engine errors (`TypeError`, `DivisionByZeroError`, `ParseError`) ensuring they cannot bypass the error boundary.
  */
 class ErrorHandler implements ErrorHandlerInterface
 {
     private TemplateEngine $templateEngine;
     private bool $debug;
 
-    /**
-     * Initializes the handler with the view engine for rendering error pages.
-     * Debug mode is determined by the global ENVIRONMENT constant.
-     */
     public function __construct(TemplateEngine $templateEngine, ?bool $debug = null)
     {
         $this->templateEngine = $templateEngine;
-        // Automatically enable debug mode if ENVIRONMENT is set to development
-        $this->debug = $debug ?? (defined('ENVIRONMENT') && ENVIRONMENT === 'development');
+        if ($debug !== null) {
+            $this->debug = $debug;
+        } else {
+            $appDebug = \Magma\config\Config::get('APP_DEBUG');
+            $appEnv = \Magma\config\Config::get('APP_ENV');
+            $this->debug = ($appDebug === 'true' || $appDebug === true || $appDebug === '1' || $appEnv === 'development' || (defined('ENVIRONMENT') && ENVIRONMENT === 'development'));
+        }
     }
 
     /**
-     * Renders a specialized error view or a raw HTML fallback.
-     * 
+     * Renders a specialized HTML error view or hardcoded fallback markup.
+     *
      * Execution Flow:
-     * 1. Package the error data (`code`, `message`, `trace`) into an array.
-     * 2. Attempt to render the HTTP status code's specific view (e.g., `404.php`).
-     * 3. If rendering fails (e.g., missing template), catch the new exception.
-     * 4. Build a secure, hard-coded HTML string as a final fallback.
-     * 5. Append stack traces if debug mode is active.
-     * 6. Return the constructed `Response`.
-     * 
-     * Logic behind the logic:
-     * - The nested `try/catch` is a critical safety net. If the error system itself 
-     *   throws an error while trying to render an error, the application must not crash silently.
+     * 1. Package error status and diagnostic details.
+     * 2. Attempt rendering error template via TemplateEngine (e.g., `404.php`, `500.php`).
+     * 3. If view rendering fails, fallback to hardcoded secure HTML.
+     * 4. Return HTTP Response object.
+     *
+     * @param int $code
+     * @param string $message
+     * @param string|null $trace
+     * @return Response
      */
     public function renderError(int $code, string $message, ?string $trace = null): Response
     {
@@ -61,86 +62,103 @@ class ErrorHandler implements ErrorHandlerInterface
             'code'    => $code,
             'trace'   => ($this->debug) ? $trace : null,
             'title'   => "Error {$code}",
+            'debug'   => $this->debug,
         ];
 
         try {
             return new Response($this->templateEngine->render((string)$code, $data, null), $code);
         } catch (\Throwable $e) {
-            $html = "<h1>Error {$code}</h1>";
+            $html = "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Error {$code}</title>";
+            $html .= "<style>body{font-family:system-ui,-apple-system,sans-serif;padding:2rem;background:#0f172a;color:#f8fafc;}h1{color:#f43f5e;}pre{background:#090d16;color:#f8fafc;padding:1rem;border-radius:0.5rem;overflow-x:auto;}</style></head><body>";
+            $html .= "<h1>Error {$code}</h1>";
             $html .= "<p>" . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . "</p>";
 
             if ($this->debug) {
-                $html .= "<h2>Render Error:</h2>";
-                $html .= "<p>" . htmlspecialchars($e->getMessage()) . " in " . $e->getFile() . ":" . $e->getLine() . "</p>";
-                
+                $html .= "<h2 style='margin-top:1.5rem;'>Diagnostics:</h2>";
+                $html .= "<p>" . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . " in " . htmlspecialchars($e->getFile() . ':' . $e->getLine(), ENT_QUOTES, 'UTF-8') . "</p>";
+
                 $safeTrace = htmlspecialchars($trace ?? $e->getTraceAsString(), ENT_QUOTES, 'UTF-8');
-                $html .= "<h2>Stack Trace:</h2><pre>{$safeTrace}</pre>";
+                $html .= "<h2 style='margin-top:1.5rem;'>Stack Trace:</h2><pre>{$safeTrace}</pre>";
             }
 
-            return new Response($html, $code);
+            $html .= "</body></html>";
+
+            return new Response($html, $code, ['Content-Type' => 'text/html; charset=utf-8']);
         }
     }
 
     /**
-     * Renders the standard 404 Not Found page.
-     * 
-     * Execution Flow:
-     * 1. Hardcodes the 404 HTTP status code.
-     * 2. Delegates to the core `renderError` method to handle template rendering or fallback HTML.
-     * 
-     * Logic behind the logic:
-     * - This wrapper method exists so that the `Application` kernel can easily render a 404 
-     *   without having to construct error messages manually. It encapsulates the specific 
-     *   "Not Found" message standard.
+     * Renders a 404 Not Found response, content-negotiating between JSON and HTML.
+     *
+     * @param RequestInterface|null $request
+     * @return Response
      */
-    public function renderNotFound(): Response
+    public function renderNotFound(?RequestInterface $request = null): Response
     {
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
+
+        if ($request !== null && ($request->isJsonExpected() || $request->expectsJson())) {
+            return JsonErrorPresenter::presentNotFound('The requested endpoint or resource was not found.');
+        }
+
         return $this->renderError(404, "Page Not Found");
     }
 
     /**
-     * Handle an exception by logging it and returning a safe response.
-     * 
-     * Execution Flow:
-     * 1. Clears any active output buffers to prevent partial view rendering.
-     * 2. Categorizes the exception (e.g., Validation vs System Error).
-     * 3. Logs the full stack trace to the server logs for developers.
-     * 4. Normalizes the HTTP status code (enforcing valid 4xx or 5xx codes).
-     * 5. Delegates to `renderError` to construct the final response.
-     * 
-     * Logic behind the logic:
-     * - Clearing output buffers first is essential; without it, users might see a half-rendered HTML 
-     *   page with an error appended to the bottom, which breaks CSS/JS and exposes system state.
+     * Handles an uncaught Throwable, logging diagnostics and returning a content-negotiated Response.
      *
-     * @param \Throwable $e The thrown exception.
-     * @param RequestInterface|null $request The incoming HTTP request if resolved.
+     * Execution Flow:
+     * 1. Clears all active output buffering layers.
+     * 2. Inspects exception type: handles `ValidationException` (422 status).
+     * 3. Logs detailed exception message and stack trace to server error logs.
+     * 4. Normalizes HTTP status code (400-599, defaulting to 500).
+     * 5. If client expects JSON or request is `/api/*`, delegates to `JsonErrorPresenter`.
+     * 6. If in debug mode, presents the interactive Developer Debug screen (`DebugErrorPresenter`).
+     * 7. Otherwise, renders the production HTML error view.
+     *
+     * @param \Throwable $e
+     * @param RequestInterface|null $request
      * @return Response
      */
     public function handleException(\Throwable $e, ?RequestInterface $request = null): Response
-    { 
+    {
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
 
-        // Validation exceptions are typically caught and handled within 
-        // Controller logic to trigger redirects. If one reaches this handler, 
-        // it is treated as an unhandled application error.
+        $isJson = $request !== null && ($request->isJsonExpected() || $request->expectsJson());
+
+        // Handle Uncaught ValidationException
         if ($e instanceof ValidationException) {
-            $code = 422; // Unprocessable Entity
+            $code = 422;
             $message = "Validation failed for the request.";
             error_log(sprintf(
                 "[%s] Unhandled ValidationException: %s in %s:%d\nErrors: %s",
-                date('Y-m-d H:i:s'), $e->getMessage(), $e->getFile(), $e->getLine(), json_encode($e->getErrors())
+                date('Y-m-d H:i:s'),
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine(),
+                json_encode($e->getErrors(), JSON_UNESCAPED_SLASHES)
             ));
+
+            if ($isJson) {
+                return JsonErrorPresenter::presentValidation($e->getErrors(), $message);
+            }
+
+            if ($this->debug) {
+                return DebugErrorPresenter::present($e, $request, $code);
+            }
+
             return $this->renderError($code, $message, $e->getTraceAsString());
         }
 
+        // Log general Throwable
         $logEntry = sprintf(
-            "[%s] Exception: %s in %s:%d\nStack Trace:\n%s",
+            "[%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
             date('Y-m-d H:i:s'),
+            get_class($e),
             $e->getMessage(),
             $e->getFile(),
             $e->getLine(),
@@ -148,14 +166,21 @@ class ErrorHandler implements ErrorHandlerInterface
         );
         error_log($logEntry);
 
-        // Determine the HTTP status code. 
-        // We only use the exception code if it's a valid client (4xx) or server (5xx) error.
+        // Normalize HTTP status code
         $code = $e->getCode();
         if (!is_int($code) || $code < 400 || $code > 599) {
             $code = 500;
         }
 
         $safeMessage = $this->debug ? $e->getMessage() : 'An unexpected system error occurred.';
+
+        if ($isJson) {
+            return JsonErrorPresenter::present($code, $safeMessage, $e, $this->debug);
+        }
+
+        if ($this->debug) {
+            return DebugErrorPresenter::present($e, $request, $code);
+        }
 
         return $this->renderError($code, $safeMessage, $e->getTraceAsString());
     }
