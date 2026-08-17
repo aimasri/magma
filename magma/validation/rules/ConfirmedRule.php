@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Confirmed Rule
- * 
+ * Title: Confirmed Rule
+ *
  * Purpose:
  * - Validates that a field matches a corresponding `{field}_confirmation` field.
  * 

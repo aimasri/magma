@@ -7,7 +7,7 @@ use Magma\container\Container;
 use Magma\interfaces\EventDispatcherInterface;
 
 /**
- * Event Service Provider
+ * Title: Event Service Provider
  *
  * Purpose:
  * - Bootstraps the application's Event-Driven Architecture by registering

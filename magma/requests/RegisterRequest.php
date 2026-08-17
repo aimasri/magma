@@ -5,7 +5,7 @@ namespace Magma\requests;
 use Magma\validation\FormRequest;
 
 /**
- * RegisterRequest — validation for account creation.
+ * Title: RegisterRequest — validation for account creation.
  *
  * Purpose:
  * - Ensure required fields and password confirmation are present and valid.

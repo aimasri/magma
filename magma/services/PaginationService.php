@@ -6,8 +6,8 @@ use Magma\http\Request;
 use Magma\dto\PaginationDTO;
 
 /**
- * Pagination Service
- * 
+ * Title: Pagination Service
+ *
  * Purpose:
  * - Centralizes pagination math and request parsing.
  * 

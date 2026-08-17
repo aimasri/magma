@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Application Bootstrap — Service Configuration
+ * Title: Application Bootstrap — Service Configuration
  *
  * Purpose:
  * - Bootstraps the autoloader, initializes the environment, and configures 
@@ -55,6 +55,7 @@ $providers = [
     new DomainServiceProvider(),
     new HttpServiceProvider(),
     new \Magma\providers\EventServiceProvider(),
+    new \App\providers\AppServiceProvider(),
     // Uncomment to enable the Inventory module
 ];
 

@@ -5,7 +5,7 @@ namespace Magma\container;
 use Magma\container\Container;
 
 /**
- * Service Provider Contract
+ * Title: Service Provider Contract
  *
  * Purpose:
  * - Defines a standard way to register dependencies into the application's Container.

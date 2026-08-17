@@ -5,7 +5,7 @@ use Magma\interfaces\cqrs\VendorCommandInterface;
 
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
-use Magma\database\BaseCommandRepository;
+use Magma\models\AbstractCommandRepository;
 
 /**
  * Title: Vendor Command Repository
@@ -19,7 +19,7 @@ use Magma\database\BaseCommandRepository;
  * Teaching notes:
  * - This class directly manipulates the write database connection. It should not contain business logic, only data mapping and persistence execution.
  */
-class VendorCommandRepository extends BaseCommandRepository implements VendorCommandInterface
+class VendorCommandRepository extends AbstractCommandRepository implements VendorCommandInterface
 {
     private VendorMapper $mapper;
 

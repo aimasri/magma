@@ -12,7 +12,7 @@ use Magma\domain\events\UserRegisteredEvent;
 use Magma\database\TransactionManagerInterface;
 
 /**
- * User Registration Service
+ * Title: User Registration Service
  *
  * Purpose:
  * - Centralize the business logic for creating new user accounts.

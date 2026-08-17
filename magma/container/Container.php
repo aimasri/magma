@@ -128,6 +128,9 @@ class Container
         }
 
         if (!array_key_exists($id, self::$classExistsCache)) {
+            if (count(self::$classExistsCache) >= 1000) {
+                unset(self::$classExistsCache[array_key_first(self::$classExistsCache)]);
+            }
             self::$classExistsCache[$id] = class_exists($id, true) || interface_exists($id, true);
         }
 
@@ -217,25 +220,7 @@ class Container
         }
 
         $parameters = $constructor->getParameters();
-        $dependencies = [];
-
-        foreach ($parameters as $parameter) {
-            $paramName = $parameter->getName();
-            $paramPos = $parameter->getPosition();
-            $type = $parameter->getType();
-
-            if (array_key_exists($paramName, $args)) {
-                $dependencies[] = $args[$paramName];
-            } elseif (array_key_exists($paramPos, $args)) {
-                $dependencies[] = $args[$paramPos];
-            } elseif ($type instanceof ReflectionNamedType && !$type->isBuiltin() && $this->has($type->getName())) {
-                $dependencies[] = $this->get($type->getName());
-            } elseif ($parameter->isDefaultValueAvailable()) {
-                $dependencies[] = $parameter->getDefaultValue();
-            } else {
-                throw new RuntimeException("Cannot resolve constructor parameter [{$paramName}] for class [{$class}].");
-            }
-        }
+        $dependencies = $this->buildDependencies($parameters, $class, $args);
 
         return $reflectionClass->newInstanceArgs($dependencies);
     }
@@ -296,26 +281,9 @@ class Container
             }
 
             $parameters = $constructor->getParameters();
-            $dependencies = [];
             $cacheEntry = [];
-
-            foreach ($parameters as $parameter) {
-                $type = $parameter->getType();
-
-                if (!$type instanceof ReflectionNamedType || $type->isBuiltin()) {
-                    if ($parameter->isDefaultValueAvailable()) {
-                        $val = $parameter->getDefaultValue();
-                        $dependencies[] = $val;
-                        $cacheEntry[] = ['default' => $val];
-                        continue;
-                    }
-                    throw new RuntimeException("Cannot resolve parameter [{$parameter->getName()}] in class [{$id}].");
-                }
-
-                $typeName = $type->getName();
-                $dependencies[] = $this->get($typeName);
-                $cacheEntry[] = ['class' => $typeName];
-            }
+            
+            $dependencies = $this->buildDependencies($parameters, $id, [], $cacheEntry);
 
             self::$reflectionCache[$id] = $cacheEntry;
 
@@ -323,5 +291,39 @@ class Container
         } finally {
             unset($this->resolving[$id]);
         }
+    }
+
+    /**
+     * Resolves dependencies for constructor injection.
+     */
+    private function buildDependencies(array $parameters, string $class, array $args = [], ?array &$cacheEntry = null): array
+    {
+        $dependencies = [];
+        foreach ($parameters as $parameter) {
+            $paramName = $parameter->getName();
+            $paramPos = $parameter->getPosition();
+            $type = $parameter->getType();
+
+            if (array_key_exists($paramName, $args)) {
+                $dependencies[] = $args[$paramName];
+            } elseif (array_key_exists($paramPos, $args)) {
+                $dependencies[] = $args[$paramPos];
+            } elseif ($type instanceof ReflectionNamedType && !$type->isBuiltin() && $this->has($type->getName())) {
+                $typeName = $type->getName();
+                $dependencies[] = $this->get($typeName);
+                if ($cacheEntry !== null) {
+                    $cacheEntry[] = ['class' => $typeName];
+                }
+            } elseif ($parameter->isDefaultValueAvailable()) {
+                $val = $parameter->getDefaultValue();
+                $dependencies[] = $val;
+                if ($cacheEntry !== null) {
+                    $cacheEntry[] = ['default' => $val];
+                }
+            } else {
+                throw new RuntimeException("Cannot resolve constructor parameter [{$paramName}] for class [{$class}].");
+            }
+        }
+        return $dependencies;
     }
 }

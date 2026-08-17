@@ -14,7 +14,7 @@ use Magma\database\TransactionManagerInterface;
 use Magma\repositories\RememberTokenRepository;
 
 /**
- * Password Reset Domain Service
+ * Title: Password Reset Domain Service
  *
  * Purpose:
  * - Coordinate the entire password recovery lifecycle (token creation, validation, and final update).

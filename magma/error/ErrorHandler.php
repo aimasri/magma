@@ -29,14 +29,14 @@ class ErrorHandler implements ErrorHandlerInterface
     private TemplateEngine $templateEngine;
     private bool $debug;
 
-    public function __construct(TemplateEngine $templateEngine, ?bool $debug = null)
+    public function __construct(TemplateEngine $templateEngine, \Magma\config\ConfigInterface $config, ?bool $debug = null)
     {
         $this->templateEngine = $templateEngine;
         if ($debug !== null) {
             $this->debug = $debug;
         } else {
-            $appDebug = \Magma\config\Config::get('APP_DEBUG');
-            $appEnv = \Magma\config\Config::get('APP_ENV');
+            $appDebug = $config->get('APP_DEBUG');
+            $appEnv = $config->get('APP_ENV');
             $this->debug = ($appDebug === 'true' || $appDebug === true || $appDebug === '1' || $appEnv === 'development' || (defined('ENVIRONMENT') && ENVIRONMENT === 'development'));
         }
     }

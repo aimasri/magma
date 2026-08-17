@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Numeric Rule
- * 
+ * Title: Numeric Rule
+ *
  * Purpose:
  * - Validates that a value is numeric.
  * 

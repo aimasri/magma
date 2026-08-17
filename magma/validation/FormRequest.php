@@ -2,10 +2,10 @@
 
 namespace Magma\validation;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 
 /**
- * Dedicated Request Validation Contract
+ * Title: Dedicated Request Validation Contract
  *
  * Purpose:
  * - Encapsulate validation rules for a specific HTTP endpoint (e.g., `LoginRequest`).
@@ -21,18 +21,18 @@ use Magma\http\Request;
  *   flow, allowing a centralized error handler (like the `BaseController`) to catch it, flash 
  *   the errors to the session, and automatically redirect the user back to the form.
  */
-abstract class FormRequest
+abstract class FormRequest implements ValidatableRequestInterface
 {
-    protected Request $request;
+    protected RequestInterface $request;
     protected Validator $validator;
 
     /**
      * Initializes the FormRequest with the current HTTP request and Validator.
      *
-     * @param Request $request The inbound HTTP request.
+     * @param RequestInterface $request The inbound HTTP request.
      * @param Validator $validator The validation engine.
      */
-    public function __construct(Request $request, Validator $validator)
+    public function __construct(RequestInterface $request, Validator $validator)
     {
         $this->request = $request;
         $this->validator = $validator;
@@ -70,9 +70,9 @@ abstract class FormRequest
     /**
      * Retrieves the underlying HTTP Request instance.
      *
-     * @return Request
+     * @return RequestInterface
      */
-    public function getRequest(): Request
+    public function getRequest(): RequestInterface
     {
         return $this->request;
     }

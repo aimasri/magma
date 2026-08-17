@@ -7,7 +7,7 @@ use Magma\queue\QueueInterface;
 use Magma\jobs\SendWelcomeEmailJob;
 
 /**
- * Send Welcome Email Listener
+ * Title: Send Welcome Email Listener
  *
  * Purpose:
  * - Listens for the UserRegisteredEvent and dispatches an asynchronous job to send

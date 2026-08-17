@@ -3,6 +3,10 @@ namespace App\controllers;
 
 use Magma\controllers\BaseController;
 use Magma\http\RedirectResponse;
+use Magma\view\TemplateEngine;
+use Magma\security\CsrfManager;
+use Magma\http\Session;
+use App\services\SystemDiagnosticsService;
 
 /**
  * Title: Home Controller
@@ -21,6 +25,17 @@ use Magma\http\RedirectResponse;
  */
 class HomeController extends BaseController
 {
+    private SystemDiagnosticsService $diagnosticsService;
+
+    public function __construct(
+        TemplateEngine $templateEngine,
+        CsrfManager $csrfManager,
+        Session $session,
+        SystemDiagnosticsService $diagnosticsService
+    ) {
+        parent::__construct($templateEngine, $csrfManager, $session);
+        $this->diagnosticsService = $diagnosticsService;
+    }
     /**
      * Renders the welcome page for incoming requests.
      *
@@ -36,18 +51,11 @@ class HomeController extends BaseController
      */
     public function index(): \Magma\http\Response
     {
-        $memoryBytes = memory_get_peak_usage(true);
-        $memoryMb = round($memoryBytes / (1024 * 1024), 2);
+        $diagnostics = $this->diagnosticsService->getDiagnostics();
 
         return $this->render('welcome', [
-            'title'        => 'Magma Framework Core',
-            'phpVersion'   => PHP_VERSION,
-            'phpSapi'      => PHP_SAPI,
-            'environment'  => \Magma\config\Config::get('APP_ENV', 'development'),
-            'debug'        => \Magma\config\Config::get('APP_DEBUG', 'true') === 'true',
-            'dbDriver'     => \Magma\config\Config::get('DB_DRIVER', 'pgsql'),
-            'memoryUsage'  => "{$memoryMb} MB",
-            'serverOs'     => PHP_OS . ' (' . php_uname('m') . ')',
+            'title'       => \App\constants\AppConstants::HOME_TITLE,
+            'diagnostics' => $diagnostics,
         ], null);
     }
 }

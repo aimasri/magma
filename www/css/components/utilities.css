@@ -265,8 +265,7 @@
     .border-bottom { border-bottom: 1px solid var(--color-border); }
 
     .rounded-sm { border-radius: var(--radius-sm); }
-    .rounded { border-radius: var(--radius-md); }
-    .rounded-md { border-radius: var(--radius-md); }
+    .rounded, .rounded-md { border-radius: var(--radius-md); }
     .rounded-lg { border-radius: var(--radius-lg); }
     .rounded-xl { border-radius: var(--radius-xl); }
     .rounded-full { border-radius: var(--radius-full); }

@@ -6,7 +6,7 @@ use Magma\interfaces\EventInterface;
 use Magma\domain\UserRegistration;
 
 /**
- * User Registered Domain Event
+ * Title: User Registered Domain Event
  *
  * Purpose:
  * - Represents the business event that a new user has successfully registered.

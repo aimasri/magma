@@ -8,7 +8,7 @@ use Magma\services\RememberMeService;
 use Magma\services\AuthenticationResult;
 
 /**
- * User Identity & Session Service
+ * Title: User Identity & Session Service
  *
  * Purpose:
  * - Manage primary authentication (verifying email/password pairs).

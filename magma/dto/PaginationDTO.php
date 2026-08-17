@@ -3,8 +3,8 @@
 namespace Magma\dto;
 
 /**
- * Pagination DTO
- * 
+ * Title: Pagination DTO
+ *
  * Purpose:
  * - Securely transfer calculated pagination values between the service layer, 
  *   controllers, and repositories.
@@ -19,9 +19,9 @@ namespace Magma\dto;
 class PaginationDTO
 {
     /**
-     * Initialize Pagination DTO
-     * 
-     * Purpose:
+ * Title: Initialize Pagination DTO
+ *
+ * Purpose:
      * - Captures the pagination constraints (limit and offset key) for a query.
      * 
      * Logic behind the logic:

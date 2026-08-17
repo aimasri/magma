@@ -3,7 +3,7 @@
 namespace Magma\repositories;
 
 /**
- * Vendor Data Mapper
+ * Title: Vendor Data Mapper
  *
  * Purpose:
  * - Encapsulate the translation between raw SQL row arrays and domain-ready PHP arrays.

@@ -1,4 +1,5 @@
 import { DomSanitizer, domSanitizer } from './DomSanitizer.js';
+import { templateEngine } from './TemplateEngine.js';
 
 /**
  * Title: Lightweight Zero-Dependency Vanilla ES6 WYSIWYG Editor
@@ -50,48 +51,31 @@ export class MagmaEditor {
      * @private
      */
     _initDOM() {
-        // Create editor container
-        this.container = document.createElement('div');
-        this.container.className = 'magma-editor-container';
-
-        // Create toolbar
-        this.toolbar = document.createElement('div');
-        this.toolbar.className = 'magma-editor-toolbar';
-
-        // Build toolbar buttons
-        this._buildToolbarButtons();
-
-        // Create contenteditable area
-        this.contentArea = document.createElement('div');
-        this.contentArea.className = 'magma-editor-content';
-        this.contentArea.contentEditable = 'true';
-        this.contentArea.setAttribute('role', 'textbox');
-        this.contentArea.setAttribute('aria-multiline', 'true');
-        this.contentArea.setAttribute('data-placeholder', this.options.placeholder);
-        this.contentArea.style.minHeight = this.options.minHeight;
-
-        // Initialize content from target textarea/input if present
-        const initialValue = this.target.value !== undefined ? this.target.value : this.target.innerHTML;
-        this.contentArea.innerHTML = this.options.sanitizer.sanitizeHtml(initialValue || '');
-
-        // Assemble DOM
-        this.container.appendChild(this.toolbar);
-        this.container.appendChild(this.contentArea);
-
-        // Insert container into DOM
-        if (this.target.parentNode) {
-            this.target.parentNode.insertBefore(this.container, this.target);
-            // Hide original textarea
-            this.target.style.display = 'none';
+        if (!this.constructor._editorTemplate) {
+            this.constructor._editorTemplate = document.createElement('template');
+            this.constructor._editorTemplate.innerHTML = `
+                <div class="magma-editor-container">
+                    <div class="magma-editor-toolbar" role="toolbar" aria-label="Text formatting">
+                        <template data-loop="buttons">
+                            <button type="button" 
+                                    data-bind-attr-class="className"
+                                    data-bind-attr-title="title"
+                                    data-bind-attr-aria-label="label"
+                                    data-bind-attr-data-cmd="cmd"
+                                    data-bind-attr-data-value="value"
+                                    data-bind-attr-data-custom="customKey"
+                                    data-bind-text="icon"></button>
+                        </template>
+                    </div>
+                    <div class="magma-editor-content" 
+                         contenteditable="true" 
+                         role="textbox" 
+                         aria-multiline="true"
+                         data-bind-attr-data-placeholder="placeholder"></div>
+                </div>
+            `;
         }
-    }
 
-    /**
-     * Constructs toolbar action buttons.
-     *
-     * @private
-     */
-    _buildToolbarButtons() {
         const buttonDefs = {
             bold: { icon: 'B', title: 'Bold (Ctrl+B)', cmd: 'bold', label: 'Bold' },
             italic: { icon: 'I', title: 'Italic (Ctrl+I)', cmd: 'italic', label: 'Italic' },
@@ -99,32 +83,64 @@ export class MagmaEditor {
             bulletList: { icon: '• List', title: 'Bullet List', cmd: 'insertUnorderedList', label: 'Bullet List' },
             numberedList: { icon: '1. List', title: 'Numbered List', cmd: 'insertOrderedList', label: 'Numbered List' },
             blockquote: { icon: '“ Quote', title: 'Blockquote', cmd: 'formatBlock', value: 'blockquote', label: 'Quote' },
-            link: { icon: '🔗 Link', title: 'Insert Link', custom: () => this._promptLink(), label: 'Link' },
+            link: { icon: '🔗 Link', title: 'Insert Link', customKey: 'link', label: 'Link' },
             clear: { icon: '🧹 Clear', title: 'Clear Formatting', cmd: 'removeFormat', label: 'Clear' }
         };
 
+        const buttons = [];
         for (const key of this.options.toolbar) {
             const def = buttonDefs[key];
-            if (!def) continue;
+            if (def) {
+                buttons.push({
+                    className: `magma-editor-btn magma-editor-btn--${key}`,
+                    title: def.title,
+                    label: def.label,
+                    icon: def.icon,
+                    cmd: def.cmd || null,
+                    value: def.value || null,
+                    customKey: def.customKey || null
+                });
+            }
+        }
 
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `magma-editor-btn magma-editor-btn--${key}`;
-            btn.title = def.title;
-            btn.setAttribute('aria-label', def.label);
-            btn.textContent = def.icon;
+        const fragment = templateEngine.render(this.constructor._editorTemplate, {
+            buttons,
+            placeholder: this.options.placeholder
+        });
 
-            btn.addEventListener('mousedown', (e) => {
-                e.preventDefault(); // Prevent focus loss from contentArea
-                if (def.custom) {
-                    def.custom();
-                } else {
-                    this.execCommand(def.cmd, def.value || null);
+        this.container = fragment.firstElementChild;
+        this.toolbar = this.container.querySelector('.magma-editor-toolbar');
+        this.contentArea = this.container.querySelector('.magma-editor-content');
+        this.contentArea.style.minHeight = this.options.minHeight;
+
+        // Initialize content from target textarea/input if present
+        const initialValue = this.target.value !== undefined ? this.target.value : this.target.innerHTML;
+        this.contentArea.innerHTML = this.options.sanitizer.sanitizeHtml(initialValue || '');
+
+        // Delegate toolbar click events
+        this.toolbar.addEventListener('mousedown', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            e.preventDefault(); // Prevent focus loss from contentArea
+            
+            const customKey = btn.getAttribute('data-custom');
+            if (customKey === 'link') {
+                this._promptLink();
+            } else {
+                const cmd = btn.getAttribute('data-cmd');
+                const value = btn.getAttribute('data-value');
+                if (cmd) {
+                    this.execCommand(cmd, value);
                 }
-                this._sync();
-            }, { signal: this._abortController.signal });
+            }
+            this._sync();
+        }, { signal: this._abortController.signal });
 
-            this.toolbar.appendChild(btn);
+        // Insert container into DOM
+        if (this.target.parentNode) {
+            this.target.parentNode.insertBefore(this.container, this.target);
+            // Hide original textarea
+            this.target.classList.add('d-none');
         }
     }
 
@@ -269,7 +285,7 @@ export class MagmaEditor {
             this.container.parentNode.removeChild(this.container);
         }
         if (this.target) {
-            this.target.style.display = '';
+            this.target.classList.remove('d-none');
         }
     }
 }

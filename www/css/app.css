@@ -6,6 +6,8 @@
  * - Adheres strictly to DRY, SOLID, and native CSS Cascade Layers (@layer reset, tokens, components, utilities, states).
  */
 
+@layer reset, tokens, components, utilities, states;
+
 @import url('components/tokens.css');
 @import url('components/buttons.css');
 @import url('components/badges.css');

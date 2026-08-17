@@ -8,6 +8,8 @@ use Magma\http\Request;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
 use Modules\Reviews\services\ReviewSubmissionService;
+use Modules\Reviews\interfaces\ReviewSubmissionServiceInterface;
+use Modules\Reviews\dto\ReviewDTO;
 use Magma\validation\Validator;
 use Modules\Reviews\requests\ReviewRequest;
 use Magma\view\TemplateEngine;
@@ -20,7 +22,7 @@ use Magma\security\CsrfManager;
  * Purpose:
  * - Handles the submission of user reviews.
  *
- * Why this design:
+ * Why / Why this design:
  * - Separates the concern of review submission from the generic HomeController,
  *   adhering to the Single Responsibility Principle.
  *
@@ -29,22 +31,19 @@ use Magma\security\CsrfManager;
  */
 class ReviewController extends BaseController
 {
-    private ReviewSubmissionService $reviewSubmissionService;
-    private Request $request;
-    private Validator $validator;
+    private ReviewSubmissionServiceInterface $reviewSubmissionService;
+    private ReviewRequest $reviewRequest;
 
     public function __construct(
         TemplateEngine $templateEngine,
         \Magma\security\CsrfManager $csrfManager,
         \Magma\http\Session $session,
-        ReviewSubmissionService $reviewSubmissionService,
-        Request $request,
-        Validator $validator
+        ReviewSubmissionServiceInterface $reviewSubmissionService,
+        ReviewRequest $reviewRequest
     ) {
         parent::__construct($templateEngine, $csrfManager, $session);
         $this->reviewSubmissionService = $reviewSubmissionService;
-        $this->request = $request;
-        $this->validator = $validator;
+        $this->reviewRequest = $reviewRequest;
     }
 
     /**
@@ -62,14 +61,14 @@ class ReviewController extends BaseController
      */
     public function submitReview(): Response
     {
-        if ($redirect = $this->validateOrRedirect(new ReviewRequest($this->request, $this->validator), '/')) {
+        if ($redirect = $this->validateOrRedirect($this->reviewRequest, '/')) {
             return $redirect;
         }
 
-        $data = $this->request->request();
-        $this->reviewSubmissionService->submit($data);
+        $dto = $this->reviewRequest->toDTO();
+        $this->reviewSubmissionService->submit($dto);
 
-        $this->session->set('success_message', 'Review Submitted! Thank you. Your review is now pending moderation.');
+        $this->session->set(\App\constants\AppConstants::SESSION_SUCCESS_MESSAGE, \App\constants\AppConstants::MSG_REVIEW_SUBMITTED);
         return new RedirectResponse('/');
     }
 }

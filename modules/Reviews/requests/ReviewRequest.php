@@ -4,9 +4,10 @@ namespace Modules\Reviews\requests;
 
 
 use Magma\validation\FormRequest;
+use Modules\Reviews\dto\ReviewDTO;
 
 /**
- * ReviewRequest — validation for customer reviews.
+ * Title: Review Request
  *
  * Purpose:
  * - Ensure submissions include author, comment and numeric rating before
@@ -38,9 +39,31 @@ class ReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'author'  => 'required|min:2',
-            'comment' => 'required|min:5|max:1000',
-            'rating'  => 'required|numeric|min:1|max:5'
+            'author'  => \App\constants\AppConstants::RULE_REVIEW_AUTHOR,
+            'comment' => \App\constants\AppConstants::RULE_REVIEW_COMMENT,
+            'rating'  => \App\constants\AppConstants::RULE_REVIEW_RATING
         ];
+    }
+
+    /**
+     * Converts validated request data into a Review DTO.
+     *
+     * Execution Flow:
+     * 1. Retrieves request data.
+     * 2. Maps the properties directly to the strongly-typed DTO.
+     *
+     * Logic behind the logic:
+     * The controller does not have to deal with raw arrays anymore.
+     *
+     * @return ReviewDTO
+     */
+    public function toDTO(): ReviewDTO
+    {
+        $data = $this->request->request();
+        return new ReviewDTO(
+            author: $data['author'] ?? '',
+            comment: $data['comment'] ?? '',
+            rating: (int)($data['rating'] ?? 5)
+        );
     }
 }

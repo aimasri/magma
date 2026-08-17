@@ -3,7 +3,7 @@
 namespace Magma\interfaces;
 
 /**
- * Base Event Interface
+ * Title: Base Event Interface
  *
  * Purpose:
  * - Acts as a marker interface for all domain and application events.

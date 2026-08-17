@@ -5,14 +5,14 @@ use Magma\interfaces\cqrs\VendorQueryInterface;
 
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
-use Magma\database\BaseQueryRepository;
+use Magma\models\AbstractQueryRepository;
 use Magma\dto\VendorDTO;
 
 /**
  * Title: Vendor Query Repository
  * Purpose:
  * - Implements the database read operations for Vendor entities.
- * - Coordinates with the read-replica database connections (via BaseQueryRepository).
+ * - Coordinates with the read-replica database connections (via AbstractQueryRepository).
  * - Maps raw database rows into VendorDTO domain objects.
  * Why/Why this design:
  * - Adheres to CQRS by exclusively handling read operations.
@@ -20,7 +20,7 @@ use Magma\dto\VendorDTO;
  * Teaching notes:
  * - Notice the use of generators (`yield`) in `getAll`. This is an industry best practice for handling potentially large datasets efficiently without loading everything into memory at once.
  */
-class VendorQueryRepository extends BaseQueryRepository implements VendorQueryInterface
+class VendorQueryRepository extends AbstractQueryRepository implements VendorQueryInterface
 {
     private int $primaryVendorId;
     private VendorMapper $mapper;

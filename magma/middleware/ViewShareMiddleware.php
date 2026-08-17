@@ -8,7 +8,7 @@ use Magma\view\TemplateEngine;
 use Magma\interfaces\cqrs\VendorQueryInterface;
 
 /**
- * ViewShareMiddleware — injects global layout variables.
+ * Title: ViewShareMiddleware — injects global layout variables.
  *
  * Purpose:
  * - Automatically inject `$vendor`, `$tagline`, `$user`, CSRF tokens, and flash 

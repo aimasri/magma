@@ -7,8 +7,8 @@ use Magma\http\Response;
 use Magma\http\RedirectResponse;
 
 /**
- * GuestMiddleware — public route enforcement.
- * 
+ * Title: GuestMiddleware — public route enforcement.
+ *
  * Purpose:
  * - Ensures the user is NOT authenticated.
  * - Prevents logged-in users from accessing login/register pages.

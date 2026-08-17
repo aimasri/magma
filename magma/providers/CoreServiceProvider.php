@@ -101,13 +101,9 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(ErrorHandlerInterface::class, function ($c) {
-            $appDebug = Config::get('APP_DEBUG');
-            $appEnv = Config::get('APP_ENV');
-            $isDebug = ($appDebug === 'true' || $appDebug === true || $appDebug === '1' || $appEnv === 'development' || (defined('ENVIRONMENT') && ENVIRONMENT === 'development'));
-
             return new ErrorHandler(
                 $c->get(TemplateEngine::class),
-                $isDebug
+                $c->get(\Magma\config\ConfigInterface::class)
             );
         });
 

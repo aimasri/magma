@@ -1,5 +1,5 @@
-import { MenuItemState } from './MenuItemState.js';
-import { MenuListeners } from './MenuListeners.js';
+import { ObservableStore } from './ObservableStore.js';
+import { actionDispatcher } from './MagmaActionDispatcher.js';
 
 /**
  * Title: Admin Staff Module Entry Point
@@ -10,7 +10,7 @@ import { MenuListeners } from './MenuListeners.js';
  * 
  * Why/Why this design:
  * - Uses a composition pattern to instantiate state management and listeners.
- * - Decoupling the state (MenuItemState) from the DOM listeners (MenuListeners) follows separation of concerns, 
+ * - Decoupling the state (ObservableStore) from the DOM listeners follows separation of concerns, 
  *   ensuring UI logic does not directly mutate internal data structures.
  * 
  * Teaching notes:
@@ -28,8 +28,13 @@ import { MenuListeners } from './MenuListeners.js';
  */
 export function initAdminStaff() {
     console.log("Admin Staff Module loaded via ES6");
-    const menuState = new MenuItemState();
-    new MenuListeners(menuState);
+    const menuState = new ObservableStore({
+        items: [],
+        selectedId: null
+    });
+    
+    // Initialize the declarative action dispatcher
+    actionDispatcher.init();
     
     menuState.subscribe((state) => {
         console.log("Menu state updated:", state);

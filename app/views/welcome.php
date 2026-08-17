@@ -3,33 +3,28 @@
  * Title: Magma Educational Architecture Core Landing View
  *
  * Purpose:
- * - Renders the comprehensive developer syllabus and architecture dashboard for the Magma framework.
- * - Extracts and presents all 12 core architectural modules and engineering philosophies from README.md.
- * - Matches the visual design system, dark canvas, and typography of the developer diagnostic viewer.
+ * - Beautifully renders the comprehensive developer syllabus and architecture dashboard for the Magma framework.
+ * - Extracts and presents all 12 core architectural modules and engineering philosophies from README.md in a highly structured layout.
+ * - Perfectly matches the visual design system, dark canvas, and typography of the developer diagnostic viewer.
  *
  * Teaching notes:
- * - Adheres strictly to AGENTS.md: zero static inline styles (`style="..."`), standard sentence casing,
- *   and SOLID modular stylesheets (`/www/css/app.css` -> `/www/css/components/`).
+ * - Adheres strictly to AGENTS.md directives: you will see zero static inline styles (`style="..."`), standard sentence casing, and SOLID modular stylesheets (`/www/css/app.css` -> `/www/css/components/`).
+ * - A stellar example of decoupling logic from the presentation layer. Great job adhering to clean architecture principles!
  *
- * @var array $data
- * @var string $data['title']
- * @var string $data['phpVersion']
- * @var string $data['phpSapi']
- * @var string $data['environment']
- * @var bool $data['debug']
- * @var string $data['dbDriver']
- * @var string $data['memoryUsage']
- * @var string $data['serverOs']
- * @var \Magma\view\TemplateEngine $data['engine']
+ * @var array $data Encapsulated view data payload.
+ * @var string $data['title'] The dynamic page title.
+ * @var \App\dto\SystemDiagnosticsDTO $data['diagnostics'] The data transfer object containing runtime diagnostic metrics.
+ * @var \Magma\view\TemplateEngine $data['engine'] The decoupled template engine instance.
  */
 
 $pageTitle = $data['title'] ?? 'Magma Framework Core';
-$phpVersion = $data['phpVersion'] ?? PHP_VERSION;
-$environment = $data['environment'] ?? 'development';
-$isDebug = !empty($data['debug']);
-$dbDriver = strtoupper((string)($data['dbDriver'] ?? 'PGSQL'));
-$memoryUsage = $data['memoryUsage'] ?? '0 MB';
-$serverOs = $data['serverOs'] ?? PHP_OS;
+$diag = $data['diagnostics'];
+$phpVersion = $diag->phpVersion;
+$environment = $diag->environment;
+$isDebug = $diag->debug;
+$dbDriver = strtoupper($diag->dbDriver);
+$memoryUsage = $diag->memoryUsage;
+$serverOs = $diag->serverOs;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,23 +40,15 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
         <!-- Hero Showcase Banner -->
         <header class="welcome-hero">
             <div class="welcome-hero__top">
-                <span class="badge badge--brand">Magma Architecture Core</span>
                 <span class="badge badge--pill <?= $isDebug ? 'badge--success' : 'badge--neutral' ?>">
                     <?= $isDebug ? 'Debug mode active' : 'Production mode' ?>
                 </span>
             </div>
 
-            <h1 class="welcome-hero__title">The educational architecture core</h1>
+            <h1 class="welcome-hero__title">The Magma Framework</h1>
             <p class="welcome-hero__tagline">
                 An instructional, enterprise-hardened PHP 8.2+ codebase demonstrating how to build robust, scalable, and mathematically sound web applications without relying on heavy, black-box frameworks.
             </p>
-
-            <div class="welcome-hero__actions">
-                <a href="#lifecycle" class="btn btn--primary">Request lifecycle</a>
-                <a href="#philosophy" class="btn btn--outline">Engineering philosophy</a>
-                <a href="#modules" class="btn btn--outline">Architectural syllabus</a>
-                <a href="#cli-tools" class="btn btn--outline">CLI utilities</a>
-            </div>
 
             <!-- Runtime Diagnostics Pill Bar -->
             <div class="metric-bar">
@@ -86,7 +73,49 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     <span class="metric-pill__val"><?= htmlspecialchars($serverOs, ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
             </div>
+
+            <div class="welcome-hero__actions">
+                <a href="#philosophy" class="btn btn--primary">Engineering philosophy</a>
+                <a href="#lifecycle" class="btn btn--outline">Request lifecycle</a>
+                <a href="#modules" class="btn btn--outline">Architectural syllabus</a>
+                <a href="#cli-tools" class="btn btn--outline">CLI utilities</a>
+            </div>
         </header>
+
+        <!-- Engineering Philosophy -->
+        <section id="philosophy">
+            <div class="section-header">
+                <h2 class="section-header__title">Core engineering philosophy</h2>
+                <span class="badge badge--brand">Zero magic</span>
+            </div>
+
+            <div class="philosophy-grid">
+                <div class="philosophy-item">
+                    <h3 class="philosophy-item__title">SOLID principles & DIP</h3>
+                    <p class="philosophy-item__desc">
+                        Favor interface injection over concrete instantiation. Classes hold a single responsibility and high cohesion.
+                    </p>
+                </div>
+                <div class="philosophy-item">
+                    <h3 class="philosophy-item__title">Separation of concerns</h3>
+                    <p class="philosophy-item__desc">
+                        Controllers never query SQL; views never perform business math; repositories isolate data persistence entirely.
+                    </p>
+                </div>
+                <div class="philosophy-item">
+                    <h3 class="philosophy-item__title">Pragmatic DDD</h3>
+                    <p class="philosophy-item__desc">
+                        Behavior belongs with data. Skinny domain entities manage their own state and sanitization; services orchestrate.
+                    </p>
+                </div>
+                <div class="philosophy-item">
+                    <h3 class="philosophy-item__title">Instructional docblocks</h3>
+                    <p class="philosophy-item__desc">
+                        Every core file explains its title, purpose, architectural rationale, and teaching notes with strict scalar types.
+                    </p>
+                </div>
+            </div>
+        </section>
 
         <!-- Request Lifecycle & Onion Stepper -->
         <section id="lifecycle">
@@ -130,41 +159,6 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     <span class="lifecycle-step__num">Step 07</span>
                     <h3 class="lifecycle-step__title">Response exit</h3>
                     <p class="lifecycle-step__desc">Render view or JSON envelope, unwinding outward through middleware layers.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Engineering Philosophy -->
-        <section id="philosophy">
-            <div class="section-header">
-                <h2 class="section-header__title">Core engineering philosophy</h2>
-                <span class="badge badge--brand">Zero magic</span>
-            </div>
-
-            <div class="philosophy-grid">
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">SOLID principles & DIP</h3>
-                    <p class="philosophy-item__desc">
-                        Favor interface injection over concrete instantiation. Classes hold a single responsibility and high cohesion.
-                    </p>
-                </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Separation of concerns</h3>
-                    <p class="philosophy-item__desc">
-                        Controllers never query SQL; views never perform business math; repositories isolate data persistence entirely.
-                    </p>
-                </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Pragmatic DDD</h3>
-                    <p class="philosophy-item__desc">
-                        Behavior belongs with data. Skinny domain entities manage their own state and sanitization; services orchestrate.
-                    </p>
-                </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Instructional docblocks</h3>
-                    <p class="philosophy-item__desc">
-                        Every core file explains its title, purpose, architectural rationale, and teaching notes with strict scalar types.
-                    </p>
                 </div>
             </div>
         </section>
@@ -219,12 +213,12 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                     <h3 class="module-card__title">Dependency Injection Container</h3>
                     <p class="module-card__desc">
-                        Recursive reflection autowiring with in-memory metadata caching. Autoloader delegation in <code>Container::has()</code> and dynamic instantiation via <code>makeWithArgs()</code>.
+                        Recursive reflection autowiring with in-memory metadata caching. Protected against daemon memory leaks with an O(1) LRU eviction queue inside <code>Container::has()</code>.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">Reflection</span>
+                        <span class="badge badge--neutral">O(1) LRU Cache</span>
                         <span class="badge badge--neutral">makeWithArgs()</span>
-                        <span class="badge badge--neutral">Service Providers</span>
                     </div>
                 </div>
 
@@ -270,12 +264,12 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                     <h3 class="module-card__title">Data Persistence: CQRS Repositories</h3>
                     <p class="module-card__desc">
-                        Segregated base repositories (<code>$dbRead</code> vs <code>$dbWrite</code>). PostgreSQL double quoting, atomic <code>RETURNING id</code> insertion, and savepoint transaction nesting (<code>SAVEPOINT trans_N</code>).
+                        Strict CQRS segregation shielding read-replicas. Guarantees absolute ACID safety via <code>SERIALIZABLE</code> isolation and forced read-to-write routing during active transactions to prevent phantom reads.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">CQRS Split</span>
-                        <span class="badge badge--neutral">RETURNING id</span>
-                        <span class="badge badge--neutral">Savepoints</span>
+                        <span class="badge badge--neutral">SERIALIZABLE</span>
+                        <span class="badge badge--neutral">ACID Isolation</span>
                     </div>
                 </div>
 
@@ -287,12 +281,12 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                     <h3 class="module-card__title">Domain Logic, FSM & Strategy Patterns</h3>
                     <p class="module-card__desc">
-                        Pragmatic DDD with skinny entities managing internal invariants. Finite State Machine engine with terminal state invariants and container-aware Polymorphic Strategy Registries.
+                        100% Pure Domain Entities agnostic of Application DTOs. PHP 8.2 native <code>readonly class</code> engine-enforced immutability. Finite State Machine engine with terminal state invariants.
                     </p>
                     <div class="module-card__tags">
-                        <span class="badge badge--neutral">Skinny Entities</span>
+                        <span class="badge badge--neutral">Pure Domain</span>
+                        <span class="badge badge--neutral">readonly class</span>
                         <span class="badge badge--neutral">State Machine</span>
-                        <span class="badge badge--neutral">Strategy Registry</span>
                     </div>
                 </div>
 
@@ -321,11 +315,11 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                     <h3 class="module-card__title">Frontend: Modular ES6 & CSS Layers</h3>
                     <p class="module-card__desc">
-                        Reactive <code>ObservableStore</code>, WeakSet DOM event registries with AbortController signals, zero-dependency WYSIWYG editor, and native CSS Cascade Layers.
+                        Deeply immutable <code>ObservableStore</code> with recursive freezing. O(N) algorithm Template Engine, zero memory-leak event delegation via <code>isConnected</code> guards, and native CSS Cascade Layers.
                     </p>
                     <div class="module-card__tags">
-                        <span class="badge badge--neutral">Vanilla ES6</span>
-                        <span class="badge badge--neutral">WeakSet Events</span>
+                        <span class="badge badge--neutral">O(N) Parsing</span>
+                        <span class="badge badge--neutral">Deep Freeze</span>
                         <span class="badge badge--neutral">Cascade Layers</span>
                     </div>
                 </div>

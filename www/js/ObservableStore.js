@@ -26,7 +26,7 @@ export class ObservableStore {
      * @param {Object} [options={}] Store configuration options.
      */
     constructor(initialState = {}, options = {}) {
-        this._state = Object.freeze({ ...initialState });
+        this._state = this._deepFreeze({ ...initialState });
         this._subscribers = new Set();
         this._reducers = new Map();
         this._options = {
@@ -78,7 +78,7 @@ export class ObservableStore {
         }
 
         const nextState = this._options.freeze
-            ? Object.freeze({ ...prevState, ...partial })
+            ? this._deepFreeze({ ...prevState, ...partial })
             : { ...prevState, ...partial };
 
         // Shallow equality check
@@ -263,6 +263,40 @@ export class ObservableStore {
         this._isDestroyed = true;
         this._subscribers.clear();
         this._reducers.clear();
-        this._state = Object.freeze({});
+        this._state = this._deepFreeze({});
+    }
+
+    /**
+     * Recursively freezes an object to ensure deep immutability.
+     *
+     * Execution Flow:
+     * 1. Check if the input object is null or not of type 'object'. If so, return it directly.
+     * 2. Call Object.freeze() on the current object to prevent modification of its immediate properties.
+     * 3. Iterate over all keys of the object.
+     * 4. For each key, if its value is an object or function and is not yet frozen, recursively call _deepFreeze on it.
+     * 5. Return the fully frozen object.
+     *
+     * Logic behind the logic:
+     * - Shallow freezing (Object.freeze) only prevents modification of the top-level properties. To guarantee state consistency and prevent accidental mutations in a reactive store, we traverse the entire object tree to ensure deeply nested objects are also strictly immutable.
+     *
+     * @param {Object} obj
+     * @returns {Object}
+     * @private
+     */
+    _deepFreeze(obj) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+
+        Object.freeze(obj);
+
+        for (const key of Object.keys(obj)) {
+            const prop = obj[key];
+            if (prop !== null && (typeof prop === 'object' || typeof prop === 'function') && !Object.isFrozen(prop)) {
+                this._deepFreeze(prop);
+            }
+        }
+
+        return obj;
     }
 }

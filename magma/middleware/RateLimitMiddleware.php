@@ -7,7 +7,7 @@ use Magma\http\Response;
 use Magma\security\RateLimiterInterface;
 
 /**
- * Rate Limit Middleware
+ * Title: Rate Limit Middleware
  *
  * Purpose:
  * - Intercept incoming HTTP requests to protect vulnerable endpoints.

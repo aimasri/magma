@@ -1,5 +1,7 @@
 'use strict';
 
+import { templateEngine } from './TemplateEngine.js';
+
 /**
  * Title: Enhanced Combobox View
  * 
@@ -44,23 +46,28 @@ export class ComboboxView {
             this.wrapper.appendChild(this.input);
         }
 
+        const baseId = this.input.id || `magma-combo-${Math.random().toString(36).substr(2, 9)}`;
+        this.input.id = baseId;
+
         this.input.classList.add('magma-combobox-input');
         this.input.setAttribute('role', 'combobox');
         this.input.setAttribute('aria-expanded', 'false');
         this.input.setAttribute('aria-autocomplete', 'list');
+        this.input.setAttribute('aria-controls', `${baseId}-listbox`);
         this.input.setAttribute('autocomplete', 'off');
 
         // Dropdown container
         this.dropdown = document.createElement('div');
+        this.dropdown.id = `${baseId}-listbox`;
         this.dropdown.className = 'magma-combobox-dropdown';
         this.dropdown.setAttribute('role', 'listbox');
-        this.dropdown.style.display = 'none';
+        this.dropdown.classList.add('d-none');
         this.wrapper.appendChild(this.dropdown);
 
         // Selected Multi-line Card Container
         this.selectedCard = document.createElement('div');
         this.selectedCard.className = 'magma-combobox-selected-card';
-        this.selectedCard.style.display = 'none';
+        this.selectedCard.classList.add('d-none');
         this.wrapper.appendChild(this.selectedCard);
     }
 
@@ -84,62 +91,61 @@ export class ComboboxView {
         const fragment = document.createDocumentFragment();
 
         items.forEach((item, index) => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'magma-combobox-item';
-            itemEl.setAttribute('role', 'option');
-            itemEl.setAttribute('data-index', String(index));
-            itemEl.dataset.id = item.id !== undefined ? String(item.id) : '';
-            itemEl.dataset.name = item.name || item.title || item.label || '';
-
-            // Store raw item data attributes on dataset for extraction/propagation
-            for (const [key, value] of Object.entries(item)) {
-                if (typeof value === 'string' || typeof value === 'number') {
-                    itemEl.dataset[key] = String(value);
-                }
-            }
+            let itemEl;
 
             if (typeof customRenderer === 'function') {
+                itemEl = document.createElement('div');
+                itemEl.className = 'magma-combobox-item';
                 itemEl.innerHTML = customRenderer(item);
             } else {
-                // Default Multi-Line Layout: Row 1 (Title + Badge), Row 2 (Specs)
-                const row1 = document.createElement('div');
-                row1.className = 'item-row-primary';
-
-                const title = document.createElement('span');
-                title.className = 'item-title';
-                title.textContent = item.name || item.title || item.label || '';
-                row1.appendChild(title);
-
-                if (item.badge || item.category || item.tag) {
-                    const badge = document.createElement('span');
-                    badge.className = 'item-badge';
-                    badge.textContent = item.badge || item.category || item.tag;
-                    row1.appendChild(badge);
+                if (!this.constructor._defaultItemTemplate) {
+                    this.constructor._defaultItemTemplate = document.createElement('template');
+                    this.constructor._defaultItemTemplate.innerHTML = `
+                        <div class="magma-combobox-item" role="option">
+                            <div class="item-row-primary">
+                                <span class="item-title" data-bind-text="title"></span>
+                                <span class="item-badge" data-bind-text="badge" data-if="badge"></span>
+                            </div>
+                            <div class="item-row-secondary" data-if="hasSecondary">
+                                <span class="item-specs" data-bind-text="specs" data-if="specs"></span>
+                                <span class="item-price" data-bind-text="price | currency" data-if="price"></span>
+                            </div>
+                        </div>
+                    `;
                 }
 
-                itemEl.appendChild(row1);
+                const itemData = {
+                    title: item.name || item.title || item.label || '',
+                    badge: item.badge || item.category || item.tag || '',
+                    specs: item.specs || item.description || item.subtext || '',
+                    price: item.price
+                };
+                itemData.hasSecondary = Boolean(itemData.specs || itemData.price);
 
-                if (item.description || item.specs || item.subtext || item.price) {
-                    const row2 = document.createElement('div');
-                    row2.className = 'item-row-secondary';
-
-                    const specs = document.createElement('span');
-                    specs.className = 'item-specs';
-                    specs.textContent = item.specs || item.description || item.subtext || '';
-                    row2.appendChild(specs);
-
-                    if (item.price) {
-                        const price = document.createElement('span');
-                        price.className = 'item-price';
-                        price.textContent = typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : String(item.price);
-                        row2.appendChild(price);
-                    }
-
-                    itemEl.appendChild(row2);
-                }
+                const renderedFragment = templateEngine.render(this.constructor._defaultItemTemplate, itemData);
+                itemEl = renderedFragment.firstElementChild;
             }
 
-            fragment.appendChild(itemEl);
+            if (itemEl) {
+                const optionId = `${this.dropdown.id}-option-${index}`;
+                itemEl.id = optionId;
+                if (!itemEl.hasAttribute('role')) {
+                    itemEl.setAttribute('role', 'option');
+                }
+                itemEl.setAttribute('aria-selected', 'false');
+                itemEl.setAttribute('data-index', String(index));
+                itemEl.dataset.id = item.id !== undefined ? String(item.id) : '';
+                itemEl.dataset.name = item.name || item.title || item.label || '';
+
+                // Store raw item data attributes on dataset for extraction/propagation
+                for (const [key, value] of Object.entries(item)) {
+                    if (typeof value === 'string' || typeof value === 'number') {
+                        itemEl.dataset[key] = String(value);
+                    }
+                }
+
+                fragment.appendChild(itemEl);
+            }
         });
 
         this.dropdown.appendChild(fragment);
@@ -163,46 +169,31 @@ export class ComboboxView {
         if (typeof cardFormatter === 'function') {
             this.selectedCard.innerHTML = cardFormatter(item);
         } else {
-            // Row 1: Title + Badge
-            const row1 = document.createElement('div');
-            row1.className = 'selected-card-row1';
-
-            const title = document.createElement('strong');
-            title.className = 'selected-card-title';
-            title.textContent = item.name || item.title || item.label || '';
-            row1.appendChild(title);
-
-            if (item.badge || item.category) {
-                const badge = document.createElement('span');
-                badge.className = 'selected-card-badge';
-                badge.textContent = item.badge || item.category;
-                row1.appendChild(badge);
+            if (!this.constructor._defaultSelectedTemplate) {
+                this.constructor._defaultSelectedTemplate = document.createElement('template');
+                this.constructor._defaultSelectedTemplate.innerHTML = `
+                    <div class="selected-card-row1">
+                        <strong class="selected-card-title" data-bind-text="title"></strong>
+                        <span class="selected-card-badge" data-bind-text="badge" data-if="badge"></span>
+                        <button type="button" class="selected-card-clear-btn" title="Change selection" aria-label="Clear selection">&times;</button>
+                    </div>
+                    <div class="selected-card-row2" data-bind-text="secondaryText" data-if="secondaryText"></div>
+                `;
             }
 
-            const clearBtn = document.createElement('button');
-            clearBtn.type = 'button';
-            clearBtn.className = 'selected-card-clear-btn';
-            clearBtn.title = 'Change selection';
-            clearBtn.setAttribute('aria-label', 'Clear selection');
-            clearBtn.innerHTML = '&times;';
-            row1.appendChild(clearBtn);
+            const itemData = {
+                title: item.name || item.title || item.label || '',
+                badge: item.badge || item.category || '',
+                secondaryText: [item.description, item.specs, item.price ? `Price: ${item.price}` : null].filter(Boolean).join(' • ')
+            };
 
-            this.selectedCard.appendChild(row1);
-
-            // Row 2: Specs / Description / Price
-            if (item.specs || item.description || item.price) {
-                const row2 = document.createElement('div');
-                row2.className = 'selected-card-row2';
-                row2.textContent = [item.description, item.specs, item.price ? `Price: ${item.price}` : null]
-                    .filter(Boolean)
-                    .join(' • ');
-                this.selectedCard.appendChild(row2);
-            }
+            const fragment = templateEngine.render(this.constructor._defaultSelectedTemplate, itemData);
+            this.selectedCard.appendChild(fragment);
         }
 
         // Hide input, show card
-        this.input.style.display = 'none';
-        this.selectedCard.style.display = 'block';
+        this.input.classList.add('d-none');
+        this.selectedCard.classList.remove('d-none');
         this.close();
     }
 
@@ -211,21 +202,25 @@ export class ComboboxView {
      */
     clearSelectedCard() {
         this.selectedCard.innerHTML = '';
-        this.selectedCard.style.display = 'none';
-        this.input.style.display = '';
+        this.selectedCard.classList.add('d-none');
+        this.input.classList.remove('d-none');
         this.input.value = '';
         this.input.focus();
     }
 
     open() {
-        this.dropdown.style.display = 'block';
+        this.dropdown.classList.remove('d-none');
         this.input.setAttribute('aria-expanded', 'true');
     }
 
     close() {
-        this.dropdown.style.display = 'none';
+        this.dropdown.classList.add('d-none');
         this.input.setAttribute('aria-expanded', 'false');
         this.highlightedIndex = -1;
+    }
+
+    isOpen() {
+        return !this.dropdown.classList.contains('d-none');
     }
 
     clear() {
@@ -251,13 +246,21 @@ export class ComboboxView {
 
     _updateHighlight() {
         const optionEls = this.dropdown.querySelectorAll('.magma-combobox-item');
+        let activeId = null;
         optionEls.forEach((el, idx) => {
             const isHighlighted = idx === this.highlightedIndex;
             el.classList.toggle('is-highlighted', isHighlighted);
+            el.setAttribute('aria-selected', isHighlighted ? 'true' : 'false');
             if (isHighlighted) {
                 el.scrollIntoView({ block: 'nearest' });
+                activeId = el.id;
             }
         });
+        if (activeId) {
+            this.input.setAttribute('aria-activedescendant', activeId);
+        } else {
+            this.input.removeAttribute('aria-activedescendant');
+        }
     }
 
     getHighlightedItem() {

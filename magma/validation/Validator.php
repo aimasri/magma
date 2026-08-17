@@ -10,7 +10,7 @@ use Magma\validation\rules\NumericRule;
 use Magma\validation\rules\ConfirmedRule;
 
 /**
- * Extensible Rule-Based Validation Engine
+ * Title: Extensible Rule-Based Validation Engine
  *
  * Purpose:
  * - Offer an expressive, pipe-delimited rule syntax (e.g., `required|email|min:8`) 

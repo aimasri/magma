@@ -7,8 +7,8 @@ use Magma\http\Response;
 use Magma\http\RedirectResponse;
 
 /**
- * RoleMiddleware — generic role-based authorization guard.
- * 
+ * Title: RoleMiddleware — generic role-based authorization guard.
+ *
  * Purpose:
  * - Validates that the authenticated user possesses one of the required roles.
  * - Redirects unauthorized users to a specified fallback route (e.g., '/user' or '/admin').

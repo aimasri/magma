@@ -3,7 +3,7 @@
 namespace Magma\security;
 
 /**
- * Rate Limiter Contract
+ * Title: Rate Limiter Contract
  *
  * Purpose:
  * - Define a uniform interface for throttling requests based on a specific key (e.g., an IP address).

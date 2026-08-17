@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Autoloader and Path Constants
+ * Title: Autoloader and Path Constants
  *
  * Purpose:
  * - Defines the global directory constants needed by the application.

@@ -3,7 +3,7 @@
 namespace Magma\routing;
 
 /**
- * Array Route Cache
+ * Title: Array Route Cache
  *
  * Purpose:
  * - Implements RouteCacheInterface using a static array to cache mega-regexes 

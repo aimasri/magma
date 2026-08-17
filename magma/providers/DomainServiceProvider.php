@@ -26,7 +26,7 @@ use Magma\services\PaginationService;
 
 
 /**
- * DomainServiceProvider — registers domain-specific business logic services.
+ * Title: DomainServiceProvider — registers domain-specific business logic services.
  *
  * Purpose:
  * - Bootstraps the application's domain services (Authentication, Registration, Mail, etc.).

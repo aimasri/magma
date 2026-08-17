@@ -31,7 +31,7 @@ use admin\controllers\VendorAdminController;
 use user\controllers\UserDashboardController;
 
 /**
- * HttpServiceProvider — registers HTTP controllers and middleware.
+ * Title: HttpServiceProvider — registers HTTP controllers and middleware.
  *
  * Purpose:
  * - Bootstraps the application's transport layer dependencies.

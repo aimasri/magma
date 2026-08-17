@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Magma\domain;
 
 /**
- * User Registration Domain Entity
+ * Title: User Registration Domain Entity
  *
  * Purpose:
  * - Encapsulate the core data and behavior of a new user registration.

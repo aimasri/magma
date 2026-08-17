@@ -3,7 +3,7 @@
 namespace Magma\routing;
 
 /**
- * Route Not Found Exception
+ * Title: Route Not Found Exception
  *
  * Purpose:
  * - Specific exception thrown when the router cannot match an incoming HTTP request

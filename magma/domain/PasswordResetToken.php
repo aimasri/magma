@@ -3,7 +3,7 @@
 namespace Magma\domain;
 
 /**
- * Password Reset Token Domain Entity
+ * Title: Password Reset Token Domain Entity
  *
  * Purpose:
  * - Encapsulate the creation, hashing, and expiration logic for password reset tokens.

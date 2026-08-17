@@ -13,7 +13,7 @@ use Magma\routing\RouterInterface;
 use Magma\view\TemplateEngine;
 
 /**
- * Application Kernel
+ * Title: Application Kernel
  *
  * Purpose:
  * - Coordinate the full request lifecycle.

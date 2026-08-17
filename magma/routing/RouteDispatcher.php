@@ -66,38 +66,24 @@ class RouteDispatcher
         array $params,
         array $middlewareList,
         RequestInterface $request,
-        array $globalMiddleware = [],
-        ?Router $router = null
+        array $globalMiddleware = []
     ): Response {
-        $coreHandler = function (RequestInterface $request) use ($handler, $params, $router): Response {
-            if ($router !== null) {
-                return $router->executeHandler($handler, $params, $request);
-            }
-
+        $coreHandler = function (RequestInterface $request) use ($handler, $params): Response {
             if ($handler instanceof Route) {
                 $handler = $handler->getHandler();
             }
+
+            $resolver = new RouteParameterResolver($this->container);
 
             if (is_array($handler)) {
                 [$controllerClass, $action] = $handler;
                 $controller = $this->container->get($controllerClass);
 
-                $cacheKey = $controllerClass . '@' . $action;
-                if (!isset(self::$reflectionCache[$cacheKey])) {
-                    $ref = new \ReflectionMethod($controller, $action);
-                    self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
-                }
-
-                $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
+                $args = $resolver->resolveDependencies(new \ReflectionMethod($controller, $action), $params, $request);
                 $result = $controller->$action(...$args);
             } elseif ($handler instanceof \Closure || is_callable($handler)) {
-                $cacheKey = 'closure_' . spl_object_hash(\Closure::fromCallable($handler));
-                if (!isset(self::$reflectionCache[$cacheKey])) {
-                    $ref = new \ReflectionFunction(\Closure::fromCallable($handler));
-                    self::$reflectionCache[$cacheKey] = $this->buildReflectionMeta($ref);
-                }
-
-                $args = $this->resolveDependencies(self::$reflectionCache[$cacheKey], $params, $request);
+                $ref = new \ReflectionFunction(\Closure::fromCallable($handler));
+                $args = $resolver->resolveDependencies($ref, $params, $request);
                 $result = $handler(...$args);
             } else {
                 throw new \InvalidArgumentException('Invalid route handler.');
@@ -115,6 +101,7 @@ class RouteDispatcher
         };
 
         $mergedMiddleware = array_merge($globalMiddleware, $middlewareList);
+
         $resolvedMiddleware = $this->middlewareResolver->resolveAll($mergedMiddleware);
 
         try {
@@ -126,57 +113,5 @@ class RouteDispatcher
         } catch (HttpResponseException $e) {
             return $e->getResponse();
         }
-    }
-
-    private function buildReflectionMeta(\ReflectionFunctionAbstract $ref): array
-    {
-        $meta = [];
-        foreach ($ref->getParameters() as $param) {
-            $type = $param->getType();
-            $meta[] = [
-                'name' => $param->getName(),
-                'class' => $type instanceof \ReflectionNamedType && !$type->isBuiltin() ? $type->getName() : null,
-                'hasDefault' => $param->isDefaultValueAvailable(),
-                'default' => $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null,
-                'allowsNull' => $param->allowsNull(),
-            ];
-        }
-        return $meta;
-    }
-
-    private function resolveDependencies(array $cacheMeta, array $params, RequestInterface $request): array
-    {
-        $args = [];
-        foreach ($cacheMeta as $meta) {
-            $name = $meta['name'];
-            $className = $meta['class'];
-
-            // FormRequest auto-wiring & validation
-            if ($className !== null && is_subclass_of($className, FormRequest::class)) {
-                $validator = $this->container->has(Validator::class)
-                    ? $this->container->get(Validator::class)
-                    : new Validator();
-                /** @var FormRequest $formRequest */
-                $formRequest = new $className($request, $validator);
-                $formRequest->validate();
-                $args[] = $formRequest;
-                continue;
-            }
-
-            if (array_key_exists($name, $params)) {
-                $args[] = $params[$name];
-            } elseif ($className && ($className === RequestInterface::class || is_a($request, $className))) {
-                $args[] = $request;
-            } elseif ($className && $this->container->has($className)) {
-                $args[] = $this->container->get($className);
-            } elseif ($meta['hasDefault']) {
-                $args[] = $meta['default'];
-            } elseif ($meta['allowsNull']) {
-                $args[] = null;
-            } else {
-                throw new \RuntimeException("Unable to resolve dependency '\${$name}' for class '" . ($className ?? 'unknown') . "'.");
-            }
-        }
-        return $args;
     }
 }

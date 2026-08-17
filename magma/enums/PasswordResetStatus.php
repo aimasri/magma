@@ -3,7 +3,7 @@
 namespace Magma\enums;
 
 /**
- * Password Reset Status
+ * Title: Password Reset Status
  *
  * Purpose:
  * - Define explicit outcome states for the password reset lifecycle.

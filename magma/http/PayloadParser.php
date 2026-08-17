@@ -3,7 +3,7 @@
 namespace Magma\http;
 
 /**
- * Payload Parser
+ * Title: Payload Parser
  *
  * Purpose:
  * - Decouples payload extraction (like JSON decoding) from the core Request class.

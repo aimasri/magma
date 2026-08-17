@@ -6,7 +6,7 @@ use Magma\view\TemplateEngine;
 use Magma\mail\MailableInterface;
 
 /**
- * Transactional Email Abstraction
+ * Title: Transactional Email Abstraction
  *
  * Purpose:
  * - Wrap outbound email delivery logic into a single cohesive service.

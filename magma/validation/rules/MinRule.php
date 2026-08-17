@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Min Rule
- * 
+ * Title: Min Rule
+ *
  * Purpose:
  * - Validates a minimum string length or a minimum numeric value.
  * 

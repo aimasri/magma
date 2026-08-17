@@ -3,7 +3,7 @@
 namespace Magma\domain;
 
 /**
- * Authenticated User Domain Entity
+ * Title: Authenticated User Domain Entity
  *
  * Purpose:
  * - Encapsulate the data structure of an authenticated user session.

@@ -7,7 +7,7 @@ use PDOException;
 use RuntimeException;
 
 /**
- * Database Connection Manager
+ * Title: Database Connection Manager
  *
  * Purpose:
  * - Provide lazily-initialized PDO connection instances for Read/Write splitting.
@@ -34,11 +34,18 @@ class DatabaseConnectionManager
     private array $readSettings;
     private bool $emulatePrepares;
 
+    private bool $forceWrite = false;
+
     public function __construct(array $writeSettings, array $readSettings, bool $emulatePrepares = false)
     {
         $this->writeSettings = $writeSettings;
         $this->readSettings = $readSettings;
         $this->emulatePrepares = $emulatePrepares;
+    }
+
+    public function forceWriteForReads(bool $force): void
+    {
+        $this->forceWrite = $force;
     }
 
     /**
@@ -79,6 +86,10 @@ class DatabaseConnectionManager
      */
     public function getReadConnection(): PDO
     {
+        if ($this->forceWrite) {
+            return $this->getWriteConnection();
+        }
+
         if ($this->readInstance !== null) {
             return $this->readInstance;
         }

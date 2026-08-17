@@ -3,8 +3,8 @@
 namespace Magma\enums;
 
 /**
- * UserRole — Defines the roles a user can possess in the system.
- * 
+ * Title: UserRole — Defines the roles a user can possess in the system.
+ *
  * Purpose:
  * - Centralize all defined user roles to avoid hardcoded strings.
  * - Provide domain-specific helper methods to simplify access control checks and routing.

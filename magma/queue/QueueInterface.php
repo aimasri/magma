@@ -3,7 +3,7 @@
 namespace Magma\queue;
 
 /**
- * Queue Interface
+ * Title: Queue Interface
  *
  * Purpose:
  * - Define the contract for pushing and popping background jobs.

@@ -6,7 +6,7 @@ use Magma\http\Request;
 use Magma\http\Response;
 
 /**
- * Middleware Contract
+ * Title: Middleware Contract
  *
  * Purpose:
  * - Define a uniform interface for all middleware components.

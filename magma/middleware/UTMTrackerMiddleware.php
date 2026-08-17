@@ -6,7 +6,7 @@ use Magma\http\Request;
 use Magma\http\Response;
 
 /**
- * UTMTrackerMiddleware — captures UTM parameters and persists attribution.
+ * Title: UTMTrackerMiddleware — captures UTM parameters and persists attribution.
  *
  * Purpose:
  * - Store common UTM parameters in session state so marketing attribution

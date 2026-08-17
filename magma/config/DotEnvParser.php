@@ -3,8 +3,8 @@
 namespace Magma\config;
 
 /**
- * DotEnv File Parser
- * 
+ * Title: DotEnv File Parser
+ *
  * Purpose:
  * - Responsible for reading and parsing a .env file.
  * - Extracts environment variables from the file into an associative array.

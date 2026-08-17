@@ -25,20 +25,14 @@
  * - Render it: `const fragment = templateEngine.render('menu-card-tpl', itemData);`
  * - Append: `container.appendChild(fragment);`
  */
+import { TemplateHelperRegistry } from './TemplateHelperRegistry.js';
+
 export class TemplateEngine {
-    constructor() {
+    constructor(helperRegistry = null) {
         /** @type {Map<string, HTMLTemplateElement>} */
         this._templateCache = new Map();
-        /** @type {Map<string, Function>} */
-        this._helpers = new Map();
-
-        // Built-in formatting helpers
-        this.registerHelper('currency', (val) => {
-            const num = parseFloat(val) || 0;
-            return '$' + num.toFixed(2);
-        });
-        this.registerHelper('uppercase', (val) => String(val || '').toUpperCase());
-        this.registerHelper('lowercase', (val) => String(val || '').toLowerCase());
+        /** @type {TemplateHelperRegistry} */
+        this._helpers = helperRegistry || new TemplateHelperRegistry();
     }
 
     /**
@@ -49,10 +43,7 @@ export class TemplateEngine {
      * @returns {this}
      */
     registerHelper(name, fn) {
-        if (typeof fn !== 'function') {
-            throw new TypeError(`Helper [${name}] must be a function.`);
-        }
-        this._helpers.set(name, fn);
+        this._helpers.register(name, fn);
         return this;
     }
 
@@ -102,35 +93,69 @@ export class TemplateEngine {
     /**
      * Recursively interpolates bindings on a DocumentFragment or Element tree.
      *
+     * Execution Flow:
+     * 1. Process conditional directives (data-if, data-unless) to prune the DOM tree early.
+     * 2. Detach elements containing loop directives (data-loop) and replace them with placeholder comments.
+     * 3. Process text bindings (data-bind, data-bind-text) on the remaining attached nodes.
+     * 4. Process attribute bindings (data-bind-attr-*, data-bind-class-*) on the remaining attached nodes.
+     * 5. Reattach the loop elements by replacing their placeholders.
+     * 6. Process the loops, recursively interpolating their contents with scoped item data.
+     *
+     * Logic behind the logic:
+     * - Big-O Optimization: By detaching loop templates before processing generic text and attribute bindings, we prevent outer directives from redundantly scanning the inner contents of loops. This avoids an O(N*M) performance penalty, ensuring that inner loop contents are strictly processed exactly once during loop unrolling.
+     *
      * @param {DocumentFragment|Element} root
      * @param {Object} data
      * @private
      */
     _interpolateFragment(root, data) {
+        this._processConditionals(root, data);
+
+        // Detach loops to prevent O(N*M) processing by outer directives
+        const loops = Array.from(root.querySelectorAll('[data-loop]'));
+        const detached = [];
+        for (const loopEl of loops) {
+            if (!root.contains(loopEl)) continue;
+            const placeholder = document.createComment('loop-placeholder');
+            loopEl.parentNode.replaceChild(placeholder, loopEl);
+            detached.push({ el: loopEl, placeholder });
+        }
+
+        this._processTextBindings(root, data);
+        this._processAttributeBindings(root, data);
+
+        // Reattach loops before processing them
+        for (const { el, placeholder } of detached) {
+            placeholder.parentNode.replaceChild(el, placeholder);
+        }
+
+        this._processLoops(root, data);
+    }
+
+    _processConditionals(root, data) {
         // 1. Process Conditionals first (data-if, data-unless)
         const conditionals = Array.from(root.querySelectorAll('[data-if], [data-unless]'));
         for (const el of conditionals) {
-            if (el.hasAttribute('data-if')) {
-                const key = el.getAttribute('data-if');
-                const val = this._resolveValue(key, data);
-                if (!val) {
-                    el.remove();
-                    continue;
-                }
-                el.removeAttribute('data-if');
+            const ifKey = el.getAttribute('data-if');
+            const unlessKey = el.getAttribute('data-unless');
+
+            let shouldKeep = true;
+            if (ifKey !== null && !this._resolveValue(ifKey, data)) {
+                shouldKeep = false;
+            } else if (unlessKey !== null && this._resolveValue(unlessKey, data)) {
+                shouldKeep = false;
             }
 
-            if (el.hasAttribute('data-unless')) {
-                const key = el.getAttribute('data-unless');
-                const val = this._resolveValue(key, data);
-                if (val) {
-                    el.remove();
-                    continue;
-                }
+            if (!shouldKeep) {
+                el.remove();
+            } else {
+                el.removeAttribute('data-if');
                 el.removeAttribute('data-unless');
             }
         }
+    }
 
+    _processLoops(root, data) {
         // 2. Process Loops (<template data-loop="items"> or <div data-loop="items">)
         const loops = Array.from(root.querySelectorAll('[data-loop]'));
         for (const loopEl of loops) {
@@ -143,38 +168,27 @@ export class TemplateEngine {
                 if (!parent) continue;
 
                 const loopFragment = document.createDocumentFragment();
+                const isTemplate = loopEl.tagName === 'TEMPLATE';
+                const nodeToClone = isTemplate ? loopEl.content : loopEl;
 
-                if (loopEl.tagName === 'TEMPLATE') {
-                    for (let index = 0; index < items.length; index++) {
-                        const item = items[index];
-                        const itemData = typeof item === 'object' && item !== null
-                            ? { ...item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 }
-                            : { value: item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 };
+                for (let index = 0; index < items.length; index++) {
+                    const item = items[index];
+                    const itemData = typeof item === 'object' && item !== null
+                        ? { ...item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 }
+                        : { value: item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 };
 
-                        const childClone = loopEl.content.cloneNode(true);
-                        this._interpolateFragment(childClone, itemData);
-                        loopFragment.appendChild(childClone);
-                    }
-                    parent.replaceChild(loopFragment, loopEl);
-                } else {
-                    // Clone the element itself for each array item
-                    for (let index = 0; index < items.length; index++) {
-                        const item = items[index];
-                        const itemData = typeof item === 'object' && item !== null
-                            ? { ...item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 }
-                            : { value: item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 };
-
-                        const clonedNode = loopEl.cloneNode(true);
-                        this._interpolateFragment(clonedNode, itemData);
-                        loopFragment.appendChild(clonedNode);
-                    }
-                    parent.replaceChild(loopFragment, loopEl);
+                    const clonedNode = nodeToClone.cloneNode(true);
+                    this._interpolateFragment(clonedNode, itemData);
+                    loopFragment.appendChild(clonedNode);
                 }
+                parent.replaceChild(loopFragment, loopEl);
             } else {
                 loopEl.remove();
             }
         }
+    }
 
+    _processTextBindings(root, data) {
         // 3. Process Text Bindings (data-bind, data-bind-text)
         const textBindings = Array.from(root.querySelectorAll('[data-bind], [data-bind-text]'));
         for (const el of textBindings) {
@@ -184,7 +198,9 @@ export class TemplateEngine {
             el.removeAttribute('data-bind');
             el.removeAttribute('data-bind-text');
         }
+    }
 
+    _processAttributeBindings(root, data) {
         // 4. Process Attribute Bindings (data-bind-attr-*)
         const allElements = Array.from(root.querySelectorAll('*'));
         for (const el of allElements) {

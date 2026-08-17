@@ -5,7 +5,7 @@ namespace Magma\requests;
 use Magma\validation\FormRequest;
 
 /**
- * ResetPasswordRequest — validation for setting a new password.
+ * Title: ResetPasswordRequest — validation for setting a new password.
  *
  * Purpose:
  * - Enforce minimum password strength and confirmation to reduce weak

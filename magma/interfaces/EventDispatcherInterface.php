@@ -3,7 +3,7 @@
 namespace Magma\interfaces;
 
 /**
- * Event Dispatcher Contract
+ * Title: Event Dispatcher Contract
  *
  * Purpose:
  * - Defines the standard methods for registering listeners and dispatching events.

@@ -26,10 +26,26 @@ use Magma\repositories\PasswordResetTokenRepository;
 
 
 /**
- * RepositoryServiceProvider — registers all database repository abstractions.
+ * Title: Repository Service Provider
+ *
+ * Purpose:
+ * - Register all CQRS database repository abstractions into the DI Container.
+ * - Wire up dependencies for data access including tenant context, connections, and cache layers.
+ *
+ * Why / Why this design:
+ * - Centralizes the binding of concrete repositories to their interfaces (e.g. `VendorQueryInterface` -> `VendorQueryRepository`).
+ * - Encapsulates complex instantiation logic (such as wrapping a base repository in a `CachedVendorQueryRepository`).
+ *
+ * Teaching notes:
+ * - Decorator Pattern is heavily used here. For instance, `VendorQueryInterface` binds to an `InMemoryVendorQueryRepository`, which decorates a `CachedVendorQueryRepository` (Redis), which ultimately decorates the base PostgreSQL `VendorQueryRepository`.
  */
 class RepositoryServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Registers repository bindings into the container.
+     * 
+     * @param Container $container
+     */
     public function register(Container $container): void
     {
         $container->set(VendorCommandInterface::class, function ($c) {

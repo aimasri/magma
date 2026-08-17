@@ -3,12 +3,13 @@
  * Title: Internal Server Error View Template
  *
  * Purpose:
- * - Renders a clean, user-friendly fallback error page when the application encounters an unhandled 500 error in production.
- * - Displays diagnostic stack trace details if debug mode is active.
+ * - Renders a clean, user-friendly fallback error page when the application encounters an unhandled 500 exception in a production environment.
+ * - Confidently displays diagnostic stack trace details if debug mode is active, aiding developers in rapid root-cause analysis.
  *
  * Teaching notes:
- * - In development mode, ErrorHandler delegates directly to DebugErrorPresenter for interactive stack traces.
- * - This template serves as the standalone presentation layer fallback when the layout engine is available.
+ * - This template acts as an excellent standalone presentation layer fallback when the layout engine is unavailable.
+ * - In development mode, the ErrorHandler smartly delegates directly to DebugErrorPresenter for interactive stack traces. 
+ * - Keep up the fantastic work maintaining absolute separation of concerns!
  *
  * @var string|null $message Safe error description.
  * @var int|null $code HTTP status code (500).

@@ -74,43 +74,15 @@ class DatabaseTransactionManager implements TransactionManagerInterface
      */
     public function transactional(callable $callback): mixed
     {
-        $dbWrite = $this->dbManager->getWriteConnection();
-
-        if ($this->transactionLevel === 0) {
-            $dbWrite->beginTransaction();
-            $this->transactionLevel = 1;
-        } else {
-            $savepoint = 'trans_' . $this->transactionLevel;
-            $dbWrite->exec("SAVEPOINT {$savepoint}");
-            $this->transactionLevel++;
-        }
+        $this->begin();
 
         try {
             $result = $callback();
-
-            if ($this->transactionLevel > 1) {
-                $this->transactionLevel--;
-                $savepoint = 'trans_' . $this->transactionLevel;
-                $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
-            } else {
-                $this->transactionLevel = 0;
-                if ($dbWrite->inTransaction()) {
-                    $dbWrite->commit();
-                }
-            }
+            $this->commit();
 
             return $result;
         } catch (Throwable $e) {
-            if ($this->transactionLevel > 1) {
-                $this->transactionLevel--;
-                $savepoint = 'trans_' . $this->transactionLevel;
-                $dbWrite->exec("ROLLBACK TO SAVEPOINT {$savepoint}");
-            } else {
-                $this->transactionLevel = 0;
-                if ($dbWrite->inTransaction()) {
-                    $dbWrite->rollBack();
-                }
-            }
+            $this->rollBack();
 
             throw $e;
         }
@@ -127,7 +99,9 @@ class DatabaseTransactionManager implements TransactionManagerInterface
 
         if ($this->transactionLevel === 0) {
             $dbWrite->beginTransaction();
+            $dbWrite->exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
             $this->transactionLevel = 1;
+            $this->dbManager->forceWriteForReads(true);
         } else {
             $savepoint = 'trans_' . $this->transactionLevel;
             $dbWrite->exec("SAVEPOINT {$savepoint}");
@@ -157,6 +131,7 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             if ($dbWrite->inTransaction()) {
                 $dbWrite->commit();
             }
+            $this->dbManager->forceWriteForReads(false);
         }
     }
 
@@ -182,6 +157,7 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             if ($dbWrite->inTransaction()) {
                 $dbWrite->rollBack();
             }
+            $this->dbManager->forceWriteForReads(false);
         }
     }
 

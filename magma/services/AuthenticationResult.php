@@ -3,8 +3,8 @@
 namespace Magma\services;
 
 /**
- * Authentication Result DTO
- * 
+ * Title: Authentication Result DTO
+ *
  * Purpose:
  * - Encapsulate the result of an authentication attempt (success/failure).
  * - Transport persistence instructions (cookies to set or clear) from the domain 

@@ -5,7 +5,7 @@ namespace Magma\security;
 use Redis;
 
 /**
- * Redis Rate Limiter Implementation
+ * Title: Redis Rate Limiter Implementation
  *
  * Purpose:
  * - Provide a concrete, memory-backed implementation of the RateLimiterInterface.

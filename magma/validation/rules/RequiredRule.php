@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Required Rule
- * 
+ * Title: Required Rule
+ *
  * Purpose:
  * - Ensures a given field is present and not empty.
  * 

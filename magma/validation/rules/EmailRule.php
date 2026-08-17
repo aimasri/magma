@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Email Rule
- * 
+ * Title: Email Rule
+ *
  * Purpose:
  * - Validates that a string is formatted as an email address.
  * 

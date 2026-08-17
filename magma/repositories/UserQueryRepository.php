@@ -3,10 +3,20 @@
 namespace Magma\repositories;
 
 use Magma\interfaces\cqrs\UserQueryInterface;
-use Magma\database\BaseQueryRepository;
+use Magma\models\AbstractQueryRepository;
 use Magma\domain\AuthUser;
 
-class UserQueryRepository extends BaseQueryRepository implements UserQueryInterface
+/**
+ * Title: User Query Repository
+ * Purpose:
+ * - Handles specialized read operations for User domain entities.
+ * Why / Why this design:
+ * - Adheres to CQRS principles by inheriting from AbstractQueryRepository, restricting operations to the read-replica.
+ * - Enforces separation of concerns by completely isolating SQL retrieval from business and domain logic.
+ * Teaching notes:
+ * - This repository ensures that User read operations are highly performant and scalable.
+ */
+class UserQueryRepository extends AbstractQueryRepository implements UserQueryInterface
 {
     public function findByEmail(string $email): ?AuthUser
     {

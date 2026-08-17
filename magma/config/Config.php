@@ -3,7 +3,7 @@
 namespace Magma\config;
 
 /**
- * Configuration Registry
+ * Title: Configuration Registry
  *
  * Purpose:
  * - Centralize environment variable access.

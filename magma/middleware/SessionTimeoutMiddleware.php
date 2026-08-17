@@ -7,7 +7,7 @@ use Magma\http\Response;
 use Magma\http\Session;
 
 /**
- * Session Timeout Middleware
+ * Title: Session Timeout Middleware
  *
  * Purpose:
  * - Enforce inactivity timeouts for authenticated users.

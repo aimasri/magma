@@ -6,7 +6,7 @@ use Magma\http\RequestInterface;
 use Magma\http\Response;
 
 /**
- * Router Interface
+ * Title: Router Interface
  *
  * Purpose:
  * - Define a contract for application routing engines.

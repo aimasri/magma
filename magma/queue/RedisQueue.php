@@ -6,7 +6,7 @@ use Redis;
 use Magma\queue\JobInterface;
 
 /**
- * Redis Queue
+ * Title: Redis Queue
  *
  * Purpose:
  * - A concrete implementation of QueueInterface utilizing Redis Lists.

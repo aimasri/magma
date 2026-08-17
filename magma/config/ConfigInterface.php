@@ -3,7 +3,7 @@
 namespace Magma\config;
 
 /**
- * Configuration Interface
+ * Title: Configuration Interface
  *
  * Purpose:
  * - Define the contract for configuration retrieval.

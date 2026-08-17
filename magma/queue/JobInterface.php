@@ -3,7 +3,7 @@
 namespace Magma\queue;
 
 /**
- * Job Interface
+ * Title: Job Interface
  *
  * Purpose:
  * - Define the contract for executable background jobs.

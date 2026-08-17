@@ -3,8 +3,8 @@
 namespace Magma\validation\rules;
 
 /**
- * Max Rule
- * 
+ * Title: Max Rule
+ *
  * Purpose:
  * - Validates a maximum string length or a maximum numeric value.
  * 

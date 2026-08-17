@@ -5,8 +5,8 @@ namespace Magma\middleware;
 use Magma\container\Container;
 
 /**
- * Middleware Dependency Resolver
- * 
+ * Title: Middleware Dependency Resolver
+ *
  * Purpose:
  * - Convert raw middleware definitions (strings or arrays) into instantiated `MiddlewareInterface` objects.
  * 

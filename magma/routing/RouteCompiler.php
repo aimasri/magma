@@ -103,4 +103,52 @@ class RouteCompiler
             return "(?P<{$name}>{$regex})";
         }, $pattern);
     }
+    /**
+     * Compiles an inverted index map for O(1) allowed methods lookup for 405 Method Not Allowed errors.
+     *
+     * @param array<string, array> $staticRoutes
+     * @param array<string, array<int, Route|array>> $dynamicRoutes
+     * @return array
+     */
+    public static function compileMethodNotAllowedIndex(array $staticRoutes, array $dynamicRoutes): array
+    {
+        $index = [
+            'static' => [],
+            'dynamic_regex' => '',
+            'dynamic_map' => []
+        ];
+
+        foreach ($staticRoutes as $method => $routes) {
+            foreach ($routes as $path => $route) {
+                $index['static'][$path][] = $method;
+            }
+        }
+
+        $routeMap = [];
+        foreach ($dynamicRoutes as $method => $routes) {
+            foreach ($routes as $route) {
+                $path = $route instanceof Route ? $route->getUri() : (string)($route[1] ?? '/');
+                $constraints = $route instanceof Route ? $route->getConstraints() : (array)($route[3] ?? []);
+                $pattern = self::replaceTokensWithRegex($path, $constraints);
+                if (!isset($routeMap[$pattern])) {
+                    $routeMap[$pattern] = [];
+                }
+                $routeMap[$pattern][] = $method;
+            }
+        }
+
+        $regexes = [];
+        $markIndex = 0;
+        foreach ($routeMap as $pattern => $methods) {
+            $regexes[] = $pattern . '(*MARK:' . $markIndex . ')';
+            $index['dynamic_map'][$markIndex] = $methods;
+            $markIndex++;
+        }
+
+        if (!empty($regexes)) {
+            $index['dynamic_regex'] = '#^(?J)(?:' . implode('|', $regexes) . ')$#';
+        }
+
+        return $index;
+    }
 }

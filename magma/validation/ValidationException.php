@@ -3,7 +3,7 @@
 namespace Magma\validation;
 
 /**
- * ValidationException — thrown when form input fails validation.
+ * Title: ValidationException — thrown when form input fails validation.
  *
  * Purpose:
  * - Carry a structured map of field => error messages so callers can render

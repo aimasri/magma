@@ -11,6 +11,19 @@ use Magma\requests\RegisterRequest;
 use Magma\validation\Validator;
 use Magma\view\TemplateEngine;
 
+/**
+ * Title: User Registration Controller
+ *
+ * Purpose:
+ * - Handle the presentation and submission of the user registration form.
+ * - Delegate the actual registration domain logic to RegistrationService.
+ *
+ * Why / Why this design:
+ * - SRP: Keeps the HTTP parsing and redirection separate from the business logic of creating a user, assigning roles, and firing events.
+ *
+ * Teaching notes:
+ * - Validation is handled cleanly through `RegisterRequest` abstraction before delegating to the service layer.
+ */
 class RegisterController extends BaseController
 {
     protected Request $request;
@@ -34,6 +47,11 @@ class RegisterController extends BaseController
         $this->validator = $validator;
     }
 
+    /**
+     * Renders the registration form view.
+     * 
+     * @return Response
+     */
     public function register(): Response
     {
         return $this->render('auth/register', [
@@ -41,6 +59,18 @@ class RegisterController extends BaseController
         ]);
     }
 
+    /**
+     * Processes a registration form submission.
+     * 
+     * Execution Flow:
+     * 1. Validates the incoming HTTP request payload against rules defined in RegisterRequest.
+     * 2. If validation fails, redirects back to the form.
+     * 3. Delegates the payload to RegistrationService to create the user and fire domain events.
+     * 4. Automatically logs the new user into the session via AuthenticationService.
+     * 5. Redirects the user to their dashboard.
+     * 
+     * @return Response
+     */
     public function store(): Response
     {
         if ($redirect = $this->validateOrRedirect(new RegisterRequest($this->request, $this->validator), '/register')) {

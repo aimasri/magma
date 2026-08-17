@@ -4,13 +4,15 @@ namespace Modules\Reviews\services;
 
 use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
 use Modules\Reviews\domain\Review;
+use Modules\Reviews\interfaces\ReviewSubmissionServiceInterface;
+use Modules\Reviews\dto\ReviewDTO;
 
 /**
- * Review Submission Service
+ * Title: Review Submission Service
  *
  * Purpose:
  * - Handle the business logic of processing and saving a new user review.
- * - Map raw incoming request data to the format expected by the repository.
+ * - Map incoming DTO data to the format expected by the repository.
  *
  * Why / Why this design:
  * - Implements the Service Layer pattern. By extracting the data mapping and 
@@ -22,7 +24,7 @@ use Modules\Reviews\domain\Review;
  *   (e.g., `ReviewSubmittedEvent`), notify administrators, or interact with 
  *   spam detection services before saving.
  */
-class ReviewSubmissionService
+class ReviewSubmissionService implements ReviewSubmissionServiceInterface
 {
     private SiteReviewCommandInterface $siteReviewRepository;
 
@@ -35,7 +37,7 @@ class ReviewSubmissionService
      * Submits a new review to the database.
      * 
      * Execution Flow:
-     * 1. Accept a raw associative array of validated review data.
+     * 1. Accept a DTO of validated review data.
      * 2. Instantiate a Review domain entity to encapsulate data mapping and defaults.
      * 3. Delegate the actual SQL insertion to the repository.
      * 
@@ -44,12 +46,12 @@ class ReviewSubmissionService
      *   only cares about executing queries, while the controller remains ignorant 
      *   of database schema requirements.
      * 
-     * @param array $data Validated review data containing author, comment, and rating.
+     * @param ReviewDTO $dto Validated review DTO containing author, comment, and rating.
      * @return bool True if successful, false otherwise.
      */
-    public function submit(array $data): bool
+    public function submit(ReviewDTO $dto): bool
     {
-        $review = new Review($data);
+        $review = new Review($dto->author, $dto->comment, $dto->rating);
         return $this->siteReviewRepository->addReview($review);
     }
 }

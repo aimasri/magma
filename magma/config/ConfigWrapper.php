@@ -3,7 +3,7 @@
 namespace Magma\config;
 
 /**
- * Configuration Wrapper
+ * Title: Configuration Wrapper
  *
  * Purpose:
  * - Implement the ConfigInterface by delegating to the static Config registry.

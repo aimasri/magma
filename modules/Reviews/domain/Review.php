@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Modules\Reviews\domain;
 
+use App\constants\AppConstants;
+
 /**
- * Review Domain Entity
+ * Title: Review Domain Entity
  *
  * Purpose:
  * - Encapsulate the core data and behavior of a user-submitted review.
@@ -22,7 +24,7 @@ namespace Modules\Reviews\domain;
  * Teaching notes:
  * - Entities in this framework must never query the database directly. 
  *   They only hold and validate internal state.
- * - The constructor receives the raw array, extracts what it needs, applies 
+ * - The constructor receives the required scalar values, applies 
  *   defaults, and strictly types the resulting properties.
  */
 readonly class Review
@@ -30,26 +32,30 @@ readonly class Review
     private string $author;
     private string $comment;
     private int $rating;
+    private string $status;
 
     /**
      * Constructs a new Review entity.
      *
      * Execution Flow:
-     * 1. Extracts the raw author and comment strings, defaulting to empty strings if missing.
-     * 2. Extracts the rating and casts it to an integer, defaulting to 5.
+     * 1. Extracts the author, comment, and rating values.
+     * 2. Sets default pending status.
      *
      * Logic behind the logic:
      * - By enforcing defaults and type casting upon instantiation, we guarantee that 
      *   all subsequent layers (services, repositories) deal with a valid, predictable object 
      *   state.
      *
-     * @param array $data The raw input array, typically from a POST request.
+     * @param string $author The review author.
+     * @param string $comment The review body.
+     * @param int $rating The numeric rating.
      */
-    public function __construct(array $data)
+    public function __construct(string $author, string $comment, int $rating)
     {
-        $this->author = $data['author'] ?? '';
-        $this->comment = $data['comment'] ?? '';
-        $this->rating = (int)($data['rating'] ?? 5);
+        $this->author = $author;
+        $this->comment = $comment;
+        $this->rating = $rating;
+        $this->status = AppConstants::REVIEW_STATUS_PENDING;
     }
 
     /**
@@ -80,5 +86,15 @@ readonly class Review
     public function getRating(): int
     {
         return $this->rating;
+    }
+
+    /**
+     * Retrieves the review status.
+     *
+     * @return string
+     */
+    public function getStatus(): string
+    {
+        return $this->status;
     }
 }

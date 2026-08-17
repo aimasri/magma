@@ -5,7 +5,7 @@ namespace Magma\services;
 use Magma\repositories\RememberTokenRepository;
 
 /**
- * Persistent Authentication Service (Remember Me)
+ * Title: Persistent Authentication Service (Remember Me)
  *
  * Purpose:
  * - Manage the generation, validation, and invalidation of long-lived persistent login tokens.

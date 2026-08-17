@@ -3,8 +3,8 @@
 namespace Magma\routing;
 
 /**
- * Method Not Allowed Exception
- * 
+ * Title: Method Not Allowed Exception
+ *
  * Purpose:
  * - Thrown when a request path matches a registered route but the HTTP method does not.
  * 

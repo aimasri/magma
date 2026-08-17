@@ -60,6 +60,15 @@ export class MagmaCombobox {
 
     /**
      * Binds input typing, keyboard navigation, and selection events.
+     *
+     * Execution Flow:
+     * 1. Debounced Text Search: Listens for input, fetches data when minChars are met, and updates the View.
+     * 2. Selection Handling: Captures select events from the View and passes them to selectItem.
+     * 3. Keyboard Navigation: Manages ArrowDown, ArrowUp, Enter, and Escape keys for a11y compliance.
+     * 4. Outside Click: Detects clicks outside the combobox wrapper to automatically close the dropdown menu.
+     *
+     * Logic behind the logic:
+     * - Event Delegation and Debouncing: Centralizing event listeners avoids memory leaks when the combobox is destroyed, and debouncing network requests prevents API spam while typing.
      */
     bindEvents() {
         // 1. Debounced text search
@@ -83,7 +92,7 @@ export class MagmaCombobox {
 
         // 3. Keyboard navigation (ArrowDown, ArrowUp, Enter, Escape)
         this.keydownHandler = (e) => {
-            if (this.view.dropdown.style.display === 'block') {
+            if (this.view.isOpen()) {
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     this.view.highlightNext();
@@ -106,6 +115,10 @@ export class MagmaCombobox {
 
         // 4. Close dropdown on outside click
         this.outsideClickHandler = (e) => {
+            if (!this.inputElement.isConnected) {
+                document.removeEventListener('click', this.outsideClickHandler);
+                return;
+            }
             if (!this.view.wrapper.contains(e.target)) {
                 this.view.close();
             }
@@ -124,9 +137,6 @@ export class MagmaCombobox {
             ? this.options.extractItem(item)
             : item;
 
-        // Propagate data to related form inputs
-        this._propagateData(processedItem);
-
         // Render multi-line selected card
         this.view.renderSelectedCard(processedItem, this.options.cardFormatter);
 
@@ -141,36 +151,6 @@ export class MagmaCombobox {
             detail: { item: processedItem }
         });
         this.inputElement.dispatchEvent(event);
-    }
-
-    /**
-     * Propagates selected item properties to matching form fields in the surrounding form or container.
-     *
-     * @param {Object} item
-     * @private
-     */
-    _propagateData(item) {
-        if (!item || !Array.isArray(this.options.propagate) || this.options.propagate.length === 0) {
-            return;
-        }
-
-        const form = this.inputElement.closest('form') || document;
-
-        for (const propName of this.options.propagate) {
-            const val = item[propName];
-            if (val === undefined) continue;
-
-            // Look for matching input by name, id, or data-field
-            const targetInput = form.querySelector(
-                `[name="${propName}"], #${propName}, [data-propagate-target="${propName}"]`
-            );
-
-            if (targetInput && 'value' in targetInput) {
-                targetInput.value = val;
-                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
-                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace Modules\Reviews\dto;
 
 /**
- * Review Data Transfer Object
+ * Title: Review Data Transfer Object
  *
  * Purpose:
  * - Standardizes the shape of a review regardless of its origin (SQL, XML, API).
@@ -20,7 +20,7 @@ namespace Modules\Reviews\dto;
  *   practice for data transfer objects. Once created, a review's data should 
  *   not change in transit.
  */
-class ReviewDTO implements \JsonSerializable
+readonly class ReviewDTO implements \JsonSerializable
 {
     /**
      * Initializes the DTO with strictly typed, immutable properties.
@@ -34,10 +34,10 @@ class ReviewDTO implements \JsonSerializable
      *   and setters, keeping the DTO clean while enforcing immutability.
      */
     public function __construct(
-        public readonly string $author,
-        public readonly string $comment,
-        public readonly int $rating,
-        public readonly ?int $id = null
+        public string $author,
+        public string $comment,
+        public int $rating,
+        public ?int $id = null
     ) {}
 
     /**
