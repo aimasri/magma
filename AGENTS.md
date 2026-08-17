@@ -1,4 +1,4 @@
-# Beauty Vault LDN AI Agent Guidelines
+# Magma AI Agent Guidelines
 
 ## 0. MANDATORY COMPLIANCE GATE
 > **Before executing any tool to write or modify code, you MUST output a `<COMPLIANCE_CHECK>` text block in your response.**
@@ -26,10 +26,6 @@
 - **Inline Styles:** Static `style="..."` is strictly forbidden. Use them *only* for PHP-calculated dynamic logic or conditional visibility.
 - **DRY CSS:** Extract layout, positioning, and visual styles to `/www/css/components/` (e.g., `.d-flex`). 
 - **Legacy Code:** Do not write or retain backward-compatibility classes. Clean them up during refactoring.
-- **Card-based Modals:** 
-  - Group fields into `.modal-card` sections separated by light backgrounds.
-  - Use friendly standard sentence casing (no all-caps transforms on labels/headers).
-  - Exclude help/description text for obvious fields.
 - **Browser Cache:** Never assume a bug or missing UI update is a cache issue. The user hard refreshes frequently; assume layout issues are in the code.
 
 ## 5. Framework Evolution (Magma)
@@ -46,7 +42,7 @@ If changes represent framework evolutions (SOLID, performance, multi-tenancy, re
 
 ## 7. Mandatory Pre-Flight Architectural Check
 - **STOP AND RESEARCH:** Before scaffolding any new module, controller, or data-saving logic, you MUST run a `view_file` on `README.md` to review the framework architecture.
-- **COPY EXISTING PATTERNS:** You MUST inspect an existing enterprise module (like `Menu` or `Inventory`) to see how they handle data boundaries. 
+- **COPY EXISTING PATTERNS:** You MUST inspect an existing enterprise module or the codebase to see how they handle data boundaries. 
 - **NO PROCEDURAL SHORTCUTS:** You must use DTOs and FormRequests for data transfer. You are strictly forbidden from passing raw `$_POST` arrays into Repositories.
 - **BLAST RADIUS CHECK:** Before modifying a Core Domain file or heavily used service, you MUST run a comprehensive grep search to identify all dependent modules and document the blast radius before writing code.
 
