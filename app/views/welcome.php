@@ -4,7 +4,7 @@
  *
  * Purpose:
  * - Renders the comprehensive developer syllabus and architecture dashboard for the Magma framework.
- * - Extracts and presents all 10 core architectural modules and engineering philosophies from README.md.
+ * - Extracts and presents all 12 core architectural modules and engineering philosophies from README.md.
  * - Matches the visual design system, dark canvas, and typography of the developer diagnostic viewer.
  *
  * Teaching notes:
@@ -169,40 +169,57 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
             </div>
         </section>
 
-        <!-- 10-Module Architectural Syllabus -->
+        <!-- 12-Module Architectural Syllabus (Direct from README.md) -->
         <section id="modules">
             <div class="section-header">
-                <h2 class="section-header__title">10-Module architectural syllabus</h2>
-                <span class="badge badge--neutral">Core syllabus</span>
+                <h2 class="section-header__title">Architectural syllabus & module catalog</h2>
+                <span class="badge badge--neutral">12 core chapters</span>
             </div>
 
             <div class="syllabus-grid">
-                <!-- Module 01 -->
+                <!-- Chapter 01 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 01</span>
-                        <span class="badge badge--neutral">Lifecycle</span>
+                        <span class="module-card__num">Chapter 01</span>
+                        <span class="badge badge--neutral">Philosophy</span>
                     </div>
-                    <h3 class="module-card__title">The Request Lifecycle & Front Controller</h3>
+                    <h3 class="module-card__title">Architectural Philosophy</h3>
                     <p class="module-card__desc">
-                        Funnels all traffic through <code>www/index.php</code>. Guarantees critical security checks cannot be bypassed while shielding framework internals outside the web root.
+                        Zero black-box magic. Explicit dependency injection, strict scalar typing, defensive exception isolation, and educational docblocks across all kernel files.
                     </p>
                     <div class="module-card__tags">
-                        <span class="badge badge--neutral">PSR-4</span>
-                        <span class="badge badge--neutral">Front Controller</span>
-                        <span class="badge badge--neutral">Buffer Isolation</span>
+                        <span class="badge badge--neutral">SOLID</span>
+                        <span class="badge badge--neutral">Strict Types</span>
+                        <span class="badge badge--neutral">Pragmatic DDD</span>
                     </div>
                 </div>
 
-                <!-- Module 02 -->
+                <!-- Chapter 02 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 02</span>
+                        <span class="module-card__num">Chapter 02</span>
+                        <span class="badge badge--neutral">Lifecycle</span>
+                    </div>
+                    <h3 class="module-card__title">Request Lifecycle & Front Controller</h3>
+                    <p class="module-card__desc">
+                        Funnels all traffic through <code>www/index.php</code>. Dual-mode kernel supports both standard HTTP execution (<code>Application::run</code>) and headless testing (<code>Application::handle</code>).
+                    </p>
+                    <div class="module-card__tags">
+                        <span class="badge badge--neutral">Front Controller</span>
+                        <span class="badge badge--neutral">Buffer Isolation</span>
+                        <span class="badge badge--neutral">Headless Kernel</span>
+                    </div>
+                </div>
+
+                <!-- Chapter 03 -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <span class="module-card__num">Chapter 03</span>
                         <span class="badge badge--neutral">IoC Container</span>
                     </div>
-                    <h3 class="module-card__title">Dependency Injection & Autowiring</h3>
+                    <h3 class="module-card__title">Dependency Injection Container</h3>
                     <p class="module-card__desc">
-                        Leverages PHP's Reflection API with in-memory metadata caching to resolve and inject constructor dependencies recursively without static global facades.
+                        Recursive reflection autowiring with in-memory metadata caching. Autoloader delegation in <code>Container::has()</code> and dynamic instantiation via <code>makeWithArgs()</code>.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">Reflection</span>
@@ -211,49 +228,49 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                 </div>
 
-                <!-- Module 03 -->
+                <!-- Chapter 04 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 03</span>
+                        <span class="module-card__num">Chapter 04</span>
                         <span class="badge badge--neutral">Pipeline</span>
                     </div>
-                    <h3 class="module-card__title">Pipeline & Middleware Onion Architecture</h3>
+                    <h3 class="module-card__title">Pipeline & Middleware Onion</h3>
                     <p class="module-card__desc">
-                        Inward/outward request processing with PSR-15 adapter support. Implements TenantContext binding, atomic CSRF verification, and Redis rate limiting.
+                        Dual-mode middleware onion supporting closures, callable classes, and PSR-15 middlewares. Inward/outward request wrapping with CSRF and rate-limiting guards.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">PSR-15</span>
-                        <span class="badge badge--neutral">Tenant Isolation</span>
-                        <span class="badge badge--neutral">Rate Limiting</span>
+                        <span class="badge badge--neutral">Tenant Context</span>
+                        <span class="badge badge--neutral">Security Headers</span>
                     </div>
                 </div>
 
-                <!-- Module 04 -->
+                <!-- Chapter 05 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 04</span>
+                        <span class="module-card__num">Chapter 05</span>
                         <span class="badge badge--neutral">Routing</span>
                     </div>
-                    <h3 class="module-card__title">Compiled PCRE Routing & Action DI</h3>
+                    <h3 class="module-card__title">PCRE Routing & Thin Controllers</h3>
                     <p class="module-card__desc">
-                        High-performance regular expression tree routing with OPcache pre-compilation manifest. Auto-wires controller method dependencies and validates FormRequests.
+                        Immutable <code>Route</code> Value Objects and compiled regular expression tree routing. Reflection-based action auto-wiring and declarative <code>FormRequest</code> validation injection.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">FastRoute PCRE</span>
                         <span class="badge badge--neutral">FormRequest</span>
-                        <span class="badge badge--neutral">PRG Pattern</span>
+                        <span class="badge badge--neutral">routes.cache.php</span>
                     </div>
                 </div>
 
-                <!-- Module 05 -->
+                <!-- Chapter 06 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 05</span>
+                        <span class="module-card__num">Chapter 06</span>
                         <span class="badge badge--neutral">Persistence</span>
                     </div>
-                    <h3 class="module-card__title">Data Persistence: Repository Pattern</h3>
+                    <h3 class="module-card__title">Data Persistence: CQRS Repositories</h3>
                     <p class="module-card__desc">
-                        Segregates <code>$dbRead</code> replicas from <code>$dbWrite</code> masters. Features PostgreSQL standard quoting, chunked bulk inserts, and domain exception mapping.
+                        Segregated base repositories (<code>$dbRead</code> vs <code>$dbWrite</code>). PostgreSQL double quoting, atomic <code>RETURNING id</code> insertion, and savepoint transaction nesting (<code>SAVEPOINT trans_N</code>).
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">CQRS Split</span>
@@ -262,15 +279,15 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                 </div>
 
-                <!-- Module 06 -->
+                <!-- Chapter 07 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 06</span>
+                        <span class="module-card__num">Chapter 07</span>
                         <span class="badge badge--neutral">Domain</span>
                     </div>
-                    <h3 class="module-card__title">Domain Logic, Services & CQRS</h3>
+                    <h3 class="module-card__title">Domain Logic, FSM & Strategy Patterns</h3>
                     <p class="module-card__desc">
-                        Pragmatic DDD with skinny entities managing internal invariants. Employs finite state machines, strategy registries, and event ledger write models.
+                        Pragmatic DDD with skinny entities managing internal invariants. Finite State Machine engine with terminal state invariants and container-aware Polymorphic Strategy Registries.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">Skinny Entities</span>
@@ -279,32 +296,32 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                 </div>
 
-                <!-- Module 07 -->
+                <!-- Chapter 08 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 07</span>
+                        <span class="module-card__num">Chapter 08</span>
                         <span class="badge badge--neutral">Views</span>
                     </div>
-                    <h3 class="module-card__title">Decoupled Template Engine</h3>
+                    <h3 class="module-card__title">Decoupled Template Engine & Presenters</h3>
                     <p class="module-card__desc">
-                        Decouples layout from partials with <code>ViewLoaderInterface</code> and modular namespaces (<code>Services::index</code>). Includes in-memory path caching.
+                        Namespaced template loading (<code>Services::index</code>) with in-memory path caching. View composers, ViewModels, and presenters eliminating business logic from templates.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">Namespaces</span>
-                        <span class="badge badge--neutral">Composers</span>
-                        <span class="badge badge--neutral">Presenters</span>
+                        <span class="badge badge--neutral">View Composers</span>
+                        <span class="badge badge--neutral">Asset Versioning</span>
                     </div>
                 </div>
 
-                <!-- Module 08 -->
+                <!-- Chapter 09 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 08</span>
+                        <span class="module-card__num">Chapter 09</span>
                         <span class="badge badge--neutral">Frontend</span>
                     </div>
-                    <h3 class="module-card__title">Frontend Architecture: Modular Vanilla JS</h3>
+                    <h3 class="module-card__title">Frontend: Modular ES6 & CSS Layers</h3>
                     <p class="module-card__desc">
-                        Strict ES6 MVC components (<code>MagmaCombobox</code>, <code>MagmaEditor</code>), <code>ObservableStore</code>, and <code>DocumentFragment</code> batching to eliminate DOM repaint thrashing.
+                        Reactive <code>ObservableStore</code>, WeakSet DOM event registries with AbortController signals, zero-dependency WYSIWYG editor, and native CSS Cascade Layers.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">Vanilla ES6</span>
@@ -313,37 +330,54 @@ $serverOs = $data['serverOs'] ?? PHP_OS;
                     </div>
                 </div>
 
-                <!-- Module 09 -->
+                <!-- Chapter 10 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 09</span>
+                        <span class="module-card__num">Chapter 10</span>
                         <span class="badge badge--neutral">Outbox & Queues</span>
                     </div>
-                    <h3 class="module-card__title">Asynchronous Processing & Event Outbox</h3>
+                    <h3 class="module-card__title">Transactional Outbox & Event Processing</h3>
                     <p class="module-card__desc">
-                        Transactional outbox engine using PostgreSQL's native <code>FOR UPDATE SKIP LOCKED</code>. Redis list queue worker daemon with idempotent projection guards.
+                        Atomically records domain events within database transactions. PostgreSQL <code>FOR UPDATE SKIP LOCKED</code> queue publisher daemon and idempotent projection guards.
                     </p>
                     <div class="module-card__tags">
                         <span class="badge badge--neutral">SKIP LOCKED</span>
                         <span class="badge badge--neutral">Event Dispatcher</span>
-                        <span class="badge badge--neutral">Worker Daemon</span>
+                        <span class="badge badge--neutral">Projection Guards</span>
                     </div>
                 </div>
 
-                <!-- Module 10 -->
+                <!-- Chapter 11 -->
                 <div class="module-card">
                     <div class="module-card__header">
-                        <span class="module-card__num">Module 10</span>
-                        <span class="badge badge--neutral">Performance</span>
+                        <span class="module-card__num">Chapter 11</span>
+                        <span class="badge badge--neutral">Security</span>
                     </div>
-                    <h3 class="module-card__title">High-Performance Optimization</h3>
+                    <h3 class="module-card__title">Multi-Tenant Security & AST Auditing</h3>
                     <p class="module-card__desc">
-                        Eliminates N+1 query storms via batch loaders and multi-root CTEs. Employs constant-time $O(1)$ B-Tree keyset cursor seeking and memory streaming generators.
+                        Pluggable <code>TenantContext</code> scoping across queries and requests. Static AST boundary linter (<code>bin/audit_schema.php</code>) and tokenized file/S3 storage abstraction.
                     </p>
                     <div class="module-card__tags">
-                        <span class="badge badge--neutral">Keyset Cursor</span>
+                        <span class="badge badge--neutral">Tenant Scoping</span>
+                        <span class="badge badge--neutral">AST Linter</span>
+                        <span class="badge badge--neutral">S3 & Storage</span>
+                    </div>
+                </div>
+
+                <!-- Chapter 12 -->
+                <div class="module-card">
+                    <div class="module-card__header">
+                        <span class="module-card__num">Chapter 12</span>
+                        <span class="badge badge--neutral">Observability</span>
+                    </div>
+                    <h3 class="module-card__title">Optimizations & Developer Diagnostics</h3>
+                    <p class="module-card__desc">
+                        Keyset B-Tree pagination ($O(1)$ cursor seeking), recursive multi-root CTEs, streaming generators (<code>yield</code>), and interactive developer stack trace diagnostics.
+                    </p>
+                    <div class="module-card__tags">
+                        <span class="badge badge--neutral">Keyset Seeking</span>
                         <span class="badge badge--neutral">Recursive CTE</span>
-                        <span class="badge badge--neutral">yield Generators</span>
+                        <span class="badge badge--neutral">Debug Presenter</span>
                     </div>
                 </div>
             </div>
