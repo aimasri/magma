@@ -62,6 +62,9 @@ unset($this->reflectionCache[array_key_first($this->reflectionCache)]);
 ```
 This guarantees constant-time memory safety regardless of the container's load.
 
+### Breaking Circular Dependency Deadlocks
+Enterprise DI containers are prone to circular dependency deadlocks (e.g., A needs B, B needs A). Magma resolves this at the foundational level by utilizing nullable setter/optional injection for core providers. For example, `AbstractQueryRepository` accepts a nullable `?TenantContext`. This allows the repository that actually queries the database to *find* the tenant to instantiate without instantly demanding the tenant context it is supposed to fulfill.
+
 ---
 
 ## Module 4: The Pipeline & Middleware Onion Architecture
@@ -94,6 +97,9 @@ PostgreSQL defaults to `READ COMMITTED` isolation, which is vulnerable to phanto
 
 Crucially, when a transaction begins, the manager intercepts the read-replica connection and routes all active queries to the write-master. This completely eliminates replication-lag bugs and mathematically guarantees data consistency. Furthermore, it utilizes `SAVEPOINT trans_{N}` commands to safely support infinitely nested sub-transactions.
 
+### The Liskov Substitution Principle (LSP) Firewall
+In CQRS, base command repositories often provide helper functions for database mutations. If an abstract base class declares `protected function update(string $table, array $data)`, any concrete domain subclass trying to implement a domain interface with `public function update(int $id, array $data)` will crash PHP with a signature mismatch. Magma solves this by strictly segregating internal framework methods (`executeUpdate`, `executeDelete`) from common CRUD terminologies, maintaining a perfect LSP firewall.
+
 ---
 
 ## Module 7: Pure Domain Driven Design & Engine-Enforced Immutability
@@ -110,6 +116,9 @@ All Data Transfer Objects (DTOs) utilize PHP 8.2's native `readonly class` modif
 
 ### Logic-Less Views
 The `TemplateEngine` securely renders HTML while keeping business logic out of the templates. It utilizes decoupled `ViewLoaderInterface` namespaces and strictly prevents scope pollution by passing variables in an isolated `$data` array.
+
+### Multi-Directory Fallback & Resolution Caching
+Large SaaS applications store views across multiple directory structures (`views/layouts`, `views/partials`). Magma's `TemplateEngine` intelligently falls back across these directories to resolve layouts. To prevent O(N) `file_exists()` bottlenecks under heavy load, the resolution paths are cached in-memory, ensuring the disk is only queried once per layout per request lifecycle.
 
 ### Big-O DOM Interpolation Optimization
 When parsing nested templates or loops, standard DOM interpolation suffers from O(N*M) Big-O time complexity as the engine redundantly scans child nodes repeatedly. Magma's JavaScript `TemplateEngine` temporarily detaches nested `[data-loop]` nodes via comment placeholders before evaluating outer directives. This flattens the execution curve to O(N), allowing massive, data-heavy UIs to render instantly.
