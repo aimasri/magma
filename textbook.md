@@ -311,7 +311,7 @@ Because we add our `SessionTimeoutMiddleware` and `CsrfMiddleware` directly into
 #### Subject & Intent: Waking Up the Application
 If `index.php` is the front door, `bootstrap.php` is the process of turning on the lights, booting up the computers, and unlocking the cash register before the customers arrive. 
 
-When execution jumps out of the `www/` directory via that `require` statement, it lands in `/home/ahmed/projects/Magma/magma/core/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
+When execution jumps out of the `www/` directory via that `require` statement, it lands in `./magma/core/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
 
 #### File Walkthrough: `bootstrap.php`
 

@@ -124,7 +124,7 @@ At the foundation of Magma is `magma/container/Container.php`. Rather than insta
 Before an incoming request reaches a Controller, it passes through the `Pipeline` processor (`magma/pipeline/Pipeline.php`) implementing the **Onion Architecture**.
 
 ### Key Pipeline Components:
-* **Dual-Mode Middleware Compatibility:** The `Pipeline` natively executes standard closures (`$pipe($passable, $next)`), object middlewares (`process`, `handle`, `__invoke`), and PSR-15 middlewares via [`Psr15Adapter.php`](file:///home/ahmed/projects/Magma/magma/middleware/Psr15Adapter.php).
+* **Dual-Mode Middleware Compatibility:** The `Pipeline` natively executes standard closures (`$pipe($passable, $next)`), object middlewares (`process`, `handle`, `__invoke`), and PSR-15 middlewares via [`Psr15Adapter.php`](./magma/middleware/Psr15Adapter.php).
 * **`TenantSecurityMiddleware`:** Ensures absolute multi-tenant data isolation. Retrieves the authenticated `AuthUser` domain entity and binds the active `TenantContext` to the HTTP Request and database connection context.
 * **`CsrfMiddleware`:** Generates and validates cryptographically secure CSRF tokens for state-mutating requests (`POST`, `PUT`, `DELETE`). Pauses token rotation during rapid AJAX interactions to prevent false-positive 403 collisions.
 * **`SecurityHeadersMiddleware`:** Enforces strict HTTP security headers (HSTS, X-Content-Type-Options, X-Frame-Options) and configurable Content Security Policies (CSP) supporting external font registries and script nonces.
@@ -136,13 +136,13 @@ Before an incoming request reaches a Controller, it passes through the `Pipeline
 The `Router` (`magma/routing/Router.php`) compiles and maps URI patterns to Controller actions.
 
 ### Key Architectural Concepts:
-* **Immutable Route Value Objects:** Numeric route tuple arrays are replaced with strongly-typed, immutable [`Route.php`](file:///home/ahmed/projects/Magma/magma/routing/Route.php) and [`RouteDefinition.php`](file:///home/ahmed/projects/Magma/magma/routing/RouteDefinition.php) Value Objects (`getMethod()`, `getUri()`, `getHandler()`, `getMiddleware()`, `getName()`).
-* **FastRoute-Style PCRE Compiler:** [`RouteCompiler.php`](file:///home/ahmed/projects/Magma/magma/routing/RouteCompiler.php) compiles dynamic route parameter patterns (`/users/{id:\d+}`) into chunked regular expression trees, enabling $O(1)$ route resolution.
+* **Immutable Route Value Objects:** Numeric route tuple arrays are replaced with strongly-typed, immutable [`Route.php`](./magma/routing/Route.php) and [`RouteDefinition.php`](./magma/routing/RouteDefinition.php) Value Objects (`getMethod()`, `getUri()`, `getHandler()`, `getMiddleware()`, `getName()`).
+* **FastRoute-Style PCRE Compiler:** [`RouteCompiler.php`](./magma/routing/RouteCompiler.php) compiles dynamic route parameter patterns (`/users/{id:\d+}`) into chunked regular expression trees, enabling $O(1)$ route resolution.
 * **OPcache Manifest Pre-Compilation (`bin/cache_routes.php`):** Compiles all application route definitions into an OPcache-cached PHP manifest (`magma/config/routes.cache.php`), eliminating regex compilation overhead on production requests.
 * **Method Injection & Zero-God-Class Controllers:** Magma strictly avoids "God Classes" like a bloated `BaseController`. Controllers declare dependencies directly on their route methods via Method Injection. The `RouteParameterResolver` uses reflection to dynamically wire instances from the container straight into the action.
 * **Automated `FormRequest` Validation & PRG Redirects:** If a route action type-hints a `ValidatableRequestInterface` (e.g. `LoginRequest`), the resolver intercepts it and executes `validate()`. If validation fails, it catches the exception, flashes errors to the session, and throws an `HttpResponseException` to seamlessly redirect back to the form (Post-Redirect-Get pattern) without ever reaching the controller.
 * **`HtmlResponseBuilder` Encapsulation:** Controllers no longer manage CSRF states or template engines. They simply method-inject `HtmlResponseBuilderInterface $html` to render views, keeping the presentation boundary ultra-thin.
-* **Bidirectional Named Routes:** [`UrlGenerator::route(string $name, array $params)`](file:///home/ahmed/projects/Magma/magma/routing/UrlGenerator.php) provides type-safe reverse URL generation across views and controllers.
+* **Bidirectional Named Routes:** [`UrlGenerator::route(string $name, array $params)`](./magma/routing/UrlGenerator.php) provides type-safe reverse URL generation across views and controllers.
 * **Thin Controller Pattern:** Controllers act strictly as traffic directors. They collect request context, validate DTOs, invoke Domain Services, and return an HTTP `Response` (HTML view, JSON envelope, or Redirect).
 
 ---
@@ -167,15 +167,15 @@ Data access is entirely encapsulated using the **Repository Pattern** and **CQRS
 ```
 
 ### Key Persistence Patterns:
-* **Segregated Base Repositories:** [`AbstractQueryRepository.php`](file:///home/ahmed/projects/Magma/magma/models/AbstractQueryRepository.php) injects the read-replica PDO connection (`$dbRead`), while [`AbstractCommandRepository.php`](file:///home/ahmed/projects/Magma/magma/models/AbstractCommandRepository.php) injects the write-master PDO connection (`$dbWrite`).
+* **Segregated Base Repositories:** [`AbstractQueryRepository.php`](./magma/models/AbstractQueryRepository.php) injects the read-replica PDO connection (`$dbRead`), while [`AbstractCommandRepository.php`](./magma/models/AbstractCommandRepository.php) injects the write-master PDO connection (`$dbWrite`).
 * **SERIALIZABLE Isolation & Race-Condition Prevention:** The `DatabaseTransactionManager` explicitly forces PostgreSQL into `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE` upon beginning a root transaction. It also intercepts read-replica queries during an active transaction and routes them to the write master, eliminating "phantom reads" and replication-lag dirty data.
-* **PostgreSQL Native Identifier Quoting & Identity:** All SQL queries use PostgreSQL-standard double quotes (`"`). The [`PostgreSqlInsertBuilder.php`](file:///home/ahmed/projects/Magma/magma/database/PostgreSqlInsertBuilder.php) appends native `RETURNING id` clauses to atomically extract inserted primary keys in a single roundtrip.
-* **Savepoint Nested Transactions:** [`DatabaseTransactionManager.php`](file:///home/ahmed/projects/Magma/magma/database/DatabaseTransactionManager.php) tracks transaction depth and issues `SAVEPOINT trans_{N}`, `RELEASE SAVEPOINT`, and `ROLLBACK TO SAVEPOINT trans_{N}` commands, preventing PostgreSQL aborted transaction block failures during nested operations.
-* **Constant-Time B-Tree Keyset Pagination:** [`MultiTenantKeysetQueryBuilder.php`](file:///home/ahmed/projects/Magma/magma/database/MultiTenantKeysetQueryBuilder.php) and [`AbstractKeysetRepository.php`](file:///home/ahmed/projects/Magma/magma/models/AbstractKeysetRepository.php) replace expensive SQL `OFFSET` scans with indexed cursor seek conditions (`WHERE id > :cursor_last_id`).
+* **PostgreSQL Native Identifier Quoting & Identity:** All SQL queries use PostgreSQL-standard double quotes (`"`). The [`PostgreSqlInsertBuilder.php`](./magma/database/PostgreSqlInsertBuilder.php) appends native `RETURNING id` clauses to atomically extract inserted primary keys in a single roundtrip.
+* **Savepoint Nested Transactions:** [`DatabaseTransactionManager.php`](./magma/database/DatabaseTransactionManager.php) tracks transaction depth and issues `SAVEPOINT trans_{N}`, `RELEASE SAVEPOINT`, and `ROLLBACK TO SAVEPOINT trans_{N}` commands, preventing PostgreSQL aborted transaction block failures during nested operations.
+* **Constant-Time B-Tree Keyset Pagination:** [`MultiTenantKeysetQueryBuilder.php`](./magma/database/MultiTenantKeysetQueryBuilder.php) and [`AbstractKeysetRepository.php`](./magma/models/AbstractKeysetRepository.php) replace expensive SQL `OFFSET` scans with indexed cursor seek conditions (`WHERE id > :cursor_last_id`).
 * **LSP Firewall:** Strict segregation of internal framework mutating methods (`executeUpdate`, `executeDelete`) from common domain interface terminologies (`update`, `delete`) to prevent fatal Liskov Substitution Principle signature collisions.
-* **Batch Recursive CTE Optimizer:** [`CteQueryBuilder.php`](file:///home/ahmed/projects/Magma/magma/database/CteQueryBuilder.php) and [`BatchHierarchicalLoader.php`](file:///home/ahmed/projects/Magma/magma/database/BatchHierarchicalLoader.php) transform single-root recursive queries into batched multi-root CTEs (`WHERE root_id IN (?)`), eliminating N+1 query storms across hierarchical tree models.
-* **In-Memory Eager Relationship Batch Loader:** [`EagerRelationBatchLoader.php`](file:///home/ahmed/projects/Magma/magma/database/EagerRelationBatchLoader.php) maps 1-to-many child collections across parent entity arrays in memory in $O(1)$ time.
-* **CLI Schema Migrations:** [`SchemaInitializer.php`](file:///home/ahmed/projects/Magma/magma/database/SchemaInitializer.php) and [`bin/migrate.php`](file:///home/ahmed/projects/Magma/bin/migrate.php) discover and execute versioned SQL migrations outside the HTTP request lifecycle.
+* **Batch Recursive CTE Optimizer:** [`CteQueryBuilder.php`](./magma/database/CteQueryBuilder.php) and [`BatchHierarchicalLoader.php`](./magma/database/BatchHierarchicalLoader.php) transform single-root recursive queries into batched multi-root CTEs (`WHERE root_id IN (?)`), eliminating N+1 query storms across hierarchical tree models.
+* **In-Memory Eager Relationship Batch Loader:** [`EagerRelationBatchLoader.php`](./magma/database/EagerRelationBatchLoader.php) maps 1-to-many child collections across parent entity arrays in memory in $O(1)$ time.
+* **CLI Schema Migrations:** [`SchemaInitializer.php`](./magma/database/SchemaInitializer.php) and [`bin/migrate.php`](./bin/migrate.php) discover and execute versioned SQL migrations outside the HTTP request lifecycle.
 
 ---
 
@@ -186,8 +186,8 @@ Core business rules are structured using **Pragmatic Domain-Driven Design (DDD)*
 * **100% Pure Domain Entities:** Encapsulate domain data and self-contained invariants (e.g. `AuthUser`, `Review`). Domain entities are completely agnostic of application-layer DTOs; they only accept raw scalars in their constructors to guarantee absolute boundary segregation.
 * **Engine-Enforced Immutability:** All Data Transfer Objects (DTOs) utilize PHP 8.2's native `readonly class` modifiers to lock down state perfectly at the engine layer, preventing dynamic property injection.
 * **Thin Orchestrating Services:** Domain Services inject repositories strictly through Interfaces and coordinate multi-step workflows, transaction boundaries, and event publishing.
-* **Finite State Machine Engine:** [`StateMachine.php`](file:///home/ahmed/projects/Magma/magma/domain/StateMachine.php) and [`AbstractStateTransition.php`](file:///home/ahmed/projects/Magma/magma/domain/AbstractStateTransition.php) enforce uppercase state normalization, allowed transition path graphs, and terminal state invariants.
-* **Polymorphic Strategy Registry:** [`StrategyRegistry.php`](file:///home/ahmed/projects/Magma/magma/services/StrategyRegistry.php) implements a container-aware registry resolving dynamic domain algorithms (pricing, margin scoring, taxation) by key with runtime validation.
+* **Finite State Machine Engine:** [`StateMachine.php`](./magma/domain/StateMachine.php) and [`AbstractStateTransition.php`](./magma/domain/AbstractStateTransition.php) enforce uppercase state normalization, allowed transition path graphs, and terminal state invariants.
+* **Polymorphic Strategy Registry:** [`StrategyRegistry.php`](./magma/services/StrategyRegistry.php) implements a container-aware registry resolving dynamic domain algorithms (pricing, margin scoring, taxation) by key with runtime validation.
 
 ---
 
@@ -195,11 +195,11 @@ Core business rules are structured using **Pragmatic Domain-Driven Design (DDD)*
 
 The presentation layer is rendered using a decoupled, secure `TemplateEngine` (`magma/view/TemplateEngine.php`):
 
-* **Namespaced Template Loading:** [`LocalFileViewLoader.php`](file:///home/ahmed/projects/Magma/magma/view/LocalFileViewLoader.php) implements `ViewLoaderInterface` and supports namespaced template paths (e.g. `Services::index`, `Menu::item_card`, `App::500`) with in-memory path existence caching.
+* **Namespaced Template Loading:** [`LocalFileViewLoader.php`](./magma/view/LocalFileViewLoader.php) implements `ViewLoaderInterface` and supports namespaced template paths (e.g. `Services::index`, `Menu::item_card`, `App::500`) with in-memory path existence caching.
 * **Multi-Directory Fallback & Resolution Caching:** Intelligently searches across `views/layouts` and `views/partials` with an in-memory `$resolvedLayoutCache` to eliminate O(N) `$disk->file_exists()` bottleneck checks per request.
 * **Decoupled Layouts and Partials:** Dedicated `layoutPath` and `partialsPath` properties prevent layout recursion and isolate partial rendering.
-* **View Composers & Presenters:** [`ViewComposerRegistry.php`](file:///home/ahmed/projects/Magma/magma/views/ViewComposerRegistry.php), [`FormViewComposer.php`](file:///home/ahmed/projects/Magma/magma/view/FormViewComposer.php), and [`AbstractPresenter.php`](file:///home/ahmed/projects/Magma/magma/presenters/AbstractPresenter.php) eliminate business logic from views and support unified "Create" vs "Edit" view modes.
-* **Deterministic Asset Versioning:** [`AssetVersionManager.php`](file:///home/ahmed/projects/Magma/magma/assets/AssetVersionManager.php) and [`ViewHelper::asset()`](file:///home/ahmed/projects/Magma/magma/views/ViewHelper.php) generate cache-busting URLs using content hashing or release tags.
+* **View Composers & Presenters:** [`ViewComposerRegistry.php`](./magma/views/ViewComposerRegistry.php), [`FormViewComposer.php`](./magma/view/FormViewComposer.php), and [`AbstractPresenter.php`](./magma/presenters/AbstractPresenter.php) eliminate business logic from views and support unified "Create" vs "Edit" view modes.
+* **Deterministic Asset Versioning:** [`AssetVersionManager.php`](./magma/assets/AssetVersionManager.php) and [`ViewHelper::asset()`](./magma/views/ViewHelper.php) generate cache-busting URLs using content hashing or release tags.
 * **Output Buffer Isolation:** Nested output buffering (`ob_start` / `ob_get_clean`) guarantees that if a template fails midway through execution, corrupted partial markup is swallowed and never leaked to the client.
 
 ---
@@ -208,13 +208,13 @@ The presentation layer is rendered using a decoupled, secure `TemplateEngine` (`
 
 The client-side architecture follows the same decoupling principles as the backend, eschewing monolithic JavaScript frameworks in favor of clean, optimized Vanilla ES6:
 
-* **Deeply Immutable Reactive State Store:** [`ObservableStore.js`](file:///home/ahmed/projects/Magma/www/js/ObservableStore.js) implements the Observer Pattern with automatic subscription lifecycle teardown and a recursive `_deepFreeze()` algorithm that secures deeply nested objects from rogue mutations.
+* **Deeply Immutable Reactive State Store:** [`ObservableStore.js`](./www/js/ObservableStore.js) implements the Observer Pattern with automatic subscription lifecycle teardown and a recursive `_deepFreeze()` algorithm that secures deeply nested objects from rogue mutations.
 * **Garbage-Collected Event Bus:** Global document listeners feature defensive `isConnected` checks to gracefully unbind themselves if a component is ripped from the DOM dynamically, preventing zombie memory leaks.
-* **Declarative Action Routing:** [`MagmaActionDispatcher.js`](file:///home/ahmed/projects/Magma/www/js/MagmaActionDispatcher.js) and [`EventDelegator.js`](file:///home/ahmed/projects/Magma/www/js/EventDelegator.js) dispatch `data-action="entity:action"` attributes to ES6 controller handlers.
-* **O(N) Template Interpolation:** [`TemplateEngine.js`](file:///home/ahmed/projects/Magma/www/js/TemplateEngine.js) clones native HTML5 `<template>` fragments securely. It achieves O(N) Big-O time complexity by temporarily detaching nested `[data-loop]` nodes via comment placeholders before evaluating outer directives, preventing O(N*M) redundant DOM scans.
-* **DOM Sanitizer & WYSIWYG Editor:** [`DomSanitizer.js`](file:///home/ahmed/projects/Magma/www/js/DomSanitizer.js) enforces tag/attribute allowlists for rich-text inputs, paired with zero-dependency [`MagmaEditor.js`](file:///home/ahmed/projects/Magma/www/js/MagmaEditor.js).
-* **Enhanced Combobox:** [`MagmaCombobox.js`](file:///home/ahmed/projects/Magma/www/js/MagmaCombobox.js) supports debounced asynchronous queries, wildcard attribute propagation, and multi-line selected card rendering.
-* **CSS Cascade Layers:** [`utilities.css`](file:///home/ahmed/projects/Magma/www/css/components/utilities.css) and [`app.css`](file:///home/ahmed/projects/Magma/www/css/app.css) enforce native CSS Cascade Layers (`@layer reset, tokens, components, utilities, states;`), permanently eliminating `!important` specificity collisions.
+* **Declarative Action Routing:** [`MagmaActionDispatcher.js`](./www/js/MagmaActionDispatcher.js) and [`EventDelegator.js`](./www/js/EventDelegator.js) dispatch `data-action="entity:action"` attributes to ES6 controller handlers.
+* **O(N) Template Interpolation:** [`TemplateEngine.js`](./www/js/TemplateEngine.js) clones native HTML5 `<template>` fragments securely. It achieves O(N) Big-O time complexity by temporarily detaching nested `[data-loop]` nodes via comment placeholders before evaluating outer directives, preventing O(N*M) redundant DOM scans.
+* **DOM Sanitizer & WYSIWYG Editor:** [`DomSanitizer.js`](./www/js/DomSanitizer.js) enforces tag/attribute allowlists for rich-text inputs, paired with zero-dependency [`MagmaEditor.js`](./www/js/MagmaEditor.js).
+* **Enhanced Combobox:** [`MagmaCombobox.js`](./www/js/MagmaCombobox.js) supports debounced asynchronous queries, wildcard attribute propagation, and multi-line selected card rendering.
+* **CSS Cascade Layers:** [`utilities.css`](./www/css/components/utilities.css) and [`app.css`](./www/css/app.css) enforce native CSS Cascade Layers (`@layer reset, tokens, components, utilities, states;`), permanently eliminating `!important` specificity collisions.
 
 ---
 
@@ -222,27 +222,27 @@ The client-side architecture follows the same decoupling principles as the backe
 
 To ensure high availability and prevent blocking synchronous HTTP requests during heavy background tasks, Magma implements the **Transactional Outbox Pattern**:
 
-* **PostgreSQL Concurrent Outbox:** [`OutboxJobRepository.php`](file:///home/ahmed/projects/Magma/magma/database/OutboxJobRepository.php) records domain events atomically within the database transaction and fetches pending jobs using PostgreSQL's native `FOR UPDATE SKIP LOCKED` locking primitive.
-* **CLI Outbox Publisher Daemon:** [`bin/outbox_publisher.php`](file:///home/ahmed/projects/Magma/bin/outbox_publisher.php) polls and publishes outbox events to queues without statement churn or race conditions.
-* **Idempotent Projection Guards:** [`IdempotentProjectionGuard.php`](file:///home/ahmed/projects/Magma/magma/queue/IdempotentProjectionGuard.php) and [`AbstractProjectionWorker.php`](file:///home/ahmed/projects/Magma/magma/database/AbstractProjectionWorker.php) prevent race conditions and duplicate executions on read-model projection caches.
-* **Decoupled Worker Jobs:** [`AbstractDomainWorkerJob.php`](file:///home/ahmed/projects/Magma/magma/queue/AbstractDomainWorkerJob.php) standardizes Domain Service dependency injection into background queue workers.
+* **PostgreSQL Concurrent Outbox:** [`OutboxJobRepository.php`](./magma/database/OutboxJobRepository.php) records domain events atomically within the database transaction and fetches pending jobs using PostgreSQL's native `FOR UPDATE SKIP LOCKED` locking primitive.
+* **CLI Outbox Publisher Daemon:** [`bin/outbox_publisher.php`](./bin/outbox_publisher.php) polls and publishes outbox events to queues without statement churn or race conditions.
+* **Idempotent Projection Guards:** [`IdempotentProjectionGuard.php`](./magma/queue/IdempotentProjectionGuard.php) and [`AbstractProjectionWorker.php`](./magma/database/AbstractProjectionWorker.php) prevent race conditions and duplicate executions on read-model projection caches.
+* **Decoupled Worker Jobs:** [`AbstractDomainWorkerJob.php`](./magma/queue/AbstractDomainWorkerJob.php) standardizes Domain Service dependency injection into background queue workers.
 
 ---
 
 ## 11. Multi-Tenant Security, Storage & AST Boundary Auditing
 
-* **Pluggable Tenant Context:** [`TenantContext.php`](file:///home/ahmed/projects/Magma/magma/security/TenantContext.php) and [`TenantContextProviderInterface.php`](file:///home/ahmed/projects/Magma/magma/security/TenantContextProviderInterface.php) enforce tenant and venue boundaries across the request lifecycle.
-* **Static AST Boundary Auditor:** [`TenantSecurityAuditor.php`](file:///home/ahmed/projects/Magma/magma/validation/TenantSecurityAuditor.php) and [`bin/audit_schema.php`](file:///home/ahmed/projects/Magma/bin/audit_schema.php) perform static analysis to verify tenant foreign keys, composite indexes, and prohibit direct superglobal usage (`$_POST`, `$_GET`) in business services.
-* **Encapsulated Storage Layer:** [`StorageInterface.php`](file:///home/ahmed/projects/Magma/magma/infrastructure/storage/StorageInterface.php), [`LocalStorageService.php`](file:///home/ahmed/projects/Magma/magma/infrastructure/storage/LocalStorageService.php), and [`S3StorageService.php`](file:///home/ahmed/projects/Magma/magma/infrastructure/storage/S3StorageService.php) enforce binary `finfo` MIME validation, extension allowlists, and cryptographic filename randomization.
-* **Media Processing Service:** [`ImageProcessingService.php`](file:///home/ahmed/projects/Magma/magma/services/ImageProcessingService.php) utilizes native PHP `ext-gd` for square-center cropping and automatic WebP conversion.
+* **Pluggable Tenant Context:** [`TenantContext.php`](./magma/security/TenantContext.php) and [`TenantContextProviderInterface.php`](./magma/security/TenantContextProviderInterface.php) enforce tenant and venue boundaries across the request lifecycle.
+* **Static AST Boundary Auditor:** [`TenantSecurityAuditor.php`](./magma/validation/TenantSecurityAuditor.php) and [`bin/audit_schema.php`](./bin/audit_schema.php) perform static analysis to verify tenant foreign keys, composite indexes, and prohibit direct superglobal usage (`$_POST`, `$_GET`) in business services.
+* **Encapsulated Storage Layer:** [`StorageInterface.php`](./magma/infrastructure/storage/StorageInterface.php), [`LocalStorageService.php`](./magma/infrastructure/storage/LocalStorageService.php), and [`S3StorageService.php`](./magma/infrastructure/storage/S3StorageService.php) enforce binary `finfo` MIME validation, extension allowlists, and cryptographic filename randomization.
+* **Media Processing Service:** [`ImageProcessingService.php`](./magma/services/ImageProcessingService.php) utilizes native PHP `ext-gd` for square-center cropping and automatic WebP conversion.
 
 ---
 
 ## 12. High-Performance Optimizations & Production Diagnostics
 
-* **Content-Negotiated Error Boundary:** [`ErrorHandler.php`](file:///home/ahmed/projects/Magma/magma/error/ErrorHandler.php) captures uncaught `\Throwable` instances. For API/AJAX requests, it delegates to [`JsonErrorPresenter.php`](file:///home/ahmed/projects/Magma/magma/error/JsonErrorPresenter.php) to return structured JSON envelopes (400, 401, 403, 404, 422, 500).
-* **Interactive Developer Diagnostics:** When `APP_DEBUG=true`, [`DebugErrorPresenter.php`](file:///home/ahmed/projects/Magma/magma/error/DebugErrorPresenter.php) extracts and renders live source code context (±8 lines), interactive stack trace frames with argument dumps, request context, and PHP memory metrics. In production (`APP_DEBUG=false`), it renders a clean, user-friendly 500 error page with zero system path disclosure.
-* **Resilient Cache Deserialization:** [`RedisCache.php`](file:///home/ahmed/projects/Magma/magma/cache/RedisCache.php) and cached repository decorators gracefully trap and evict corrupted or outdated serialized payloads, falling back to fresh database queries without throwing fatal `TypeErrors`.
+* **Content-Negotiated Error Boundary:** [`ErrorHandler.php`](./magma/error/ErrorHandler.php) captures uncaught `\Throwable` instances. For API/AJAX requests, it delegates to [`JsonErrorPresenter.php`](./magma/error/JsonErrorPresenter.php) to return structured JSON envelopes (400, 401, 403, 404, 422, 500).
+* **Interactive Developer Diagnostics:** When `APP_DEBUG=true`, [`DebugErrorPresenter.php`](./magma/error/DebugErrorPresenter.php) extracts and renders live source code context (±8 lines), interactive stack trace frames with argument dumps, request context, and PHP memory metrics. In production (`APP_DEBUG=false`), it renders a clean, user-friendly 500 error page with zero system path disclosure.
+* **Resilient Cache Deserialization:** [`RedisCache.php`](./magma/cache/RedisCache.php) and cached repository decorators gracefully trap and evict corrupted or outdated serialized payloads, falling back to fresh database queries without throwing fatal `TypeErrors`.
 * **Memory-Streaming Generators (`yield`):** Repositories returning large collections stream records using PHP generators (`yield`), keeping memory consumption constant regardless of dataset size.
 
 ---
