@@ -27,36 +27,46 @@ use Magma\view\TemplateEngine;
  */
 class LoginController
 {
+    private AuthenticationService $authService;
+    private \Magma\view\HtmlResponseBuilderInterface $html;
+    private \Magma\http\SessionInterface $session;
+
+    public function __construct(
+        AuthenticationService $authService,
+        \Magma\view\HtmlResponseBuilderInterface $html,
+        \Magma\http\SessionInterface $session
+    ) {
+        $this->authService = $authService;
+        $this->html = $html;
+        $this->session = $session;
+    }
+
     /**
      * Handles the GET request for the login page.
      * 1. Checks for a "remember me" token and attempts auto-login.
      * 2. Checks if a user is already in the session.
      * 3. Renders the login form if neither of the above applies.
      */
-    public function login(
-        Request $request, 
-        AuthenticationService $authService, 
-        \Magma\view\HtmlResponseBuilderInterface $html, 
-        \Magma\http\SessionInterface $session
-    ): Response {
+    public function login(Request $request): Response 
+    {
         $token = $request->cookie('remember_user');
 
         if ($token) {
-            $result = $authService->attemptAutoLogin($token);
+            $result = $this->authService->attemptAutoLogin($token);
             if ($result->isSuccessful()) {
                 return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
             }
             
-            $response = $html->render('auth/login', ['title' => 'Login']);
+            $response = $this->html->render('auth/login', ['title' => 'Login']);
             return $this->applyAuthResult($result, $response, $request);
         }
 
-        if ($session->get('user')) {
-            $sessionUser = new \Magma\domain\AuthUser($session->get('user'));
+        if ($this->session->get('user')) {
+            $sessionUser = new \Magma\domain\AuthUser($this->session->get('user'));
             return $this->redirectToDashboard($sessionUser);
         }
 
-        return $html->render('auth/login', [
+        return $this->html->render('auth/login', [
             'title'   => 'Login',
         ]);
     }
@@ -68,21 +78,17 @@ class LoginController
      * 3. Redirects back with errors if unsuccessful.
      * 4. Applies auth result and redirects to dashboard if successful.
      */
-    public function authenticate(
-        LoginRequest $loginRequest, 
-        Request $request, 
-        AuthenticationService $authService, 
-        \Magma\http\SessionInterface $session
-    ): Response {
+    public function authenticate(LoginRequest $loginRequest, Request $request): Response 
+    {
         // Validation is automatically handled by RouteParameterResolver for the LoginRequest parameter.
         
         $dto = $loginRequest->toDTO();
 
-        $result = $authService->attempt($dto->email, $dto->password, $dto->rememberMe);
+        $result = $this->authService->attempt($dto->email, $dto->password, $dto->rememberMe);
 
         if (!$result->isSuccessful()) {
-            $session->set('old', ['email' => $dto->email]);
-            $session->set('errors', ['auth' => 'Invalid credentials']);
+            $this->session->set('old', ['email' => $dto->email]);
+            $this->session->set('errors', ['auth' => 'Invalid credentials']);
             return new RedirectResponse('/login');
         }
 

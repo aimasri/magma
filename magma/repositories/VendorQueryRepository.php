@@ -40,8 +40,11 @@ class VendorQueryRepository extends AbstractQueryRepository implements VendorQue
     public function getAll(int $limit = 100, ?int $lastId = null): iterable
     {
         $sql = "SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM vendors";
+        $hasWhere = false;
+        
         if ($lastId !== null) {
             $sql .= " WHERE id > :last_id";
+            $hasWhere = true;
         }
         $sql .= " ORDER BY id ASC LIMIT :limit";
         

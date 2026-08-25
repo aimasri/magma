@@ -5,6 +5,10 @@
  * - Single Responsibility: Acts as the root manifest file importing domain component stylesheets in explicit @layer hierarchy.
  * - Adheres strictly to DRY, SOLID, and native CSS Cascade Layers (@layer reset, tokens, components, utilities, states).
  *
+ * Why / Why this design:
+ * - Centralized Manifest Pattern: Ensures a single HTTP request for CSS in production (when compiled), while keeping development highly modular.
+ * - Cascade Layers (@layer): Strictly defines specificity hierarchy to prevent `!important` wars and layout thrashing across themes.
+ *
  * Teaching notes:
  * - Employs a strict layer architecture. Avoid adding styles directly here.
  * - Centralizes imports to maintain consistent build/cascade behavior.
@@ -16,6 +20,7 @@
 @import url('components/buttons.css');
 @import url('components/badges.css');
 @import url('components/cards.css');
+@import url('components/modal.css');
 @import url('components/combobox.css');
 @import url('components/editor.css');
 @import url('components/welcome.css');

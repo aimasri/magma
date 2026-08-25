@@ -1,0 +1,121 @@
+<?php
+/**
+ * Title: Not Found Error View Template
+ *
+ * Purpose:
+ * - Renders a clean, user-friendly fallback error page when a requested URL or resource is not found (404).
+ *
+ * Teaching notes:
+ * - This template acts as an excellent standalone presentation layer fallback.
+ *
+ * @var string|null $message Safe error description.
+ * @var int|null $code HTTP status code (404).
+ * @var string|null $trace Exception stack trace (optional/unused for 404 usually).
+ * @var bool|null $debug Whether debug diagnostics are active.
+ */
+$errorCode = $code ?? 404;
+$errorMessage = $message ?? 'The page or resource you are looking for does not exist or has been moved.';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found | Magma</title>
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-warning: #fbbf24;
+            --border-card: #334155;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .error-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            max-width: 680px;
+            width: 100%;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .error-badge {
+            display: inline-block;
+            background-color: rgba(251, 191, 36, 0.15);
+            color: var(--accent-warning);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            margin-bottom: 1.25rem;
+            letter-spacing: 0.05em;
+        }
+        .error-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+        .error-desc {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-weight: 600;
+            padding: 0.65rem 1.25rem;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: opacity 0.15s ease;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .btn-outline {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-card);
+        }
+        .btn-outline:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <span class="error-badge">Error <?= htmlspecialchars((string)$errorCode, ENT_QUOTES, 'UTF-8') ?></span>
+        <h1 class="error-title">Page not found</h1>
+        <p class="error-desc"><?= htmlspecialchars((string)$errorMessage, ENT_QUOTES, 'UTF-8') ?></p>
+        
+        <div class="actions">
+            <a href="/" class="btn">Return to homepage</a>
+            <a href="javascript:history.back()" class="btn btn-outline">Go back</a>
+        </div>
+    </div>
+</body>
+</html>

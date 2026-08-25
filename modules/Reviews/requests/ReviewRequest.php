@@ -39,9 +39,9 @@ class ReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'author'  => \App\constants\AppConstants::RULE_REVIEW_AUTHOR,
-            'comment' => \App\constants\AppConstants::RULE_REVIEW_COMMENT,
-            'rating'  => \App\constants\AppConstants::RULE_REVIEW_RATING
+            'author'  => 'required|min:2',
+            'comment' => 'required|min:5|max:1000',
+            'rating'  => 'required|numeric|min:1|max:5'
         ];
     }
 

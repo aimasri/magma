@@ -63,88 +63,101 @@ class ImageProcessingService
         int $quality = 85
     ): string {
         $sourceData = $this->resolveSourceData($sourceFile);
-        $srcImage = @imagecreatefromstring($sourceData);
+        $srcImage = $this->createImageFromSource($sourceData);
+        $dstImage = null;
 
+        try {
+            $dstImage = $this->cropAndResize($srcImage, $targetWidth, $targetHeight);
+            $webpBytes = $this->encodeToWebp($dstImage, $quality);
+            return $this->storeWebp($webpBytes, $destinationDir);
+        } finally {
+            imagedestroy($srcImage);
+            if ($dstImage !== null) imagedestroy($dstImage);
+        }
+    }
+
+    private function createImageFromSource(string $sourceData): GdImage
+    {
+        $srcImage = @imagecreatefromstring($sourceData);
         if ($srcImage === false) {
             throw new RuntimeException("Failed to decode image data into valid GD resource.");
         }
+        return $srcImage;
+    }
 
-        try {
-            $srcWidth = imagesx($srcImage);
-            $srcHeight = imagesy($srcImage);
+    private function cropAndResize(GdImage $srcImage, int $targetWidth, int $targetHeight): GdImage
+    {
+        $srcWidth = imagesx($srcImage);
+        $srcHeight = imagesy($srcImage);
 
-            if ($srcWidth <= 0 || $srcHeight <= 0) {
-                throw new RuntimeException("Invalid image dimensions detected.");
-            }
-
-            // Calculate center-crop coordinates
-            $srcAspect = $srcWidth / $srcHeight;
-            $targetAspect = $targetWidth / $targetHeight;
-
-            if ($srcAspect >= $targetAspect) {
-                // Source is wider: crop sides
-                $cropHeight = $srcHeight;
-                $cropWidth = (int)round($srcHeight * $targetAspect);
-                $srcX = (int)round(($srcWidth - $cropWidth) / 2);
-                $srcY = 0;
-            } else {
-                // Source is taller: crop top/bottom
-                $cropWidth = $srcWidth;
-                $cropHeight = (int)round($srcWidth / $targetAspect);
-                $srcX = 0;
-                $srcY = (int)round(($srcHeight - $cropHeight) / 2);
-            }
-
-            $dstImage = imagecreatetruecolor($targetWidth, $targetHeight);
-            if ($dstImage === false) {
-                throw new RuntimeException("Failed to create destination GD truecolor image canvas.");
-            }
-
-            // Preserve alpha channel transparency
-            imagealphablending($dstImage, false);
-            imagesavealpha($dstImage, true);
-            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
-            if ($transparent !== false) {
-                imagefilledrectangle($dstImage, 0, 0, $targetWidth, $targetHeight, $transparent);
-            }
-
-            // High-quality resampling
-            imagecopyresampled(
-                $dstImage,
-                $srcImage,
-                0,
-                0,
-                $srcX,
-                $srcY,
-                $targetWidth,
-                $targetHeight,
-                $cropWidth,
-                $cropHeight
-            );
-
-            // Export to WebP binary stream
-            ob_start();
-            imagewebp($dstImage, null, $quality);
-            $webpBytes = ob_get_clean();
-
-            imagedestroy($dstImage);
-
-            if ($webpBytes === false || $webpBytes === '') {
-                throw new RuntimeException("Failed to encode image to WebP format.");
-            }
-
-            $token = bin2hex(random_bytes(16));
-            $cleanDir = trim(str_replace('\\', '/', $destinationDir), '/');
-            $key = $cleanDir !== '' ? "{$cleanDir}/{$token}.webp" : "{$token}.webp";
-
-            if (!$this->storage->put($key, $webpBytes)) {
-                throw new RuntimeException("Failed to persist processed image to storage key [{$key}].");
-            }
-
-            return $key;
-        } finally {
-            imagedestroy($srcImage);
+        if ($srcWidth <= 0 || $srcHeight <= 0) {
+            throw new RuntimeException("Invalid image dimensions detected.");
         }
+
+        $srcAspect = $srcWidth / $srcHeight;
+        $targetAspect = $targetWidth / $targetHeight;
+
+        if ($srcAspect >= $targetAspect) {
+            $cropHeight = $srcHeight;
+            $cropWidth = (int)round($srcHeight * $targetAspect);
+            $srcX = (int)round(($srcWidth - $cropWidth) / 2);
+            $srcY = 0;
+        } else {
+            $cropWidth = $srcWidth;
+            $cropHeight = (int)round($srcWidth / $targetAspect);
+            $srcX = 0;
+            $srcY = (int)round(($srcHeight - $cropHeight) / 2);
+        }
+
+        $dstImage = $this->createTrueColorCanvas($targetWidth, $targetHeight);
+
+        imagecopyresampled(
+            $dstImage, $srcImage, 0, 0, $srcX, $srcY,
+            $targetWidth, $targetHeight, $cropWidth, $cropHeight
+        );
+
+        return $dstImage;
+    }
+
+    private function createTrueColorCanvas(int $width, int $height): GdImage
+    {
+        $dstImage = imagecreatetruecolor($width, $height);
+        if ($dstImage === false) {
+            throw new RuntimeException("Failed to create destination GD truecolor image canvas.");
+        }
+
+        imagealphablending($dstImage, false);
+        imagesavealpha($dstImage, true);
+        $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
+        if ($transparent !== false) {
+            imagefilledrectangle($dstImage, 0, 0, $width, $height, $transparent);
+        }
+
+        return $dstImage;
+    }
+
+    private function encodeToWebp(GdImage $dstImage, int $quality): string
+    {
+        ob_start();
+        imagewebp($dstImage, null, $quality);
+        $webpBytes = ob_get_clean();
+
+        if ($webpBytes === false || $webpBytes === '') {
+            throw new RuntimeException("Failed to encode image to WebP format.");
+        }
+        return $webpBytes;
+    }
+
+    private function storeWebp(string $webpBytes, string $destinationDir): string
+    {
+        $token = bin2hex(random_bytes(16));
+        $cleanDir = trim(str_replace('\\', '/', $destinationDir), '/');
+        $key = $cleanDir !== '' ? "{$cleanDir}/{$token}.webp" : "{$token}.webp";
+
+        if (!$this->storage->put($key, $webpBytes)) {
+            throw new RuntimeException("Failed to persist processed image to storage key [{$key}].");
+        }
+        return $key;
     }
 
     /**
@@ -179,49 +192,19 @@ class ImageProcessingService
         string $destinationDir = 'uploads/webp'
     ): string {
         $sourceData = $this->resolveSourceData($sourceFile);
-        $srcImage = @imagecreatefromstring($sourceData);
-
-        if ($srcImage === false) {
-            throw new RuntimeException("Failed to decode image data.");
-        }
+        $srcImage = $this->createImageFromSource($sourceData);
 
         try {
             $width = imagesx($srcImage);
             $height = imagesy($srcImage);
 
-            $dstImage = imagecreatetruecolor($width, $height);
-            if ($dstImage === false) {
-                throw new RuntimeException("Failed to allocate destination GD canvas.");
-            }
-
-            imagealphablending($dstImage, false);
-            imagesavealpha($dstImage, true);
-            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
-            if ($transparent !== false) {
-                imagefilledrectangle($dstImage, 0, 0, $width, $height, $transparent);
-            }
-
+            $dstImage = $this->createTrueColorCanvas($width, $height);
             imagecopy($dstImage, $srcImage, 0, 0, 0, 0, $width, $height);
 
-            ob_start();
-            imagewebp($dstImage, null, $quality);
-            $webpBytes = ob_get_clean();
-
+            $webpBytes = $this->encodeToWebp($dstImage, $quality);
             imagedestroy($dstImage);
 
-            if ($webpBytes === false || $webpBytes === '') {
-                throw new RuntimeException("Failed to encode WebP image.");
-            }
-
-            $token = bin2hex(random_bytes(16));
-            $cleanDir = trim(str_replace('\\', '/', $destinationDir), '/');
-            $key = $cleanDir !== '' ? "{$cleanDir}/{$token}.webp" : "{$token}.webp";
-
-            if (!$this->storage->put($key, $webpBytes)) {
-                throw new RuntimeException("Failed to save WebP image to storage.");
-            }
-
-            return $key;
+            return $this->storeWebp($webpBytes, $destinationDir);
         } finally {
             imagedestroy($srcImage);
         }

@@ -175,35 +175,6 @@ export class ObservableStore {
     }
 
     /**
-     * Binds a DOM element's lifecycle to state changes.
-     * Automatically unsubscribes when the element is removed or an AbortSignal fires.
-     *
-     * @param {HTMLElement} element Target DOM element.
-     * @param {Function} renderFn Function receiving `(state, element)`.
-     * @param {Function|null} [selector=null] State slice selector.
-     * @param {AbortSignal|null} [signal=null]
-     * @returns {Function} Unsubscribe function.
-     */
-    connect(element, renderFn, selector = null, signal = null) {
-        if (!element || !(element instanceof Element)) {
-            throw new TypeError("ObservableStore.connect requires a valid HTMLElement.");
-        }
-
-        // Initial render
-        renderFn(selector ? selector(this._state) : this._state, element);
-
-        const unsubscribe = this.subscribe((state) => {
-            if (!document.body.contains(element)) {
-                unsubscribe();
-                return;
-            }
-            renderFn(selector ? selector(state) : state, element);
-        }, selector, signal);
-
-        return unsubscribe;
-    }
-
-    /**
      * Internal subscriber notification engine with slice change detection.
      *
      * @param {Object} prevState
@@ -300,3 +271,5 @@ export class ObservableStore {
         return obj;
     }
 }
+
+

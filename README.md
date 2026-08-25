@@ -4,11 +4,12 @@ Welcome to the Magma Framework source code. This repository is intentionally des
 
 Following a rigorous multi-pass architectural hardening and upstream consolidation phase, this codebase represents the pinnacle of clean architecture, strict SOLID principles, and defensive programming for high-concurrency, multi-tenant SaaS environments.
 
-By exploring this codebase, you will learn the fundamental architectural patterns that power modern enterprise web systems, with thorough, docblock-level explanations of *how* and *why* every component is built. This README serves as the definitive syllabus and technical reference for the framework's design.
+By exploring this codebase, you will learn the fundamental architectural patterns that power modern enterprise web systems, with thorough, docblock-level explanations of *how* and *why* every component is built. This README serves as the technical reference for the framework's features. For the definitive, 15-module step-by-step Masterclass on how this architecture is constructed, please refer to the `textbook.md` file (or view the `/syllabus` route in the browser).
 
 ---
 
 ## Table of Contents
+0. [The Masterclass Textbook (Syllabus)](#00-the-masterclass-textbook-syllabus)
 1. [Introduction & Architectural Philosophy](#01-introduction--architectural-philosophy)
 2. [The Request Lifecycle & Front Controller](#02-the-request-lifecycle--front-controller)
 3. [The Dependency Injection Container](#03-the-dependency-injection-container)
@@ -22,6 +23,16 @@ By exploring this codebase, you will learn the fundamental architectural pattern
 11. [Multi-Tenant Security, Storage & AST Boundary Auditing](#11-multi-tenant-security-storage--ast-boundary-auditing)
 12. [High-Performance Optimizations & Production Diagnostics](#12-high-performance-optimizations--production-diagnostics)
 13. [Kernel CLI Toolkit Reference](#13-kernel-cli-toolkit-reference)
+
+---
+
+## 00. The Masterclass Textbook (Syllabus)
+
+While this README serves as a high-level feature overview, the true educational core of Magma is the **Masterclass Textbook**. 
+
+Located in `textbook.md` (and beautifully rendered on the `/syllabus` route of the application), this 1,800+ line document is a comprehensive, 15-module course that teaches you exactly *why* and *how* to build this architecture from scratch. It covers everything from Dependency Injection and Dual-Mode Kernels, to O(1) Regex Routing, CQRS Persistence, and Static AST Auditing. 
+
+**It is highly recommended you read the textbook first to understand the philosophy behind the code.**
 
 ---
 
@@ -248,6 +259,19 @@ Magma provides a set of standalone CLI utilities designed for deployment pipelin
 | **Outbox Publisher Daemon** | `php bin/outbox_publisher.php` | Polls PostgreSQL transactional outbox table via `FOR UPDATE SKIP LOCKED`. |
 | **Redis Queue Worker** | `php bin/worker.php` | Runs the continuous background Redis list queue worker daemon. |
 | **Token Cleanup** | `php app/bin/cleanup_tokens.php` | Prunes expired password reset tokens and remember-me credentials. |
+
+---
+
+## 14. The Geological Architecture Evolution
+
+Magma’s ecosystem is structured through a geological metaphor, illustrating how code evolves from foundational principles to hardened infrastructure, and eventually into specialized modules and external services.
+
+* **Magma:** The pure, unseen foundational core logic. This is the inner mantle—Vanilla PHP, strictly adhering to CQRS and SOLID, devoid of external dependencies. It is raw, theoretical, and powerful.
+* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It's what happens when Magma hits the surface environment and hardens. Tests and pipelines give the raw code structure, predictability, and safety.
+* **Basalt & Obsidian:** Opinionated business logic modules built on top. Like cooled, structured rock formations, these represent the tangible application layers where domain-specific logic resides.
+* **Granite:** Headless, ultra-secure, backend-only microservices (B2B API data brokering). Dense, impermeable, and designed for heavy lifting, Granite layers handle secure system-to-system communications without UI overhead.
+* **Pumice:** Secondary ecosystem tools like a Redis caching layer. Lightweight, porous, and fast, Pumice accelerates the system by reducing friction and latency.
+* **Tephra:** Event broadcasting and webhooks. Like volcanic ash carried by the wind, Tephra represents asynchronous events and webhooks distributed across the ecosystem to keep external systems eventually consistent.
 
 ---
 

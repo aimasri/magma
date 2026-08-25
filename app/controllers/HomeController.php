@@ -45,4 +45,17 @@ class HomeController
             'diagnostics' => $diagnostics,
         ], null);
     }
+
+    /**
+     * Renders the masterclass syllabus page.
+     *
+     * @return \Magma\http\Response
+     */
+    public function syllabus(
+        \Magma\view\HtmlResponseBuilderInterface $html
+    ): \Magma\http\Response {
+        return $html->render('syllabus', [
+            'title' => 'Architectural Syllabus | Magma Framework'
+        ], null);
+    }
 }

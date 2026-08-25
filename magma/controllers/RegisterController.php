@@ -26,14 +26,34 @@ use Magma\view\TemplateEngine;
  */
 class RegisterController
 {
+    private \Magma\view\HtmlResponseBuilderInterface $html;
+    private RegistrationService $registrationService;
+    private AuthenticationService $authService;
+    private \Magma\interfaces\cqrs\UserQueryInterface $userQuery;
+    private \Magma\http\SessionInterface $session;
+
+    public function __construct(
+        \Magma\view\HtmlResponseBuilderInterface $html,
+        RegistrationService $registrationService,
+        AuthenticationService $authService,
+        \Magma\interfaces\cqrs\UserQueryInterface $userQuery,
+        \Magma\http\SessionInterface $session
+    ) {
+        $this->html = $html;
+        $this->registrationService = $registrationService;
+        $this->authService = $authService;
+        $this->userQuery = $userQuery;
+        $this->session = $session;
+    }
+
     /**
      * Renders the registration form view.
      * 
      * @return Response
      */
-    public function register(\Magma\view\HtmlResponseBuilderInterface $html): Response
+    public function register(): Response
     {
-        return $html->render('auth/register', [
+        return $this->html->render('auth/register', [
             'title'   => 'Create Account',
         ]);
     }
@@ -50,20 +70,20 @@ class RegisterController
      * 
      * @return Response
      */
-    public function store(
-        RegisterRequest $registerRequest,
-        RegistrationService $registrationService, 
-        AuthenticationService $authService, 
-        \Magma\http\SessionInterface $session
-    ): Response {
+    public function store(RegisterRequest $registerRequest): Response 
+    {
         $dto = $registerRequest->toDTO();
         
         try {
-            $user = $registrationService->registerUser($dto);
-            $authService->login($user);
+            $userId = $this->registrationService->registerUser($dto);
+            $user = $this->userQuery->findById($userId);
+            
+            if ($user) {
+                $this->authService->login($user);
+            }
         } catch (\Magma\validation\ValidationException $e) {
-            $session->set('errors', $e->getErrors());
-            $session->set('old', ['name' => $dto->name, 'email' => $dto->email]);
+            $this->session->set('errors', $e->getErrors());
+            $this->session->set('old', ['name' => $dto->name, 'email' => $dto->email]);
             return new RedirectResponse('/register');
         }
 

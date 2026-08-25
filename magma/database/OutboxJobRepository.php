@@ -58,12 +58,15 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         $limit = max(1, min($limit, 1000));
         $pdo = $this->dbManager->getWriteConnection();
 
-        $sql = 'SELECT "id", "queue", "handler", "payload", "headers", "attempts", "created_at" '
-             . 'FROM "outbox_jobs" '
-             . 'WHERE "locked_at" IS NULL OR "locked_at" < NOW() - INTERVAL \'5 minutes\' '
-             . 'ORDER BY "id" ASC '
-             . 'LIMIT :limit '
-             . 'FOR UPDATE SKIP LOCKED';
+        $sql = 'UPDATE "outbox_jobs" '
+             . 'SET "locked_at" = NOW() '
+             . 'WHERE "id" IN ('
+             . '    SELECT "id" FROM "outbox_jobs" '
+             . '    WHERE "locked_at" IS NULL OR "locked_at" < NOW() - INTERVAL \'5 minutes\' '
+             . '    ORDER BY "id" ASC '
+             . '    LIMIT :limit '
+             . '    FOR UPDATE SKIP LOCKED'
+             . ') RETURNING "id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);

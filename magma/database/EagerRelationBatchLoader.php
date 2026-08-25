@@ -111,7 +111,7 @@ class EagerRelationBatchLoader
             $params[':tenant_id'] = $tenantId;
         }
 
-        $sql = "SELECT {$selectClause} FROM \"{$childTable}\" WHERE \"{$foreignKey}\" IN ({$inClause}){$tenantClause}";
+        $sql = "SELECT {$selectClause} FROM \"{$childTable}\" WHERE \"{$foreignKey}\" IN ({$inClause}){$tenantClause} LIMIT 10000";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $childRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -226,7 +226,7 @@ class EagerRelationBatchLoader
         $sql = "SELECT {$selectClause}
                 FROM \"{$pivotTable}\" pivot
                 INNER JOIN \"{$relatedTable}\" rel ON pivot.\"{$relatedPivotKey}\" = rel.\"{$relatedPrimaryKey}\"
-                WHERE pivot.\"{$foreignPivotKey}\" IN ({$inClause}){$tenantClause}";
+                WHERE pivot.\"{$foreignPivotKey}\" IN ({$inClause}){$tenantClause} LIMIT 10000";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);

@@ -5,6 +5,9 @@
  * - Single Responsibility: Encapsulates surface containers, panels, and card grids.
  * - Open/Closed: Allows extension through variant modifier classes (`.card--elevated`, `.card--accent-flame`, `.card--interactive`).
  *
+ * Why / Why this design:
+ * - Composition over Inheritance: Rather than building complex monolithic components (like a "DashboardCard"), we provide the primitive `.card` container and allow the layout layer to compose content inside it.
+ *
  * Teaching notes:
  * - Cards are basic containers. Inner padding and borders are predefined to maintain unified structural rhythm.
  * - Use standard `.card-grid` layouts for cohesive listing.

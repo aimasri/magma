@@ -47,22 +47,17 @@ class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteR
             throw new \RuntimeException('Tenant context is required for querying site reviews.');
         }
 
+        $pagination = new \Magma\dto\PaginationDTO(limit: $limit, lastId: $lastId);
+        
         $sql = "SELECT id, comment, author, rating FROM site_reviews WHERE status = :status AND tenant_id = :tenant_id";
-        if ($lastId !== null) {
-            $sql .= " AND id < :last_id";
-        }
-        $sql .= " ORDER BY id DESC LIMIT :limit";
+        $params = [
+            ':status' => Review::STATUS_APPROVED,
+            ':tenant_id' => $tenantId
+        ];
         
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->bindValue(':status', Review::STATUS_APPROVED, \PDO::PARAM_STR);
-        $stmt->bindValue(':tenant_id', $tenantId, \PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
-        if ($lastId !== null) {
-            $stmt->bindValue(':last_id', $lastId, \PDO::PARAM_INT);
-        }
-        $stmt->execute();
+        $result = $this->cursorPaginate($sql, $params, $pagination, 'id', 'DESC');
         
-        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+        foreach ($result['items'] as $row) {
             yield new ReviewDTO(
                 author: $row['author'],
                 comment: $row['comment'],

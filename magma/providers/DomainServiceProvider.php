@@ -75,14 +75,21 @@ class DomainServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(PasswordResetService::class, function ($c) {
-            return new PasswordResetService(
-                $c->get(UserCommandInterface::class),
+        $container->set(\Magma\services\PasswordResetRequestService::class, function ($c) {
+            return new \Magma\services\PasswordResetRequestService(
                 $c->get(UserQueryInterface::class),
                 $c->get(\Magma\repositories\PasswordResetTokenRepository::class),
-                $c->get(\Magma\repositories\RememberTokenRepository::class),
                 $c->get(QueueInterface::class),
                 $c->get(UrlGenerator::class),
+                $c->get(TransactionManagerInterface::class)
+            );
+        });
+
+        $container->set(\Magma\services\PasswordResetCompletionService::class, function ($c) {
+            return new \Magma\services\PasswordResetCompletionService(
+                $c->get(UserCommandInterface::class),
+                $c->get(\Magma\repositories\PasswordResetTokenRepository::class),
+                $c->get(\Magma\repositories\RememberTokenRepository::class),
                 $c->get(TransactionManagerInterface::class)
             );
         });
@@ -104,7 +111,6 @@ class DomainServiceProvider implements ServiceProviderInterface
         $container->set(RegistrationService::class, function ($c) {
             return new RegistrationService(
                 $c->get(UserCommandInterface::class),
-                $c->get(UserQueryInterface::class),
                 $c->get(\Magma\interfaces\EventDispatcherInterface::class),
                 $c->get(TransactionManagerInterface::class)
             );

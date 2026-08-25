@@ -5,6 +5,9 @@
  * - Single Responsibility: Encapsulates interactive button and link trigger styling.
  * - Interface Segregation: Distinguishes between primary, secondary, outline, and small modifiers.
  *
+ * Why / Why this design:
+ * - Base-Modifier Pattern (BEM): We define the structural baseline in `.btn`, and apply visual state via `.btn--primary`. This drastically reduces CSS duplication.
+ *
  * Teaching notes:
  * - Avoid tying styles to specific HTML elements; buttons can be `<a>` or `<button>`.
  * - Uses variables for transitions to ensure a unified feel across the application.
@@ -29,12 +32,17 @@
         user-select: none;
     }
 
+    .btn:focus-visible {
+        outline: 2px solid var(--border-focus, #ffdbbb);
+        outline-offset: 2px;
+    }
+
     .btn--primary {
         background-color: transparent;
         color: var(--color-success);
     }
     .btn--primary:hover {
-        background-color: rgba(255, 183, 3, 0.1);
+        background-color: var(--color-success-subtle);
     }
 
     .btn--info {
@@ -51,7 +59,7 @@
         border-color: transparent;
     }
     .btn--outline:hover {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: var(--color-info-subtle);
         border-color: transparent;
     }
 

@@ -29,6 +29,10 @@ use App\constants\AppConstants;
  */
 readonly class Review
 {
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_APPROVED = 'approved';
+    public const STATUS_REJECTED = 'rejected';
+
     private string $author;
     private string $comment;
     private int $rating;
@@ -55,7 +59,7 @@ readonly class Review
         $this->author = $author;
         $this->comment = $comment;
         $this->rating = $rating;
-        $this->status = AppConstants::REVIEW_STATUS_PENDING;
+        $this->status = self::STATUS_PENDING;
     }
 
     /**

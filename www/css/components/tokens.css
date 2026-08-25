@@ -5,6 +5,9 @@
  * - Single Responsibility Principle (SRP): Centralizes all design tokens (colors, typography, spacing, elevations, transitions).
  * - Open/Closed Principle (OCP): Provides a standardized token contract allowing theme switching (dark/light) without editing components.
  *
+ * Why / Why this design:
+ * - Single Source of Truth: Hardcoded hex colors in components cause visual regressions during rebranding. Extracting to root variables ensures a 1-to-1 mapping across the entire UI.
+ *
  * Teaching notes:
  * - Uses native CSS variables scoped to :root and CSS Cascade Layer (@layer tokens).
  * - Modifying tokens propagates through all components and utilities instantly.
@@ -25,7 +28,7 @@
         --text-danger: #ffdbbb; /* Light orange */
         
         /* Accent & Brand Colors */
-        --brand-flame: #e80414; /* Vivid Red instead of peach */
+        --brand-flame: #ff5252; /* Vivid Red adjusted for accessible contrast on dark backgrounds */
         --brand-flame-hover: #b0040b; 
         --brand-flame-subtle: rgba(232, 4, 20, 0.15);
         

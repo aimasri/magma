@@ -77,7 +77,7 @@ $serverOs = $diag->serverOs;
             <div class="welcome-hero__actions">
                 <a href="#philosophy" class="btn btn--primary">Engineering philosophy</a>
                 <a href="#lifecycle" class="btn btn--outline">Request lifecycle</a>
-                <a href="#modules" class="btn btn--outline">Architectural syllabus</a>
+                <a href="/syllabus" class="btn btn--outline">Architectural syllabus</a>
                 <a href="#cli-tools" class="btn btn--outline">CLI utilities</a>
             </div>
         </header>
@@ -89,30 +89,41 @@ $serverOs = $diag->serverOs;
                 <span class="badge badge--brand">Zero magic</span>
             </div>
 
-            <div class="philosophy-grid">
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">SOLID principles & DIP</h3>
-                    <p class="philosophy-item__desc">
-                        Favor interface injection over concrete instantiation. Classes hold a single responsibility and high cohesion.
-                    </p>
+            <div class="philosophy-gallery">
+                <div class="gallery-card">
+                    <h3 class="gallery-card__title">SOLID & DIP</h3>
+                    <div class="gallery-card__content">
+                        <p class="gallery-card__desc">
+                            Favor interface injection over concrete instantiation. Classes hold a single responsibility and high cohesion.
+                        </p>
+                    </div>
                 </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Separation of concerns</h3>
-                    <p class="philosophy-item__desc">
-                        Controllers never query SQL; views never perform business math; repositories isolate data persistence entirely.
-                    </p>
+
+                <div class="gallery-card">
+                    <h3 class="gallery-card__title">Separation of concerns</h3>
+                    <div class="gallery-card__content">
+                        <p class="gallery-card__desc">
+                            Controllers never query SQL; views never perform business math; repositories isolate data persistence entirely.
+                        </p>
+                    </div>
                 </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Pragmatic DDD</h3>
-                    <p class="philosophy-item__desc">
-                        Behavior belongs with data. Skinny domain entities manage their own state and sanitization; services orchestrate.
-                    </p>
+
+                <div class="gallery-card">
+                    <h3 class="gallery-card__title">Pragmatic DDD</h3>
+                    <div class="gallery-card__content">
+                        <p class="gallery-card__desc">
+                            Behavior belongs with data. Skinny domain entities manage their own state and sanitization; services orchestrate.
+                        </p>
+                    </div>
                 </div>
-                <div class="philosophy-item">
-                    <h3 class="philosophy-item__title">Instructional docblocks</h3>
-                    <p class="philosophy-item__desc">
-                        Every core file explains its title, purpose, architectural rationale, and teaching notes with strict scalar types.
-                    </p>
+
+                <div class="gallery-card">
+                    <h3 class="gallery-card__title">Instructional docblocks</h3>
+                    <div class="gallery-card__content">
+                        <p class="gallery-card__desc">
+                            Every core file explains its title, purpose, architectural rationale, and teaching notes with strict scalar types.
+                        </p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -120,261 +131,138 @@ $serverOs = $diag->serverOs;
         <!-- Request Lifecycle & Onion Stepper -->
         <section id="lifecycle">
             <div class="section-header">
-                <h2 class="section-header__title">Request lifecycle & front controller</h2>
-                <span class="badge badge--info">Onion architecture</span>
+                <h2 class="section-header__title">Magma core architecture</h2>
+                <span class="badge badge--info">System topology</span>
             </div>
 
-            <div class="lifecycle-stepper">
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 01</span>
-                    <h3 class="lifecycle-step__title">Front controller</h3>
-                    <p class="lifecycle-step__desc">Funnel requests through <code>www/index.php</code>; keep logic outside document root.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 02</span>
-                    <h3 class="lifecycle-step__title">Bootstrap & DI</h3>
-                    <p class="lifecycle-step__desc">Load environment, register service providers, and initialize container autowiring.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 03</span>
-                    <h3 class="lifecycle-step__title">Middleware onion</h3>
-                    <p class="lifecycle-step__desc">Process inward pipeline: tenant context, CSRF token, rate limiting, and security headers.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 04</span>
-                    <h3 class="lifecycle-step__title">PCRE router</h3>
-                    <p class="lifecycle-step__desc">Match compiled route definition and execute Reflection parameter auto-wiring.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 05</span>
-                    <h3 class="lifecycle-step__title">FormRequest</h3>
-                    <p class="lifecycle-step__desc">Validate strongly-typed input DTOs before the controller action is invoked.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 06</span>
-                    <h3 class="lifecycle-step__title">Domain service</h3>
-                    <p class="lifecycle-step__desc">Thin controller delegates business actions to domain services and repositories.</p>
-                </div>
-                <div class="lifecycle-step">
-                    <span class="lifecycle-step__num">Step 07</span>
-                    <h3 class="lifecycle-step__title">Response exit</h3>
-                    <p class="lifecycle-step__desc">Render view or JSON envelope, unwinding outward through middleware layers.</p>
-                </div>
+            <div class="lifecycle-diagram-wrapper">
+                <button type="button" onclick="document.getElementById('architecture-modal').showModal()" class="lifecycle-diagram-btn" title="Click to view full architecture diagram">
+                    <img src="/images/architecture-lifecycle.jpg" alt="Magma Request Lifecycle and Front Controller Architecture Diagram" class="lifecycle-diagram-img">
+                </button>
             </div>
+            
+            <dialog id="architecture-modal" class="architecture-modal">
+                <form method="dialog" class="architecture-modal__form">
+                    <button type="submit" class="architecture-modal__close" title="Close modal">&times;</button>
+                </form>
+                <img src="/images/architecture-lifecycle.jpg" alt="Full Architecture Diagram" class="architecture-modal__img">
+            </dialog>
+
+            <script>
+                // Light dismiss for the native dialog
+                const archModal = document.getElementById('architecture-modal');
+                archModal.addEventListener('click', (e) => {
+                    if (e.target === archModal) archModal.close();
+                });
+            </script>
         </section>
 
         <!-- 12-Module Architectural Syllabus (Direct from README.md) -->
         <section id="modules">
             <div class="section-header">
                 <h2 class="section-header__title">Architectural syllabus & module catalog</h2>
-                <span class="badge badge--neutral">12 core chapters</span>
             </div>
+            
+            <p class="section-description">
+                Explore the definitive guide to Magma's enterprise architecture. This masterclass textbook details our explicit, vanilla PHP/JS design philosophy. <a href="/syllabus">Click here to read the full syllabus</a>.
+            </p>
 
             <div class="syllabus-grid">
                 <!-- Chapter 01 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 01</span>
-                        <span class="badge badge--neutral">Philosophy</span>
-                    </div>
-                    <h3 class="module-card__title">Architectural Philosophy</h3>
-                    <p class="module-card__desc">
-                        Zero black-box magic. Explicit dependency injection, strict scalar typing, defensive exception isolation, and educational docblocks across all kernel files.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">SOLID</span>
-                        <span class="badge badge--neutral">Strict Types</span>
-                        <span class="badge badge--neutral">Pragmatic DDD</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-1-introduction-philosophy" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 01</span><span class="badge badge--neutral">Philosophy</span></div>
+                    <h3 class="module-card__title">Introduction & Philosophy</h3>
+                    <p class="module-card__desc">The cost of "Magic", explicit engineering, and understanding the TSP domain platform vision.</p>
+                </a>
                 <!-- Chapter 02 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 02</span>
-                        <span class="badge badge--neutral">Lifecycle</span>
-                    </div>
+                <a href="/syllabus#module-2-the-request-lifecycle-front-controller" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 02</span><span class="badge badge--neutral">Kernel</span></div>
                     <h3 class="module-card__title">Request Lifecycle & Front Controller</h3>
-                    <p class="module-card__desc">
-                        Funnels all traffic through <code>www/index.php</code>. Dual-mode kernel supports both standard HTTP execution (<code>Application::run</code>) and headless testing (<code>Application::handle</code>).
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Front Controller</span>
-                        <span class="badge badge--neutral">Buffer Isolation</span>
-                        <span class="badge badge--neutral">Headless Kernel</span>
-                    </div>
-                </div>
-
+                    <p class="module-card__desc">Bootstrapping, dual-mode kernels (HTTP vs CLI), and enforcing the public <code>www/</code> boundary.</p>
+                </a>
                 <!-- Chapter 03 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 03</span>
-                        <span class="badge badge--neutral">IoC Container</span>
-                    </div>
+                <a href="/syllabus#module-3-the-dependency-injection-container-the-core" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 03</span><span class="badge badge--neutral">Core</span></div>
                     <h3 class="module-card__title">Dependency Injection Container</h3>
-                    <p class="module-card__desc">
-                        Recursive reflection autowiring with in-memory metadata caching. Protected against daemon memory leaks with an O(1) LRU eviction queue inside <code>Container::has()</code>.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Reflection</span>
-                        <span class="badge badge--neutral">O(1) LRU Cache</span>
-                        <span class="badge badge--neutral">makeWithArgs()</span>
-                    </div>
-                </div>
-
+                    <p class="module-card__desc">Recursive reflection autowiring, singleton caching, and defending against circular deadlocks.</p>
+                </a>
                 <!-- Chapter 04 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 04</span>
-                        <span class="badge badge--neutral">Pipeline</span>
-                    </div>
-                    <h3 class="module-card__title">Pipeline & Middleware Onion</h3>
-                    <p class="module-card__desc">
-                        Dual-mode middleware onion supporting closures, callable classes, and PSR-15 middlewares. Inward/outward request wrapping with CSRF and rate-limiting guards.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">PSR-15</span>
-                        <span class="badge badge--neutral">Tenant Context</span>
-                        <span class="badge badge--neutral">Security Headers</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-4-routing-the-http-request" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 04</span><span class="badge badge--neutral">Network</span></div>
+                    <h3 class="module-card__title">Routing & The HTTP Request</h3>
+                    <p class="module-card__desc">O(1) PCRE Regex compiled routing, the Middleware Onion architecture, and dual-mode compatibility.</p>
+                </a>
                 <!-- Chapter 05 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 05</span>
-                        <span class="badge badge--neutral">Routing</span>
-                    </div>
-                    <h3 class="module-card__title">PCRE Routing & Thin Controllers</h3>
-                    <p class="module-card__desc">
-                        Immutable <code>Route</code> Value Objects and compiled regular expression tree routing. Reflection-based action auto-wiring and declarative <code>FormRequest</code> validation injection.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">FastRoute PCRE</span>
-                        <span class="badge badge--neutral">FormRequest</span>
-                        <span class="badge badge--neutral">routes.cache.php</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-5-controllers-services-the-business-logic" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 05</span><span class="badge badge--neutral">Logic</span></div>
+                    <h3 class="module-card__title">Controllers & Services</h3>
+                    <p class="module-card__desc">Declarative FormRequests, method injection, and enforcing the "Traffic Cop" rules for thin controllers.</p>
+                </a>
                 <!-- Chapter 06 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 06</span>
-                        <span class="badge badge--neutral">Persistence</span>
-                    </div>
-                    <h3 class="module-card__title">Data Persistence: CQRS Repositories</h3>
-                    <p class="module-card__desc">
-                        Strict CQRS segregation shielding read-replicas. Guarantees absolute ACID safety via <code>SERIALIZABLE</code> isolation and forced read-to-write routing during active transactions to prevent phantom reads.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">CQRS Split</span>
-                        <span class="badge badge--neutral">SERIALIZABLE</span>
-                        <span class="badge badge--neutral">ACID Isolation</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-6-data-persistence-multi-tenancy" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 06</span><span class="badge badge--neutral">Database</span></div>
+                    <h3 class="module-card__title">Data Persistence & CQRS</h3>
+                    <p class="module-card__desc">The Repository Pattern, strict CQRS segregation, SERIALIZABLE ACID compliance, and the LSP firewall.</p>
+                </a>
                 <!-- Chapter 07 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 07</span>
-                        <span class="badge badge--neutral">Domain</span>
-                    </div>
-                    <h3 class="module-card__title">Domain Logic, FSM & Strategy Patterns</h3>
-                    <p class="module-card__desc">
-                        100% Pure Domain Entities agnostic of Application DTOs. PHP 8.2 native <code>readonly class</code> engine-enforced immutability. Finite State Machine engine with terminal state invariants.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Pure Domain</span>
-                        <span class="badge badge--neutral">readonly class</span>
-                        <span class="badge badge--neutral">State Machine</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-7-views-and-the-template-engine" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 07</span><span class="badge badge--neutral">UI</span></div>
+                    <h3 class="module-card__title">Views & Template Engine</h3>
+                    <p class="module-card__desc">Logic-less views, multi-directory fallback, resolution caching, and O(N) DOM interpolation.</p>
+                </a>
                 <!-- Chapter 08 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 08</span>
-                        <span class="badge badge--neutral">Views</span>
-                    </div>
-                    <h3 class="module-card__title">Decoupled Template Engine & Presenters</h3>
-                    <p class="module-card__desc">
-                        Namespaced template loading (<code>Services::index</code>) with in-memory path caching. View composers, ViewModels, and presenters eliminating business logic from templates.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Namespaces</span>
-                        <span class="badge badge--neutral">View Composers</span>
-                        <span class="badge badge--neutral">Asset Versioning</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-8-error-handling-logging" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 08</span><span class="badge badge--neutral">Diagnostics</span></div>
+                    <h3 class="module-card__title">Error Handling & Logging</h3>
+                    <p class="module-card__desc">Catching everything gracefully, logging infrastructure, and the Interactive Diagnostics Boundary.</p>
+                </a>
                 <!-- Chapter 09 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 09</span>
-                        <span class="badge badge--neutral">Frontend</span>
-                    </div>
-                    <h3 class="module-card__title">Frontend: Modular ES6 & CSS Layers</h3>
-                    <p class="module-card__desc">
-                        Deeply immutable <code>ObservableStore</code> with recursive freezing. O(N) algorithm Template Engine, zero memory-leak event delegation via <code>isConnected</code> guards, and native CSS Cascade Layers.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">O(N) Parsing</span>
-                        <span class="badge badge--neutral">Deep Freeze</span>
-                        <span class="badge badge--neutral">Cascade Layers</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-9-the-final-polish-dtos-data-transfer-objects" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 09</span><span class="badge badge--neutral">Data</span></div>
+                    <h3 class="module-card__title">DTOs (Data Transfer Objects)</h3>
+                    <p class="module-card__desc">Crossing boundaries safely and Engine-Enforced Immutability via PHP 8.2 readonly modifiers.</p>
+                </a>
                 <!-- Chapter 10 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 10</span>
-                        <span class="badge badge--neutral">Outbox & Queues</span>
-                    </div>
-                    <h3 class="module-card__title">Transactional Outbox & Event Processing</h3>
-                    <p class="module-card__desc">
-                        Atomically records domain events within database transactions. PostgreSQL <code>FOR UPDATE SKIP LOCKED</code> queue publisher daemon and idempotent projection guards.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">SKIP LOCKED</span>
-                        <span class="badge badge--neutral">Event Dispatcher</span>
-                        <span class="badge badge--neutral">Projection Guards</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-10-the-evolution-domain-driven-design-ddd" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 10</span><span class="badge badge--neutral">Domain</span></div>
+                    <h3 class="module-card__title">Domain-Driven Design (DDD)</h3>
+                    <p class="module-card__desc">Transaction scripts vs rich models, and enforcing 100% pure domain entities with zero framework coupling.</p>
+                </a>
                 <!-- Chapter 11 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 11</span>
-                        <span class="badge badge--neutral">Security</span>
-                    </div>
-                    <h3 class="module-card__title">Multi-Tenant Security & AST Auditing</h3>
-                    <p class="module-card__desc">
-                        Pluggable <code>TenantContext</code> scoping across queries and requests. Static AST boundary linter (<code>bin/audit_schema.php</code>) and tokenized file/S3 storage abstraction.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Tenant Scoping</span>
-                        <span class="badge badge--neutral">AST Linter</span>
-                        <span class="badge badge--neutral">S3 & Storage</span>
-                    </div>
-                </div>
-
+                <a href="/syllabus#module-11-decoupling-with-event-driven-architecture" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 11</span><span class="badge badge--neutral">Events</span></div>
+                    <h3 class="module-card__title">Event-Driven Architecture</h3>
+                    <p class="module-card__desc">The Pub/Sub Pattern, dispatching rich domain events, and breaking apart monolithic God Classes.</p>
+                </a>
                 <!-- Chapter 12 -->
-                <div class="module-card">
-                    <div class="module-card__header">
-                        <span class="module-card__num">Chapter 12</span>
-                        <span class="badge badge--neutral">Observability</span>
-                    </div>
-                    <h3 class="module-card__title">Optimizations & Developer Diagnostics</h3>
-                    <p class="module-card__desc">
-                        Keyset B-Tree pagination ($O(1)$ cursor seeking), recursive multi-root CTEs, streaming generators (<code>yield</code>), and interactive developer stack trace diagnostics.
-                    </p>
-                    <div class="module-card__tags">
-                        <span class="badge badge--neutral">Keyset Seeking</span>
-                        <span class="badge badge--neutral">Recursive CTE</span>
-                        <span class="badge badge--neutral">Debug Presenter</span>
-                    </div>
-                </div>
+                <a href="/syllabus#module-12-asynchronous-background-workers" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 12</span><span class="badge badge--neutral">Workers</span></div>
+                    <h3 class="module-card__title">Asynchronous Background Workers</h3>
+                    <p class="module-card__desc">The Transactional Outbox pattern, preventing dual-writes, and FOR UPDATE SKIP LOCKED concurrency.</p>
+                </a>
+                <!-- Chapter 13 -->
+                <a href="/syllabus#module-13-end-of-cycle-considerations-automated-testing" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 13</span><span class="badge badge--neutral">Testing</span></div>
+                    <h3 class="module-card__title">Automated Testing</h3>
+                    <p class="module-card__desc">Testing as a byproduct of design, isolated unit tests, and comprehensive integration testing.</p>
+                </a>
+                <!-- Chapter 14 -->
+                <a href="/syllabus#module-14-frontend-architecture-deep-freeze-css-layers" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 14</span><span class="badge badge--neutral">Frontend</span></div>
+                    <h3 class="module-card__title">Frontend Architecture</h3>
+                    <p class="module-card__desc">Deeply immutable ObservableStore, defensive garbage collection, and native CSS Cascade Layers.</p>
+                </a>
+                <!-- Chapter 15 -->
+                <a href="/syllabus#module-15-security-big-o-analytics" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 15</span><span class="badge badge--neutral">Security</span></div>
+                    <h3 class="module-card__title">Security & Big-O Analytics</h3>
+                    <p class="module-card__desc">Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.</p>
+                </a>
             </div>
+            <div style="margin-top:2rem;text-align:center;">
+                <a href="/syllabus" class="btn btn--primary">View Full Masterclass Syllabus</a>
+            </div>
+        </div>
         </section>
 
         <!-- Command Line Utilities Reference -->
@@ -403,7 +291,7 @@ $serverOs = $diag->serverOs;
                     <div class="command-line">
                         <span class="command-line__prompt">$</span>
                         <span class="command-line__cmd">php bin/audit_schema.php</span>
-                        <span class="command-line__comment"># Audits multi-tenant foreign keys and DTO boundaries</span>
+                        <span class="command-line__comment"># Audits multi-tenant composite indexes and DTO boundaries</span>
                     </div>
                     <div class="command-line">
                         <span class="command-line__prompt">$</span>
@@ -414,6 +302,11 @@ $serverOs = $diag->serverOs;
                         <span class="command-line__prompt">$</span>
                         <span class="command-line__cmd">php bin/worker.php</span>
                         <span class="command-line__comment"># Starts background Redis queue worker process</span>
+                    </div>
+                    <div class="command-line">
+                        <span class="command-line__prompt">$</span>
+                        <span class="command-line__cmd">php app/bin/cleanup_tokens.php</span>
+                        <span class="command-line__comment"># Prunes expired password reset tokens and remember-me credentials</span>
                     </div>
                 </div>
             </div>

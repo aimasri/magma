@@ -5,6 +5,9 @@
  * - Styles the autocomplete combobox wrapper, input, floating dropdown, multi-line result items,
  *   and multi-line selected card with click-to-edit interactions.
  *
+ * Why / Why this design:
+ * - Strict BEM Namespacing: Uses the `.magma-combobox-` prefix to guarantee encapsulation and prevent generic class collision across the application.
+ *
  * Teaching notes:
  * - Designed to work with dynamic JS. Ensure state classes like `.is-highlighted` map to visual cues without `.js-` tight coupling.
  * - Ensure high z-index for dropdowns so they don't clip inside containers.
@@ -22,9 +25,9 @@
         padding: 0.625rem 0.875rem;
         font-size: 0.9375rem;
         line-height: 1.5;
-        color: var(--color-body);
-        background-color: var(--color-bg-surface);
-        border: 1px solid var(--color-border);
+        color: var(--text-main);
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
         border-radius: var(--radius-md);
         box-shadow: var(--shadow-sm);
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -33,8 +36,8 @@
 
     .magma-combobox-input:focus {
         outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        border-color: var(--brand-flame);
+        box-shadow: 0 0 0 3px var(--brand-flame-subtle);
     }
 
     .magma-combobox-dropdown {
@@ -42,11 +45,11 @@
         top: calc(100% + 4px);
         left: 0;
         right: 0;
-        z-index: 1050;
+        z-index: var(--z-index-dropdown, 1050);
         max-height: 280px;
         overflow-y: auto;
-        background-color: var(--color-bg-surface);
-        border: 1px solid var(--color-border);
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
     }
@@ -54,7 +57,7 @@
     .magma-combobox-item {
         padding: 0.625rem 0.875rem;
         cursor: pointer;
-        border-bottom: 1px solid var(--color-bg-base);
+        border-bottom: 1px solid var(--bg-canvas);
         transition: background-color 0.12s ease;
     }
 
@@ -64,34 +67,34 @@
 
     .magma-combobox-item:hover,
     .magma-combobox-item.is-highlighted {
-        background-color: var(--color-bg-base);
+        background-color: var(--bg-canvas);
     }
 
-    .item-row-primary {
+    .magma-combobox__item-row-primary {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 0.5rem;
     }
 
-    .item-title {
+    .magma-combobox__item-title {
         font-size: 0.9375rem;
         font-weight: 600;
-        color: var(--color-dark);
+        color: var(--text-main);
     }
 
-    .item-badge {
+    .magma-combobox__item-badge {
         display: inline-flex;
         align-items: center;
         padding: 0.125rem 0.5rem;
         font-size: 0.75rem;
         font-weight: 500;
-        color: var(--color-primary);
-        background-color: var(--color-primary-light);
+        color: var(--brand-flame);
+        background-color: var(--brand-flame-subtle);
         border-radius: var(--radius-full);
     }
 
-    .item-row-secondary {
+    .magma-combobox__item-row-secondary {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -99,12 +102,12 @@
         margin-top: 0.25rem;
     }
 
-    .item-specs {
+    .magma-combobox__item-specs {
         font-size: 0.8125rem;
-        color: var(--color-muted);
+        color: var(--text-muted);
     }
 
-    .item-price {
+    .magma-combobox__item-price {
         font-size: 0.8125rem;
         font-weight: 600;
         color: var(--color-success);
@@ -113,67 +116,67 @@
     .magma-combobox-empty {
         padding: 0.75rem 1rem;
         font-size: 0.875rem;
-        color: var(--color-muted);
+        color: var(--text-muted);
         text-align: center;
     }
 
     /* Multi-line Selected Card */
     .magma-combobox-selected-card {
         padding: 0.625rem 0.875rem;
-        background-color: var(--color-bg-base);
-        border: 1px solid var(--color-border);
+        background-color: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
         border-radius: var(--radius-md);
         cursor: pointer;
-        transition: border-color 0.15s ease, background-color 0.15s ease;
+        transition: border-color var(--transition-fast) ease, background-color var(--transition-fast) ease;
     }
 
     .magma-combobox-selected-card:hover {
-        background-color: var(--color-border);
-        border-color: var(--color-muted);
+        background-color: var(--border-subtle);
+        border-color: var(--text-muted);
     }
 
-    .selected-card-row1 {
+    .magma-combobox__selected-card-row1 {
         display: flex;
         align-items: center;
         gap: 0.5rem;
     }
 
-    .selected-card-title {
+    .magma-combobox__selected-card-title {
         font-size: 0.9375rem;
         font-weight: 600;
-        color: var(--color-dark);
+        color: var(--text-main);
         flex: 1;
     }
 
-    .selected-card-badge {
+    .magma-combobox__selected-card-badge {
         display: inline-flex;
         align-items: center;
         padding: 0.125rem 0.5rem;
         font-size: 0.75rem;
         font-weight: 500;
         color: var(--color-success);
-        background-color: var(--color-success-light);
+        background-color: var(--color-success-subtle);
         border-radius: var(--radius-full);
     }
 
-    .selected-card-clear-btn {
+    .magma-combobox__selected-card-clear-btn {
         background: transparent;
         border: none;
-        color: var(--color-muted);
+        color: var(--text-muted);
         font-size: 1.25rem;
         line-height: 1;
         cursor: pointer;
         padding: 0 0.25rem;
-        transition: color 0.15s ease;
+        transition: color var(--transition-fast) ease;
     }
 
-    .selected-card-clear-btn:hover {
-        color: var(--color-danger);
+    .magma-combobox__selected-card-clear-btn:hover {
+        color: var(--text-danger);
     }
 
-    .selected-card-row2 {
+    .magma-combobox__selected-card-row2 {
         margin-top: 0.25rem;
         font-size: 0.8125rem;
-        color: var(--color-muted);
+        color: var(--text-muted);
     }
 }

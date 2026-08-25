@@ -28,6 +28,11 @@ use Magma\security\CsrfManager;
  */
 class ReviewController
 {
+    public function __construct(
+        private readonly ReviewSubmissionServiceInterface $reviewSubmissionService,
+        private readonly \Magma\http\SessionInterface $session
+    ) {}
+
     /**
      * Processes new customer review submissions.
      * 
@@ -41,17 +46,14 @@ class ReviewController
      * - The PRG (Post/Redirect/Get) pattern prevents the user from accidentally 
      *   submitting the review twice if they refresh the page.
      */
-    public function submitReview(
-        ReviewRequest $reviewRequest,
-        ReviewSubmissionServiceInterface $reviewSubmissionService,
-        \Magma\http\SessionInterface $session
-    ): Response {
+    public function submitReview(ReviewRequest $reviewRequest): Response 
+    {
         // Validation is automatically handled by RouteParameterResolver for the ReviewRequest parameter.
 
         $dto = $reviewRequest->toDTO();
-        $reviewSubmissionService->submit($dto);
+        $this->reviewSubmissionService->submit($dto);
 
-        $session->set(\App\constants\AppConstants::SESSION_SUCCESS_MESSAGE, \App\constants\AppConstants::MSG_REVIEW_SUBMITTED);
+        $this->session->set('success', 'Your review has been submitted and is pending moderation.');
         return new RedirectResponse('/');
     }
 }

@@ -43,15 +43,14 @@ class SiteReviewCommandRepository extends AbstractCommandRepository implements S
             throw new \RuntimeException('Tenant context is required for inserting site reviews.');
         }
 
-        $sql = "INSERT INTO site_reviews (tenant_id, author, comment, rating, status) 
-                VALUES (:tenant_id, :author, :comment, :rating, :status)";
-        $stmt = $this->getDb()->prepare($sql);
-        return $stmt->execute([
+        $id = $this->insertAndGetId('site_reviews', [
             'tenant_id' => $tenantId,
             'author'  => $review->getAuthor(),
             'comment' => $review->getComment(),
             'rating'  => $review->getRating(),
             'status'  => $review->getStatus()
         ]);
+        
+        return $id > 0;
     }
 }

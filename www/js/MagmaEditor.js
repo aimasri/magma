@@ -1,6 +1,85 @@
 import { DomSanitizer, domSanitizer } from './DomSanitizer.js';
 import { templateEngine } from './TemplateEngine.js';
 
+export class EditorToolbar {
+    constructor(editor, options = {}) {
+        this.editor = editor;
+        this.buttonDefs = options.buttonDefs || this.getDefaultButtons();
+        this.toolbarElement = this.buildToolbar(options.toolbar || ['bold', 'italic', 'underline', 'bulletList', 'numberedList', 'blockquote', 'link', 'clear']);
+        this.bindEvents(options.signal);
+    }
+
+    getDefaultButtons() {
+        return {
+            bold: { icon: 'B', title: 'Bold (Ctrl+B)', cmd: 'bold', label: 'Bold' },
+            italic: { icon: 'I', title: 'Italic (Ctrl+I)', cmd: 'italic', label: 'Italic' },
+            underline: { icon: 'U', title: 'Underline (Ctrl+U)', cmd: 'underline', label: 'Underline' },
+            bulletList: { icon: '• List', title: 'Bullet List', cmd: 'insertUnorderedList', label: 'Bullet List' },
+            numberedList: { icon: '1. List', title: 'Numbered List', cmd: 'insertOrderedList', label: 'Numbered List' },
+            blockquote: { icon: '“ Quote', title: 'Blockquote', cmd: 'formatBlock', value: 'blockquote', label: 'Quote' },
+            link: { icon: '🔗 Link', title: 'Insert Link', customKey: 'link', label: 'Link' },
+            clear: { icon: '🧹 Clear', title: 'Clear Formatting', cmd: 'removeFormat', label: 'Clear' }
+        };
+    }
+
+    buildToolbar(activeButtons) {
+        const toolbarTemplate = document.createElement('template');
+        toolbarTemplate.innerHTML = `
+            <div class="magma-editor-toolbar" role="toolbar" aria-label="Text formatting">
+                <template data-loop="buttons">
+                    <button type="button" 
+                            data-bind-attr-class="className"
+                            data-bind-attr-title="title"
+                            data-bind-attr-aria-label="label"
+                            data-bind-attr-data-cmd="cmd"
+                            data-bind-attr-data-value="value"
+                            data-bind-attr-data-custom="customKey"
+                            data-bind-text="icon"></button>
+                </template>
+            </div>
+        `;
+
+        const buttons = [];
+        for (const key of activeButtons) {
+            const def = this.buttonDefs[key];
+            if (def) {
+                buttons.push({
+                    className: `magma-editor-btn magma-editor-btn--${key}`,
+                    title: def.title,
+                    label: def.label,
+                    icon: def.icon,
+                    cmd: def.cmd || null,
+                    value: def.value || null,
+                    customKey: def.customKey || null
+                });
+            }
+        }
+
+        const fragment = templateEngine.render(toolbarTemplate, { buttons });
+        return fragment.firstElementChild;
+    }
+
+    bindEvents(signal) {
+        this.toolbarElement.addEventListener('mousedown', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            e.preventDefault(); // Prevent focus loss from contentArea
+            
+            const customKey = btn.getAttribute('data-custom');
+            if (customKey === 'link') {
+                this.editor._promptLink();
+            } else {
+                const cmd = btn.getAttribute('data-cmd');
+                const value = btn.getAttribute('data-value');
+                if (cmd) {
+                    this.editor.execCommand(cmd, value);
+                }
+            }
+            this.editor._sync();
+        }, { signal });
+    }
+}
+
 /**
  * Title: Lightweight Zero-Dependency Vanilla ES6 WYSIWYG Editor
  *
@@ -51,90 +130,32 @@ export class MagmaEditor {
      * @private
      */
     _initDOM() {
-        if (!this.constructor._editorTemplate) {
-            this.constructor._editorTemplate = document.createElement('template');
-            this.constructor._editorTemplate.innerHTML = `
-                <div class="magma-editor-container">
-                    <div class="magma-editor-toolbar" role="toolbar" aria-label="Text formatting">
-                        <template data-loop="buttons">
-                            <button type="button" 
-                                    data-bind-attr-class="className"
-                                    data-bind-attr-title="title"
-                                    data-bind-attr-aria-label="label"
-                                    data-bind-attr-data-cmd="cmd"
-                                    data-bind-attr-data-value="value"
-                                    data-bind-attr-data-custom="customKey"
-                                    data-bind-text="icon"></button>
-                        </template>
-                    </div>
-                    <div class="magma-editor-content" 
-                         contenteditable="true" 
-                         role="textbox" 
-                         aria-multiline="true"
-                         data-bind-attr-data-placeholder="placeholder"></div>
-                </div>
-            `;
-        }
+        this.container = document.createElement('div');
+        this.container.className = 'magma-editor-container';
 
-        const buttonDefs = {
-            bold: { icon: 'B', title: 'Bold (Ctrl+B)', cmd: 'bold', label: 'Bold' },
-            italic: { icon: 'I', title: 'Italic (Ctrl+I)', cmd: 'italic', label: 'Italic' },
-            underline: { icon: 'U', title: 'Underline (Ctrl+U)', cmd: 'underline', label: 'Underline' },
-            bulletList: { icon: '• List', title: 'Bullet List', cmd: 'insertUnorderedList', label: 'Bullet List' },
-            numberedList: { icon: '1. List', title: 'Numbered List', cmd: 'insertOrderedList', label: 'Numbered List' },
-            blockquote: { icon: '“ Quote', title: 'Blockquote', cmd: 'formatBlock', value: 'blockquote', label: 'Quote' },
-            link: { icon: '🔗 Link', title: 'Insert Link', customKey: 'link', label: 'Link' },
-            clear: { icon: '🧹 Clear', title: 'Clear Formatting', cmd: 'removeFormat', label: 'Clear' }
-        };
-
-        const buttons = [];
-        for (const key of this.options.toolbar) {
-            const def = buttonDefs[key];
-            if (def) {
-                buttons.push({
-                    className: `magma-editor-btn magma-editor-btn--${key}`,
-                    title: def.title,
-                    label: def.label,
-                    icon: def.icon,
-                    cmd: def.cmd || null,
-                    value: def.value || null,
-                    customKey: def.customKey || null
-                });
-            }
-        }
-
-        const fragment = templateEngine.render(this.constructor._editorTemplate, {
-            buttons,
-            placeholder: this.options.placeholder
+        this.toolbarFactory = this.options.toolbarFactory || ((editor, opts) => new EditorToolbar(editor, opts));
+        
+        this.toolbar = this.toolbarFactory(this, {
+            toolbar: this.options.toolbar,
+            signal: this._abortController.signal
         });
+        
+        this.container.appendChild(this.toolbar.toolbarElement);
 
-        this.container = fragment.firstElementChild;
-        this.toolbar = this.container.querySelector('.magma-editor-toolbar');
-        this.contentArea = this.container.querySelector('.magma-editor-content');
+        this.contentArea = document.createElement('div');
+        this.contentArea.className = 'magma-editor-content';
+        this.contentArea.setAttribute('contenteditable', 'true');
+        this.contentArea.setAttribute('role', 'textbox');
+        this.contentArea.setAttribute('aria-multiline', 'true');
+        if (this.options.placeholder) {
+            this.contentArea.setAttribute('data-placeholder', this.options.placeholder);
+        }
         this.contentArea.style.minHeight = this.options.minHeight;
+        this.container.appendChild(this.contentArea);
 
         // Initialize content from target textarea/input if present
         const initialValue = this.target.value !== undefined ? this.target.value : this.target.innerHTML;
         this.contentArea.innerHTML = this.options.sanitizer.sanitizeHtml(initialValue || '');
-
-        // Delegate toolbar click events
-        this.toolbar.addEventListener('mousedown', (e) => {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-            e.preventDefault(); // Prevent focus loss from contentArea
-            
-            const customKey = btn.getAttribute('data-custom');
-            if (customKey === 'link') {
-                this._promptLink();
-            } else {
-                const cmd = btn.getAttribute('data-cmd');
-                const value = btn.getAttribute('data-value');
-                if (cmd) {
-                    this.execCommand(cmd, value);
-                }
-            }
-            this._sync();
-        }, { signal: this._abortController.signal });
 
         // Insert container into DOM
         if (this.target.parentNode) {

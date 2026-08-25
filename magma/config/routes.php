@@ -20,5 +20,6 @@ use Modules\Reviews\controllers\ReviewController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
+    ['GET', '/syllabus', [HomeController::class, 'syllabus']],
     ['POST', '/reviews', [ReviewController::class, 'submitReview']],
 ];

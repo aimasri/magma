@@ -108,24 +108,19 @@ class HttpServiceProvider implements ServiceProviderInterface
 
         $container->set(LoginController::class, function ($c) {
             return new LoginController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\http\Session::class),
-                $c->get(Request::class),
                 $c->get(AuthenticationService::class),
-                $c->get(Validator::class)
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
+                $c->get(\Magma\http\SessionInterface::class)
             );
         });
 
         $container->set(RegisterController::class, function ($c) {
             return new RegisterController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\http\Session::class),
-                $c->get(Request::class),
-                $c->get(AuthenticationService::class),
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
                 $c->get(RegistrationService::class),
-                $c->get(Validator::class)
+                $c->get(AuthenticationService::class),
+                $c->get(\Magma\interfaces\cqrs\UserQueryInterface::class),
+                $c->get(\Magma\http\SessionInterface::class)
             );
         });
 
@@ -140,13 +135,7 @@ class HttpServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(PasswordResetController::class, function ($c) {
-            return new PasswordResetController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(Request::class),
-                $c->get(PasswordResetService::class),
-                $c->get(Validator::class)
-            );
+            return new PasswordResetController();
         });
 
         $container->set(PolicyController::class, function ($c) {

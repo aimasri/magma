@@ -26,13 +26,21 @@
  * - Append: `container.appendChild(fragment);`
  */
 import { TemplateHelperRegistry } from './TemplateHelperRegistry.js';
+import { ConditionalProcessor, LoopProcessor, TextBindingProcessor, AttributeBindingProcessor } from './TemplateProcessors.js';
 
 export class TemplateEngine {
-    constructor(helperRegistry = null) {
+    constructor(helperRegistry = null, processors = null) {
         /** @type {Map<string, HTMLTemplateElement>} */
         this._templateCache = new Map();
         /** @type {TemplateHelperRegistry} */
         this._helpers = helperRegistry || new TemplateHelperRegistry();
+        
+        this.processors = processors || [
+            new ConditionalProcessor(this),
+            new LoopProcessor(this),
+            new TextBindingProcessor(this),
+            new AttributeBindingProcessor(this)
+        ];
     }
 
     /**
@@ -49,20 +57,6 @@ export class TemplateEngine {
 
     /**
      * Renders a `<template>` element with data into a populated DocumentFragment.
-     *
-     * Execution Flow:
-     * 1. Resolve target `<template>` element from DOM or cache.
-     * 2. Clone the template's content fragment via `cloneNode(true)`.
-     * 3. Process conditional directives (`data-if`, `data-unless`).
-     * 4. Process loop directives (`<template data-loop="...">`).
-     * 5. Process text bindings (`data-bind-text`, `data-bind`).
-     * 6. Process attribute bindings (`data-bind-attr-*`).
-     * 7. Process class toggle bindings (`data-bind-class-*`).
-     * 8. Return the populated DocumentFragment ready for immediate DOM insertion.
-     *
-     * @param {string|HTMLTemplateElement} templateIdOrElement Template ID string or element.
-     * @param {Object} [data={}] Data dictionary for interpolation.
-     * @returns {DocumentFragment} Populated fragment.
      */
     render(templateIdOrElement, data = {}) {
         const template = this._resolveTemplate(templateIdOrElement);
@@ -78,10 +72,6 @@ export class TemplateEngine {
 
     /**
      * Renders a template and returns its serialized HTML string representation.
-     *
-     * @param {string|HTMLTemplateElement} templateIdOrElement
-     * @param {Object} [data={}]
-     * @returns {string} Safe compiled HTML string.
      */
     renderToString(templateIdOrElement, data = {}) {
         const fragment = this.render(templateIdOrElement, data);
@@ -90,164 +80,18 @@ export class TemplateEngine {
         return container.innerHTML;
     }
 
-    /**
-     * Recursively interpolates bindings on a DocumentFragment or Element tree.
-     *
-     * Execution Flow:
-     * 1. Process conditional directives (data-if, data-unless) to prune the DOM tree early.
-     * 2. Detach elements containing loop directives (data-loop) and replace them with placeholder comments.
-     * 3. Process text bindings (data-bind, data-bind-text) on the remaining attached nodes.
-     * 4. Process attribute bindings (data-bind-attr-*, data-bind-class-*) on the remaining attached nodes.
-     * 5. Reattach the loop elements by replacing their placeholders.
-     * 6. Process the loops, recursively interpolating their contents with scoped item data.
-     *
-     * Logic behind the logic:
-     * - Big-O Optimization: By detaching loop templates before processing generic text and attribute bindings, we prevent outer directives from redundantly scanning the inner contents of loops. This avoids an O(N*M) performance penalty, ensuring that inner loop contents are strictly processed exactly once during loop unrolling.
-     *
-     * @param {DocumentFragment|Element} root
-     * @param {Object} data
-     * @private
-     */
     _interpolateFragment(root, data) {
-        this._processConditionals(root, data);
-
-        // Detach loops to prevent O(N*M) processing by outer directives
-        const loops = Array.from(root.querySelectorAll('[data-loop]'));
-        const detached = [];
-        for (const loopEl of loops) {
-            if (!root.contains(loopEl)) continue;
-            const placeholder = document.createComment('loop-placeholder');
-            loopEl.parentNode.replaceChild(placeholder, loopEl);
-            detached.push({ el: loopEl, placeholder });
-        }
-
-        this._processTextBindings(root, data);
-        this._processAttributeBindings(root, data);
-
-        // Reattach loops before processing them
-        for (const { el, placeholder } of detached) {
-            placeholder.parentNode.replaceChild(el, placeholder);
-        }
-
-        this._processLoops(root, data);
-    }
-
-    _processConditionals(root, data) {
-        // 1. Process Conditionals first (data-if, data-unless)
-        const conditionals = Array.from(root.querySelectorAll('[data-if], [data-unless]'));
-        for (const el of conditionals) {
-            const ifKey = el.getAttribute('data-if');
-            const unlessKey = el.getAttribute('data-unless');
-
-            let shouldKeep = true;
-            if (ifKey !== null && !this._resolveValue(ifKey, data)) {
-                shouldKeep = false;
-            } else if (unlessKey !== null && this._resolveValue(unlessKey, data)) {
-                shouldKeep = false;
-            }
-
-            if (!shouldKeep) {
-                el.remove();
-            } else {
-                el.removeAttribute('data-if');
-                el.removeAttribute('data-unless');
-            }
-        }
-    }
-
-    _processLoops(root, data) {
-        // 2. Process Loops (<template data-loop="items"> or <div data-loop="items">)
-        const loops = Array.from(root.querySelectorAll('[data-loop]'));
-        for (const loopEl of loops) {
-            const key = loopEl.getAttribute('data-loop');
-            const items = this._resolveValue(key, data);
-            loopEl.removeAttribute('data-loop');
-
-            if (Array.isArray(items)) {
-                const parent = loopEl.parentNode;
-                if (!parent) continue;
-
-                const loopFragment = document.createDocumentFragment();
-                const isTemplate = loopEl.tagName === 'TEMPLATE';
-                const nodeToClone = isTemplate ? loopEl.content : loopEl;
-
-                for (let index = 0; index < items.length; index++) {
-                    const item = items[index];
-                    const itemData = typeof item === 'object' && item !== null
-                        ? { ...item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 }
-                        : { value: item, '@index': index, '@first': index === 0, '@last': index === items.length - 1 };
-
-                    const clonedNode = nodeToClone.cloneNode(true);
-                    this._interpolateFragment(clonedNode, itemData);
-                    loopFragment.appendChild(clonedNode);
-                }
-                parent.replaceChild(loopFragment, loopEl);
-            } else {
-                loopEl.remove();
-            }
-        }
-    }
-
-    _processTextBindings(root, data) {
-        // 3. Process Text Bindings (data-bind, data-bind-text)
-        const textBindings = Array.from(root.querySelectorAll('[data-bind], [data-bind-text]'));
-        for (const el of textBindings) {
-            const key = el.getAttribute('data-bind-text') || el.getAttribute('data-bind');
-            const val = this._resolveValue(key, data);
-            el.textContent = val !== null && val !== undefined ? String(val) : '';
-            el.removeAttribute('data-bind');
-            el.removeAttribute('data-bind-text');
-        }
-    }
-
-    _processAttributeBindings(root, data) {
-        // 4. Process Attribute Bindings (data-bind-attr-*)
-        const allElements = Array.from(root.querySelectorAll('*'));
-        for (const el of allElements) {
-            const attributesToRemove = [];
-            for (let i = 0; i < el.attributes.length; i++) {
-                const attr = el.attributes[i];
-                if (attr.name.startsWith('data-bind-attr-')) {
-                    const targetAttrName = attr.name.replace('data-bind-attr-', '');
-                    const val = this._resolveValue(attr.value, data);
-
-                    if (val === false || val === null || val === undefined) {
-                        el.removeAttribute(targetAttrName);
-                    } else if (val === true) {
-                        el.setAttribute(targetAttrName, '');
-                    } else {
-                        el.setAttribute(targetAttrName, String(val));
-                    }
-                    attributesToRemove.push(attr.name);
-                } else if (attr.name.startsWith('data-bind-class-')) {
-                    const targetClassName = attr.name.replace('data-bind-class-', '');
-                    const isTruthy = Boolean(this._resolveValue(attr.value, data));
-                    el.classList.toggle(targetClassName, isTruthy);
-                    attributesToRemove.push(attr.name);
-                }
-            }
-
-            for (const name of attributesToRemove) {
-                el.removeAttribute(name);
-            }
-        }
+        // Run processors in order
+        this.processors.forEach(processor => processor.process(root, data));
     }
 
     /**
      * Resolves dot-notated keys and helper pipes from data objects.
-     * Example: 'user.profile.name' or 'amount | currency'
-     *
-     * @param {string} keyExpr
-     * @param {Object} data
-     * @returns {*}
-     * @private
      */
     _resolveValue(keyExpr, data) {
         if (!keyExpr) return '';
 
-        // Check for helper pipe (e.g., 'price | currency')
         let [key, helperName] = keyExpr.split('|').map(s => s.trim());
-
         let val = data;
         const parts = key.split('.');
 
@@ -269,10 +113,6 @@ export class TemplateEngine {
 
     /**
      * Resolves a template element by ID string or reference.
-     *
-     * @param {string|HTMLTemplateElement} target
-     * @returns {HTMLTemplateElement|null}
-     * @private
      */
     _resolveTemplate(target) {
         if (target instanceof HTMLTemplateElement) {
@@ -295,6 +135,8 @@ export class TemplateEngine {
         return null;
     }
 }
+
+
 
 /** Default singleton TemplateEngine instance. */
 export const templateEngine = new TemplateEngine();

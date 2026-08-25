@@ -37,8 +37,8 @@ class SendWelcomeEmailListener
         $payload = json_encode([
             \Magma\queue\JobInterface::HANDLER_KEY => SendWelcomeEmailJob::class,
             \Magma\queue\JobInterface::PAYLOAD_KEY => [
-                'to_email' => $event->user['email'],
-                'to_name'  => $event->user['name']
+                'to_email' => $event->registration->getEmail(),
+                'to_name'  => $event->registration->getName()
             ]
         ]);
         

@@ -23,21 +23,16 @@ export class EventDelegator {
      */
     constructor(root = document) {
         this.root = root;
+        this.registries = new Map();
     }
 
     /**
      * Registers a delegated event listener for a CSS selector.
      *
-     * Execution Flow:
-     * 1. Bind native listener to the root container.
-     * 2. When an event fires, find matching ancestor using `event.target.closest(selector)`.
-     * 3. Ensure matched element is contained within the root boundary.
-     * 4. Invoke callback with `(event, matchingElement)`.
-     *
      * @param {string} eventType Event name (e.g. 'click', 'change', 'submit', 'input').
      * @param {string} selector CSS selector to match against.
      * @param {Function} handler Callback receiving `(event, targetElement)`.
-     * @param {Object} [options={}] Optional listener options (signal, capture, passive, once).
+     * @param {Object} [options={}] Optional listener options (signal).
      * @returns {Function} Unbind closure function.
      */
     on(eventType, selector, handler, options = {}) {
@@ -45,29 +40,38 @@ export class EventDelegator {
             throw new TypeError("EventDelegator.on requires a handler function.");
         }
 
-        const listener = (event) => {
-            const target = event.target;
-            if (!(target instanceof Element)) return;
+        if (!this.registries.has(eventType)) {
+            const registry = new Map();
+            this.registries.set(eventType, registry);
+            
+            // Attach a single global listener for this event type
+            this.root.addEventListener(eventType, (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
 
-            const matchingElement = target.closest(selector);
-            if (!matchingElement) return;
+                registry.forEach((handlers, sel) => {
+                    const matchingElement = target.closest(sel);
+                    if (matchingElement && (this.root === document || this.root.contains(matchingElement))) {
+                        handlers.forEach(fn => fn(event, matchingElement));
+                    }
+                });
+            }, { capture: true });
+        }
 
-            // Ensure matching element is within the root container boundary
-            if (this.root !== document && !this.root.contains(matchingElement)) return;
-
-            handler(event, matchingElement);
-        };
-
-        const listenerOptions = {
-            capture: options.capture === true,
-            passive: options.passive === true,
-            once: options.once === true
-        };
-
-        this.root.addEventListener(eventType, listener, listenerOptions);
+        const registry = this.registries.get(eventType);
+        if (!registry.has(selector)) {
+            registry.set(selector, new Set());
+        }
+        registry.get(selector).add(handler);
 
         const unbind = () => {
-            this.root.removeEventListener(eventType, listener, listenerOptions);
+            const reg = this.registries.get(eventType);
+            if (reg && reg.has(selector)) {
+                reg.get(selector).delete(handler);
+                if (reg.get(selector).size === 0) {
+                    reg.delete(selector);
+                }
+            }
         };
 
         if (options.signal instanceof AbortSignal) {

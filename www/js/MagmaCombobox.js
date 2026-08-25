@@ -75,10 +75,19 @@ export class MagmaCombobox {
         this.view.onInput(async (query) => {
             try {
                 if (!query || query.trim().length < this.options.minChars) {
+                    if (this.model._currentAbortController) {
+                        this.model._currentAbortController.abort();
+                    }
                     this.view.clear();
                     return;
                 }
                 const data = await this.model.fetch(query);
+                
+                // Prevent race conditions and stale response rendering
+                if (this.inputElement.value.trim() !== query.trim()) {
+                    return;
+                }
+
                 this.view.render(data, this.options.customRenderer);
             } catch (error) {
                 console.error("Error fetching combobox data:", error);

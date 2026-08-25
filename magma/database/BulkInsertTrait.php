@@ -65,8 +65,8 @@ trait BulkInsertTrait
                 
                 $flatValues = [];
                 foreach ($chunk as $row) {
-                    foreach ($row as $val) {
-                        $flatValues[] = $val;
+                    foreach ($columns as $col) {
+                        $flatValues[] = $row[$col] ?? null;
                     }
                 }
                 

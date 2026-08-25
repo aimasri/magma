@@ -64,7 +64,7 @@ class VendorCommandRepository extends AbstractCommandRepository implements Vendo
         }
 
         $setClauses = [];
-        foreach ($bindings as $column => $value) {
+        foreach (array_keys($bindings) as $column) {
             $setClauses[] = "$column = :$column";
         }
 
@@ -82,6 +82,8 @@ class VendorCommandRepository extends AbstractCommandRepository implements Vendo
     public function delete(int $id): bool
     {
         $stmt = $this->getDb()->prepare("DELETE FROM vendors WHERE id = :id");
-        return $stmt->execute(['id' => $id]);
+        return $stmt->execute([
+            'id' => $id
+        ]);
     }
 }

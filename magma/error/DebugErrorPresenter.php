@@ -245,7 +245,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             --border-color: #59040c;
             --text-main: #fff5eb;
             --text-muted: #ffdbbb;
-            --accent-danger: #ffdbbb;
+            --accent-danger: #ef4444;
             --accent-highlight: rgba(255, 219, 187, 0.25);
             --accent-target-border: #ffdbbb;
             --accent-info: #ffdbbb;
