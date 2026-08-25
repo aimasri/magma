@@ -28,8 +28,8 @@
         --color-primary-hover: #2563eb;
         --color-primary-light: #eff6ff;
         --color-secondary: #64748b;
-        --color-success: #10b981;
-        --color-success-light: #ecfdf5;
+        --color-success: #ffb703;
+        --color-success-light: rgba(255, 183, 3, 0.15);
         --color-warning: #f59e0b;
         --color-warning-light: #fffbeb;
         --color-danger: #ef4444;

@@ -19,11 +19,33 @@ use Magma\security\CsrfManager;
 use Magma\security\TenantContext;
 
 /**
- * Title: Core Service Provider
- * Purpose: Bootstraps the application's foundational components (Request, Session, Config).
+ * Title: CoreServiceProvider
+ *
+ * Purpose:
+ * - Bootstraps the application's foundational components including HTTP Request, Session, and Config
+ * - Registers core security and validation mechanisms like CsrfManager and Validator
+ * - Configures error handling and view layer dependencies (TemplateEngine, ViewLoader)
+ *
+ * Why / Why this design:
+ * - Service Provider Pattern: Centralizes the instantiation logic of core application dependencies
+ * - High Cohesion: Groups related foundational services to ensure they are available before the application kernel runs
+ *
+ * Teaching notes:
+ * - This provider is crucial for bootstrapping the core HTTP lifecycle dependencies (e.g., Request and Session) before routing occurs.
  */
 class CoreServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Registers core framework components within the DI container.
+     *
+     * 1. Binds Config wrapper, TenantContext, and Session management.
+     * 2. Bootstraps the global Request object and CSRF protection.
+     * 3. Configures view loaders, template engines, and error handlers (JSON and Debug).
+     * 4. Registers the HTML response builder and event dispatcher.
+     *
+     * @param Container $container
+     * @return void
+     */
     public function register(Container $container): void
     {
         $container->set(\Magma\config\ConfigInterface::class, function ($c) {

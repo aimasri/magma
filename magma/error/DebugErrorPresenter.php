@@ -239,16 +239,16 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
     <title>{$statusCode} | {$exceptionClass}</title>
     <style>
         :root {
-            --bg-canvas: #0f172a;
-            --bg-surface: #1e293b;
-            --bg-card: #334155;
-            --border-color: #475569;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-danger: #f43f5e;
-            --accent-highlight: rgba(244, 63, 94, 0.25);
-            --accent-target-border: #f43f5e;
-            --accent-info: #38bdf8;
+            --bg-canvas: #380404;
+            --bg-surface: #622E00;
+            --bg-card: #622E00;
+            --border-color: #59040c;
+            --text-main: #fff5eb;
+            --text-muted: #ffdbbb;
+            --accent-danger: #ffdbbb;
+            --accent-highlight: rgba(255, 219, 187, 0.25);
+            --accent-target-border: #ffdbbb;
+            --accent-info: #ffdbbb;
             --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
         }

@@ -19,17 +19,32 @@ use Magma\infrastructure\storage\LocalStorageService;
 use Magma\infrastructure\storage\S3StorageService;
 
 /**
- * Title: Infrastructure Service Provider
+ * Title: InfrastructureServiceProvider
  *
  * Purpose:
- * - Bootstraps infrastructure components like Redis, CacheInterface, StorageInterface, and QueueInterface.
+ * - Bootstraps infrastructure components like Redis, Cache, Storage, and Queue services
+ * - Binds abstract interfaces (CacheInterface, StorageInterface, QueueInterface, etc.) to concrete drivers
+ * - Configures Redis and registers it as a singleton in the DI container
  *
  * Why / Why this design:
- * - Adheres to the Dependency Inversion Principle (DIP).
- * - Binds abstract interfaces (`CacheInterface`, `StorageInterface`, `QueueInterface`) to concrete drivers.
+ * - Service Locator/Provider Pattern: Centralizes dependency registration to decouple configuration from application logic
+ * - Dependency Inversion Principle (DIP): Allows the application to depend on abstractions rather than concrete implementations
+ *
+ * Teaching notes:
+ * - Using environment configurations (Config::get) inside the provider ensures environment-specific services without hardcoding.
  */
 class InfrastructureServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Registers infrastructure services within the DI container.
+     *
+     * 1. Binds LocalStorageService and S3StorageService based on config.
+     * 2. Sets up the primary Redis instance using config parameters.
+     * 3. Configures Cache, ImageProcessing, RateLimiting, and Queue interfaces with concrete implementations.
+     * 
+     * @param Container $container
+     * @return void
+     */
     public function register(Container $container): void
     {
         $container->set(LocalStorageService::class, function () {

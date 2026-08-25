@@ -15,7 +15,7 @@
     .welcome-page {
         min-height: 100vh;
         background-color: var(--bg-canvas);
-        color: var(--text-main);
+        color: #ffffff;
         font-family: var(--font-sans);
         padding: var(--space-2xl) var(--space-lg);
     }
@@ -50,7 +50,7 @@
         font-size: 2.25rem;
         font-weight: 800;
         letter-spacing: -0.025em;
-        color: #ffffff;
+        color: #ffdbbb;
         margin-bottom: var(--space-xs);
     }
 
@@ -64,8 +64,14 @@
 
     .welcome-hero__actions {
         display: flex;
-        gap: var(--space-md);
+        gap: var(--space-2xl);
         flex-wrap: wrap;
+        padding-top: var(--space-lg);
+    }
+
+    .welcome-hero__actions .btn {
+        padding: 0;
+        background-color: transparent !important;
     }
 
     /* Metric & Diagnostic Pill Bar */
@@ -86,7 +92,7 @@
         padding: 0.4rem 0.85rem;
         font-family: var(--font-mono);
         font-size: 0.85rem;
-        color: var(--text-main);
+        color: #ffffff;
     }
 
     .metric-pill__label {
@@ -114,7 +120,7 @@
     .section-header__title {
         font-size: 1.4rem;
         font-weight: 700;
-        color: #ffffff;
+        color: #ffdbbb;
         letter-spacing: -0.01em;
     }
 
@@ -138,7 +144,7 @@
     .philosophy-item__title {
         font-size: 1rem;
         font-weight: 700;
-        color: #ffffff;
+        color: #ffdbbb;
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -172,7 +178,7 @@
         font-family: var(--font-mono);
         font-size: 0.75rem;
         font-weight: 700;
-        color: var(--brand-flame);
+        color: var(--color-success);
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -180,7 +186,7 @@
     .lifecycle-step__title {
         font-size: 0.95rem;
         font-weight: 700;
-        color: var(--text-main);
+        color: #ffdbbb;
     }
 
     .lifecycle-step__desc {
@@ -229,7 +235,7 @@
     .module-card__title {
         font-size: 1.15rem;
         font-weight: 700;
-        color: #ffffff;
+        color: #ffdbbb;
     }
 
     .module-card__desc {
@@ -291,7 +297,7 @@
     }
 
     .command-line__cmd {
-        color: var(--text-main);
+        color: #ffffff;
     }
 
     .command-line__comment {

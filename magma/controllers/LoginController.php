@@ -12,16 +12,27 @@ use Magma\validation\Validator;
 use Magma\view\TemplateEngine;
 
 /**
- * Title: Login Controller
+ * Title: LoginController
  *
  * Purpose:
  * - Handles user login presentation and authentication logic.
+ * - Manages session creation and cookie handling for authentication.
  *
- * Why this design:
+ * Why / Why this design:
  * - Delegates actual authentication to the AuthenticationService.
+ * - Promotes Separation of Concerns (SoC) by keeping HTTP concerns in the controller and domain logic in the service.
+ *
+ * Teaching notes:
+ * - Always apply auth results to set/clear cookies when authentication occurs.
  */
 class LoginController
 {
+    /**
+     * Handles the GET request for the login page.
+     * 1. Checks for a "remember me" token and attempts auto-login.
+     * 2. Checks if a user is already in the session.
+     * 3. Renders the login form if neither of the above applies.
+     */
     public function login(
         Request $request, 
         AuthenticationService $authService, 
@@ -50,6 +61,13 @@ class LoginController
         ]);
     }
 
+    /**
+     * Handles the POST request to authenticate a user.
+     * 1. Converts the validated request into a DTO.
+     * 2. Delegates authentication attempt to the AuthenticationService.
+     * 3. Redirects back with errors if unsuccessful.
+     * 4. Applies auth result and redirects to dashboard if successful.
+     */
     public function authenticate(
         LoginRequest $loginRequest, 
         Request $request, 
@@ -71,11 +89,19 @@ class LoginController
         return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
     }
 
+    /**
+     * Redirects the user to their appropriate dashboard based on role.
+     */
     private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
     {
         return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole() ?? null));
     }
 
+    /**
+     * Applies cookies from the authentication result to the HTTP response.
+     * 1. Sets new cookies required by the result.
+     * 2. Clears expired or removed cookies.
+     */
     private function applyAuthResult(AuthenticationResult $result, Response $response, Request $request): Response
     {
         foreach ($result->getCookiesToSet() as $cookie) {

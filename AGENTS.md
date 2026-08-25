@@ -34,7 +34,6 @@
 ## 5. UI, CSS & Design System
 - **Inline Styles:** Static `style="..."` is strictly forbidden. Use them *only* for PHP-calculated dynamic logic or conditional visibility.
 - **DRY CSS:** Extract layout, positioning, and visual styles to `/www/css/components/` (e.g., `.d-flex`). 
-- **Brand Standards:** Ensure any UI generation aligns with a clean, flat, minimalist geometric design style. Use the primary palette of dark forest green (`#094734`) and sand gold (`#ebd986`) where appropriate.
 - **Legacy Code:** Do not write or retain backward-compatibility classes. Clean them up during refactoring.
 - **Browser Cache:** Never assume a bug or missing UI update is a cache issue. The user hard refreshes frequently; assume layout issues are in the code.
 

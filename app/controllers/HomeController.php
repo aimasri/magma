@@ -38,8 +38,6 @@ class HomeController
         SystemDiagnosticsService $diagnosticsService,
         \Magma\view\HtmlResponseBuilderInterface $html
     ): \Magma\http\Response {
-        throw new \RuntimeException("This is a deliberate exception to demonstrate Magma's beautifully designed diagnostic 500 error page!");
-
         $diagnostics = $diagnosticsService->getDiagnostics();
 
         return $html->render('welcome', [
