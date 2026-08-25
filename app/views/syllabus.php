@@ -399,7 +399,7 @@ Because we add our <code>SessionTimeoutMiddleware</code> and <code>CsrfMiddlewar
 If <code>index.php</code> is the front door, <code>bootstrap.php</code> is the process of turning on the lights, booting up the computers, and unlocking the cash register before the customers arrive.
 </p>
 <p>
-When execution jumps out of the <code>www/</code> directory via that <code>require</code> statement, it lands in <code>/home/ahmed/projects/Magma/magma/core/config/bootstrap.php</code>. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
+When execution jumps out of the <code>www/</code> directory via that <code>require</code> statement, it lands in <code>./magma/core/config/bootstrap.php</code>. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
 </p>
 <h4>File Walkthrough: <code>bootstrap.php</code></h4>
 <p>
