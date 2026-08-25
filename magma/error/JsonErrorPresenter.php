@@ -20,7 +20,7 @@ use Magma\http\Response;
  * Teaching notes:
  * - Client-side SPA frameworks and mobile apps depend on strict, predictable error contracts (e.g. `{success: false, error: string, code: int}`).
  */
-class JsonErrorPresenter
+class JsonErrorPresenter implements \Magma\interfaces\JsonErrorPresenterInterface
 {
     /**
      * Formats an error into a standardized JSON Response.
@@ -38,7 +38,7 @@ class JsonErrorPresenter
      * @param array|null $errors Granular validation or field errors
      * @return Response
      */
-    public static function present(
+    public function present(
         int $code,
         string $message,
         ?\Throwable $throwable = null,
@@ -79,9 +79,9 @@ class JsonErrorPresenter
      * @param string $message
      * @return Response
      */
-    public static function presentNotFound(string $message = 'Resource not found'): Response
+    public function presentNotFound(string $message = 'Resource not found'): Response
     {
-        return self::present(404, $message);
+        return $this->present(404, $message);
     }
 
     /**
@@ -90,9 +90,9 @@ class JsonErrorPresenter
      * @param string $message
      * @return Response
      */
-    public static function presentUnauthorized(string $message = 'Unauthorized access'): Response
+    public function presentUnauthorized(string $message = 'Unauthorized access'): Response
     {
-        return self::present(401, $message);
+        return $this->present(401, $message);
     }
 
     /**
@@ -101,9 +101,9 @@ class JsonErrorPresenter
      * @param string $message
      * @return Response
      */
-    public static function presentForbidden(string $message = 'Access forbidden'): Response
+    public function presentForbidden(string $message = 'Access forbidden'): Response
     {
-        return self::present(403, $message);
+        return $this->present(403, $message);
     }
 
     /**
@@ -113,9 +113,9 @@ class JsonErrorPresenter
      * @param string $message
      * @return Response
      */
-    public static function presentValidation(array $errors, string $message = 'Validation failed'): Response
+    public function presentValidation(array $errors, string $message = 'Validation failed'): Response
     {
-        return self::present(422, $message, null, false, $errors);
+        return $this->present(422, $message, null, false, $errors);
     }
 
     /**
@@ -126,11 +126,11 @@ class JsonErrorPresenter
      * @param bool $debug
      * @return Response
      */
-    public static function presentServerError(
+    public function presentServerError(
         string $message = 'Internal server error',
         ?\Throwable $throwable = null,
         bool $debug = false
     ): Response {
-        return self::present(500, $message, $throwable, $debug);
+        return $this->present(500, $message, $throwable, $debug);
     }
 }

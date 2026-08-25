@@ -85,6 +85,14 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
+    public function add(string $key, mixed $value, null|int|DateInterval $ttl = null): bool
+    {
+        if ($this->has($key)) {
+            return false;
+        }
+        return $this->set($key, $value, $ttl);
+    }
+
     /**
      * Deletes an item from the in-memory cache.
      *

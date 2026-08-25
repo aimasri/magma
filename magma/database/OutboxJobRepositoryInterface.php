@@ -50,6 +50,13 @@ interface OutboxJobRepositoryInterface
     public function record(string $queue, string $handlerClass, array $payload, array $headers = []): int;
 
     /**
+     * Records multiple jobs into the transactional outbox table in a single batched insert.
+     *
+     * @param array $jobs Array of associative arrays, each containing 'queue', 'handler', 'payload', and optional 'headers'.
+     */
+    public function recordBulk(array $jobs): void;
+
+    /**
      * Increments attempt count and records the failure message for an outbox job.
      *
      * @param int $id The outbox record primary key.

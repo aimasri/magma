@@ -14,7 +14,7 @@ use Magma\domain\commands\DeactivateChildMenusCommand;
  *   that should not live in the pure Data Transfer Objects (DTOs) or the basic repositories.
  * - Coordinates state changes across bounded entities.
  *
- * Why this design:
+ * Why / Why this design:
  * - Keeps models as anemic data structures (DTOs).
  * - Centralizes business rules for state transitions in a Domain Service.
  * - CQRS integration: Uses command dispatching to perform side effects rather than direct repository updates.

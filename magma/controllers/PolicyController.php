@@ -17,20 +17,15 @@ use Magma\view\TemplateEngine;
  * Teaching notes:
  * - Keep these controllers minimal; static content can often be served directly from views or a simple CMS in larger projects.
  */
-class PolicyController extends BaseController
+class PolicyController
 {
-    public function __construct(TemplateEngine $templateEngine, \Magma\security\CsrfManager $csrfManager, \Magma\http\Session $session)
-    {
-        parent::__construct($templateEngine, $csrfManager, $session);
-    }
-
     /**
      * Displays the Privacy & Cookie Policy.
      * Merges current vendor metadata into the template for dynamic branding.
      */
-    public function index(): Response
+    public function index(\Magma\view\HtmlResponseBuilderInterface $html): Response
     {
-        return $this->render('policy', [
+        return $html->render('policy', [
             'title'   => 'Privacy & Cookie Policy'
         ]);
     }

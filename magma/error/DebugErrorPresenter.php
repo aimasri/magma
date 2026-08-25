@@ -23,7 +23,7 @@ use Magma\http\Response;
  * Teaching notes:
  * - This presenter is strictly gated behind `$debug === true` (or `APP_DEBUG=true`). In production environments, it is disabled to prevent sensitive information disclosure.
  */
-class DebugErrorPresenter
+class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterface
 {
     /**
      * Renders an interactive HTML debug page for the given Throwable.
@@ -40,18 +40,18 @@ class DebugErrorPresenter
      * @param int $statusCode
      * @return Response
      */
-    public static function present(Throwable $e, ?RequestInterface $request = null, int $statusCode = 500): Response
+    public function present(Throwable $e, ?RequestInterface $request = null, int $statusCode = 500): Response
     {
         $exceptionClass = get_class($e);
         $message = $e->getMessage() ?: '(No message provided)';
         $file = $e->getFile();
         $line = $e->getLine();
-        $codeSnippet = self::extractCodeSnippet($file, $line);
-        $frames = self::formatTraceFrames($e);
-        $requestData = self::gatherRequestContext($request);
-        $environmentData = self::gatherEnvironmentMetrics();
+        $codeSnippet = $this->extractCodeSnippet($file, $line);
+        $frames = $this->formatTraceFrames($e);
+        $requestData = $this->gatherRequestContext($request);
+        $environmentData = $this->gatherEnvironmentMetrics();
 
-        $html = self::renderHtml([
+        $html = $this->renderHtml([
             'statusCode'      => $statusCode,
             'exceptionClass'  => $exceptionClass,
             'message'         => $message,
@@ -74,7 +74,7 @@ class DebugErrorPresenter
      * @param int $padding
      * @return array<int, array{line: int, code: string, isTarget: bool}>
      */
-    public static function extractCodeSnippet(string $filePath, int $targetLine, int $padding = 8): array
+    public function extractCodeSnippet(string $filePath, int $targetLine, int $padding = 8): array
     {
         if (!is_file($filePath) || !is_readable($filePath)) {
             return [];
@@ -107,7 +107,7 @@ class DebugErrorPresenter
      * @param Throwable $e
      * @return array<int, array{file: string, line: int, call: string, snippet: array, args: array}>
      */
-    private static function formatTraceFrames(Throwable $e): array
+    private function formatTraceFrames(Throwable $e): array
     {
         $trace = $e->getTrace();
         $frames = [];
@@ -123,12 +123,12 @@ class DebugErrorPresenter
             $args = [];
             if (!empty($frame['args'])) {
                 foreach ($frame['args'] as $argKey => $argVal) {
-                    $args[$argKey] = self::formatArgument($argVal);
+                    $args[$argKey] = $this->formatArgument($argVal);
                 }
             }
 
             $snippet = ($file !== '[internal function]' && $line > 0) 
-                ? self::extractCodeSnippet($file, $line, 5) 
+                ? $this->extractCodeSnippet($file, $line, 5) 
                 : [];
 
             $frames[] = [
@@ -150,7 +150,7 @@ class DebugErrorPresenter
      * @param mixed $arg
      * @return string
      */
-    private static function formatArgument(mixed $arg): string
+    private function formatArgument(mixed $arg): string
     {
         if (is_null($arg)) return 'null';
         if (is_bool($arg)) return $arg ? 'true' : 'false';
@@ -171,7 +171,7 @@ class DebugErrorPresenter
      * @param RequestInterface|null $request
      * @return array<string, mixed>
      */
-    private static function gatherRequestContext(?RequestInterface $request): array
+    private function gatherRequestContext(?RequestInterface $request): array
     {
         if ($request === null) {
             return [
@@ -196,7 +196,7 @@ class DebugErrorPresenter
      *
      * @return array<string, string>
      */
-    private static function gatherEnvironmentMetrics(): array
+    private function gatherEnvironmentMetrics(): array
     {
         $memoryBytes = memory_get_peak_usage(true);
         $memoryMb = round($memoryBytes / (1024 * 1024), 2);
@@ -216,7 +216,7 @@ class DebugErrorPresenter
      * @param array<string, mixed> $data
      * @return string
      */
-    private static function renderHtml(array $data): string
+    private function renderHtml(array $data): string
     {
         $statusCode = (int)$data['statusCode'];
         $exceptionClass = htmlspecialchars((string)$data['exceptionClass'], ENT_QUOTES, 'UTF-8');
@@ -224,10 +224,10 @@ class DebugErrorPresenter
         $file = htmlspecialchars((string)$data['file'], ENT_QUOTES, 'UTF-8');
         $line = (int)$data['line'];
 
-        $snippetHtml = self::renderSnippetRows($data['codeSnippet']);
-        $framesHtml = self::renderFramesList($data['frames']);
-        $requestHtml = self::renderPropertiesTable($data['requestData']);
-        $envHtml = self::renderPropertiesTable($data['environmentData']);
+        $snippetHtml = $this->renderSnippetRows($data['codeSnippet']);
+        $framesHtml = $this->renderFramesList($data['frames']);
+        $requestHtml = $this->renderPropertiesTable($data['requestData']);
+        $envHtml = $this->renderPropertiesTable($data['environmentData']);
         $frameCount = count((array)$data['frames']);
 
         return <<<HTML
@@ -505,7 +505,7 @@ class DebugErrorPresenter
 HTML;
     }
 
-    private static function renderSnippetRows(array $snippet): string
+    private function renderSnippetRows(array $snippet): string
     {
         if (empty($snippet)) {
             return '<div style="padding: 1rem; color: #64748b;">(Source code unavailable or file unreadable)</div>';
@@ -526,7 +526,7 @@ HTML;
         return $html;
     }
 
-    private static function renderFramesList(array $frames): string
+    private function renderFramesList(array $frames): string
     {
         if (empty($frames)) {
             return '<div style="padding: 1rem; color: #64748b;">(No stack trace available)</div>';
@@ -538,7 +538,7 @@ HTML;
             $file = htmlspecialchars((string)$frame['file'], ENT_QUOTES, 'UTF-8');
             $line = (int)$frame['line'];
             $call = htmlspecialchars((string)$frame['call'], ENT_QUOTES, 'UTF-8');
-            $snippetHtml = self::renderSnippetRows($frame['snippet'] ?? []);
+            $snippetHtml = $this->renderSnippetRows($frame['snippet'] ?? []);
 
             $argsHtml = '';
             if (!empty($frame['args'])) {
@@ -566,7 +566,7 @@ HTML;
         return $html;
     }
 
-    private static function renderPropertiesTable(array $data): string
+    private function renderPropertiesTable(array $data): string
     {
         $html = '<table class="props-table">';
         foreach ($data as $key => $val) {

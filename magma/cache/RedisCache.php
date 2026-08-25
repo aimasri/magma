@@ -143,6 +143,27 @@ class RedisCache implements CacheInterface
         }
     }
 
+    public function add(string $key, mixed $value, null|int|DateInterval $ttl = null): bool
+    {
+        $prefixedKey = $this->prefixKey($key);
+        $seconds = $this->resolveTtl($ttl);
+
+        if ($seconds !== null && $seconds <= 0) {
+            return false;
+        }
+
+        $serialized = serialize($value);
+
+        try {
+            if ($seconds !== null && $seconds > 0) {
+                return (bool) $this->redis->set($prefixedKey, $serialized, ['nx', 'ex' => $seconds]);
+            }
+            return (bool) $this->redis->set($prefixedKey, $serialized, ['nx']);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     /**
      * Deletes an item from Redis.
      *

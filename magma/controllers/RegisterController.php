@@ -24,37 +24,16 @@ use Magma\view\TemplateEngine;
  * Teaching notes:
  * - Validation is handled cleanly through `RegisterRequest` abstraction before delegating to the service layer.
  */
-class RegisterController extends BaseController
+class RegisterController
 {
-    protected Request $request;
-    protected AuthenticationService $authService;
-    protected RegistrationService $registrationService;
-    protected Validator $validator;
-
-    public function __construct(
-        TemplateEngine $templateEngine, 
-        \Magma\security\CsrfManager $csrfManager,
-        \Magma\http\Session $session,
-        Request $request, 
-        AuthenticationService $authService, 
-        RegistrationService $registrationService,
-        Validator $validator
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
-        $this->request = $request;
-        $this->authService = $authService;
-        $this->registrationService = $registrationService;
-        $this->validator = $validator;
-    }
-
     /**
      * Renders the registration form view.
      * 
      * @return Response
      */
-    public function register(): Response
+    public function register(\Magma\view\HtmlResponseBuilderInterface $html): Response
     {
-        return $this->render('auth/register', [
+        return $html->render('auth/register', [
             'title'   => 'Create Account',
         ]);
     }
@@ -71,20 +50,21 @@ class RegisterController extends BaseController
      * 
      * @return Response
      */
-    public function store(): Response
-    {
-        if ($redirect = $this->validateOrRedirect(new RegisterRequest($this->request, $this->validator), '/register')) {
-            return $redirect;
-        }
-
-        $data = $this->request->request();
+    public function store(
+        RegisterRequest $registerRequest, 
+        Request $request, 
+        RegistrationService $registrationService, 
+        AuthenticationService $authService, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $data = $request->request();
         
         try {
-            $user = $this->registrationService->registerUser($data);
-            $this->authService->login($user);
+            $user = $registrationService->registerUser($data);
+            $authService->login($user);
         } catch (\Magma\validation\ValidationException $e) {
-            $this->session->set('errors', $e->getErrors());
-            $this->session->set('old', ['name' => $data['name'] ?? '', 'email' => $data['email'] ?? '']);
+            $session->set('errors', $e->getErrors());
+            $session->set('old', ['name' => $data['name'] ?? '', 'email' => $data['email'] ?? '']);
             return new RedirectResponse('/register');
         }
 

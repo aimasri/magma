@@ -2,7 +2,7 @@
 <?php
 
 /**
- * Scheduled Token Cleanup Job
+ * Title: Scheduled Token Cleanup Job
  *
  * Purpose:
  * - A CLI worker script to delete expired tokens from the database.

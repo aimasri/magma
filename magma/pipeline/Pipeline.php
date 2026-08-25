@@ -163,12 +163,17 @@ class Pipeline
                     return $pipe($passable, $next);
                 }
 
-                if ($pipe instanceof \Magma\middleware\MiddlewareInterface) {
-                    return $pipe->process($passable, $next);
+                if (is_object($pipe)) {
+                    if (method_exists($pipe, $this->method)) {
+                        return $pipe->{$this->method}($passable, $next);
+                    }
+                    if (method_exists($pipe, 'handle')) {
+                        return $pipe->handle($passable, $next);
+                    }
                 }
 
                 $type = is_object($pipe) ? get_class($pipe) : gettype($pipe);
-                throw new RuntimeException("Pipeline stage [{$type}] is not callable or does not implement \Magma\middleware\MiddlewareInterface.");
+                throw new RuntimeException("Pipeline stage [{$type}] does not have a valid execution method ({$this->method} or handle) and is not callable.");
             };
         };
     }

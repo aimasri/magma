@@ -9,7 +9,7 @@ namespace Magma\services;
  * - Centralizes geolocation/timezone logic for the framework.
  * - Resolves context strings (like city names) to valid PHP timezone identifiers.
  *
- * Why this design:
+ * Why / Why this design:
  * - Avoids hardcoding timezone strings or logic directly inside controllers.
  * - Provides a single source of truth for timezone resolution, which can easily
  *   be swapped later for a more complex API integration (e.g., Google Maps API).

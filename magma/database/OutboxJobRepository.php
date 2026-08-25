@@ -160,6 +160,34 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     }
 
     /**
+     * Records multiple jobs into the transactional outbox table in a single batched insert.
+     *
+     * @param array $jobs
+     */
+    public function recordBulk(array $jobs): void
+    {
+        if (empty($jobs)) {
+            return;
+        }
+
+        $pdo = $this->dbManager->getWriteConnection();
+        $placeholders = implode(',', array_fill(0, count($jobs), '(?, ?, ?, ?, 0, NOW())'));
+        $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
+
+        $stmt = $pdo->prepare($sql);
+        
+        $i = 1;
+        foreach ($jobs as $job) {
+            $stmt->bindValue($i++, trim($job['queue']));
+            $stmt->bindValue($i++, trim($job['handler']));
+            $stmt->bindValue($i++, json_encode($job['payload'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            $stmt->bindValue($i++, json_encode($job['headers'] ?? [], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        }
+
+        $stmt->execute();
+    }
+
+    /**
      * Increments attempt count and records failure description.
      *
      * Execution Flow:

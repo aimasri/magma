@@ -43,6 +43,11 @@ abstract class FormRequest implements ValidatableRequestInterface
      * Must return an array mapping field names to rule strings.
      */
     abstract public function rules(): array;
+    
+    /**
+     * Maps the validated request data to a domain-specific Data Transfer Object (DTO).
+     */
+    abstract public function toDTO(): object;
 
     /**
      * Executes the validation process.

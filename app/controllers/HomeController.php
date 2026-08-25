@@ -31,9 +31,10 @@ class HomeController extends BaseController
         TemplateEngine $templateEngine,
         CsrfManager $csrfManager,
         Session $session,
+        \Magma\interfaces\ResponseFactoryInterface $responseFactory,
         SystemDiagnosticsService $diagnosticsService
     ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
+        parent::__construct($templateEngine, $csrfManager, $session, $responseFactory);
         $this->diagnosticsService = $diagnosticsService;
     }
     /**

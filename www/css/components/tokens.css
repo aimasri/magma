@@ -7,6 +7,7 @@
  *
  * Teaching notes:
  * - Uses native CSS variables scoped to :root and CSS Cascade Layer (@layer tokens).
+ * - Modifying tokens propagates through all components and utilities instantly.
  */
 
 @layer tokens {

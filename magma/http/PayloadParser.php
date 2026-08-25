@@ -7,6 +7,14 @@ namespace Magma\http;
  *
  * Purpose:
  * - Decouples payload extraction (like JSON decoding) from the core Request class.
+ * - Centralizes error handling for malformed JSON request bodies.
+ *
+ * Why / Why this design:
+ * - Single Responsibility Principle (SRP): Isolates the mechanics of content-type detection and parsing from the general HTTP Request representation.
+ * - Testability: Allows independent testing of JSON parsing logic without mocking complex HTTP request state.
+ *
+ * Teaching notes:
+ * - This class operates statically as a pure function, converting raw strings and headers into structured arrays without side effects.
  */
 class PayloadParser
 {

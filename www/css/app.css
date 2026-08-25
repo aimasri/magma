@@ -4,6 +4,10 @@
  * Purpose:
  * - Single Responsibility: Acts as the root manifest file importing domain component stylesheets in explicit @layer hierarchy.
  * - Adheres strictly to DRY, SOLID, and native CSS Cascade Layers (@layer reset, tokens, components, utilities, states).
+ *
+ * Teaching notes:
+ * - Employs a strict layer architecture. Avoid adding styles directly here.
+ * - Centralizes imports to maintain consistent build/cascade behavior.
  */
 
 @layer reset, tokens, components, utilities, states;

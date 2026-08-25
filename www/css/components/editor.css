@@ -3,6 +3,10 @@
  *
  * Purpose:
  * - Styles the zero-dependency MagmaEditor container, toolbar buttons, and contenteditable area.
+ *
+ * Teaching notes:
+ * - Keep focus states accessible with visible rings.
+ * - Rely on standard HTML tags within `.magma-editor-content` for formatting.
  */
 
 @layer components {

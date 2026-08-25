@@ -24,4 +24,9 @@ class ForgotPasswordRequest extends FormRequest
             'email' => 'required|email'
         ];
     }
+
+    public function toDTO(): object
+    {
+        return (object) $this->request->request();
+    }
 }

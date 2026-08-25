@@ -21,19 +21,8 @@ use Magma\services\PaginationService;
  * Teaching notes:
  * - Prefer composing repository results here and keep normalization logic inside repository classes to maintain single responsibility.
  */
-class HomeController extends BaseController
+class HomeController
 {
-    public function __construct(
-        TemplateEngine $templateEngine,
-        \Magma\security\CsrfManager $csrfManager,
-        \Magma\http\Session $session,
-        private readonly SiteReviewQueryInterface $siteReviewRepository,
-        private readonly Request $request,
-        private readonly PaginationService $paginationService
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
-    }
-
     /**
      * Orchestrates the rendering of the landing page.
      * 
@@ -42,24 +31,29 @@ class HomeController extends BaseController
      * 2. Extract and clear any flashed success messages from the session.
      * 3. Pass the payload to the TemplateEngine to render `home.php`.
      */
-    public function index(): Response
-    {
+    public function index(
+        \Magma\view\HtmlResponseBuilderInterface $html,
+        SiteReviewQueryInterface $siteReviewRepository,
+        Request $request,
+        PaginationService $paginationService,
+        \Magma\http\SessionInterface $session
+    ): Response {
         // Public homepage locks the limit to 20 to prevent excessive load
-        $pagination = $this->paginationService->getPagination(
-            $this->request, 
+        $pagination = $paginationService->getPagination(
+            $request, 
             defaultLimit: 20, 
             allowUserOverride: false
         );
 
         // Fetch consolidated reviews as a Generator and pass directly to the view to defer memory allocation
-        $allReviews = $this->siteReviewRepository->getApprovedReviews(
+        $allReviews = $siteReviewRepository->getApprovedReviews(
             $pagination->limit, 
             $pagination->lastId
         );
 
-        $successMessage = $this->session->flash('success_message');
+        $successMessage = $session->flash('success_message');
 
-        return $this->render('home', [
+        return $html->render('home', [
             'reviews' => $allReviews,
             'success_message' => $successMessage
         ]);

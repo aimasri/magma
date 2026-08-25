@@ -12,6 +12,8 @@ use Magma\http\RequestInterface;
  * - Decouple routing parameter resolver from concrete FormRequest.
  * Why/Why this design:
  * - DIP (Dependency Inversion Principle): Depend on abstractions, not concretions.
+ * Teaching notes:
+ * - Ensure any custom request classes implement this to be resolvable by the framework's dependency injection container.
  */
 interface ValidatableRequestInterface
 {

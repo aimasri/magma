@@ -8,6 +8,8 @@ use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\validation\ValidationException;
 use Magma\view\TemplateEngine;
+use Magma\interfaces\JsonErrorPresenterInterface;
+use Magma\interfaces\DebugErrorPresenterInterface;
 
 /**
  * Title: Application Error Handler & Content-Negotiated Exception Boundary
@@ -27,11 +29,20 @@ use Magma\view\TemplateEngine;
 class ErrorHandler implements ErrorHandlerInterface
 {
     private TemplateEngine $templateEngine;
+    private JsonErrorPresenterInterface $jsonPresenter;
+    private DebugErrorPresenterInterface $debugPresenter;
     private bool $debug;
 
-    public function __construct(TemplateEngine $templateEngine, \Magma\config\ConfigInterface $config, ?bool $debug = null)
-    {
+    public function __construct(
+        TemplateEngine $templateEngine, 
+        \Magma\config\ConfigInterface $config, 
+        JsonErrorPresenterInterface $jsonPresenter,
+        DebugErrorPresenterInterface $debugPresenter,
+        ?bool $debug = null
+    ) {
         $this->templateEngine = $templateEngine;
+        $this->jsonPresenter = $jsonPresenter;
+        $this->debugPresenter = $debugPresenter;
         if ($debug !== null) {
             $this->debug = $debug;
         } else {
@@ -100,7 +111,7 @@ class ErrorHandler implements ErrorHandlerInterface
         }
 
         if ($request !== null && ($request->isJsonExpected() || $request->expectsJson())) {
-            return JsonErrorPresenter::presentNotFound('The requested endpoint or resource was not found.');
+            return $this->jsonPresenter->presentNotFound('The requested endpoint or resource was not found.');
         }
 
         return $this->renderError(404, "Page Not Found");
@@ -144,11 +155,11 @@ class ErrorHandler implements ErrorHandlerInterface
             ));
 
             if ($isJson) {
-                return JsonErrorPresenter::presentValidation($e->getErrors(), $message);
+                return $this->jsonPresenter->presentValidation($e->getErrors(), $message);
             }
 
             if ($this->debug) {
-                return DebugErrorPresenter::present($e, $request, $code);
+                return $this->debugPresenter->present($e, $request, $code);
             }
 
             return $this->renderError($code, $message, $e->getTraceAsString());
@@ -175,11 +186,11 @@ class ErrorHandler implements ErrorHandlerInterface
         $safeMessage = $this->debug ? $e->getMessage() : 'An unexpected system error occurred.';
 
         if ($isJson) {
-            return JsonErrorPresenter::present($code, $safeMessage, $e, $this->debug);
+            return $this->jsonPresenter->present($code, $safeMessage, $e, $this->debug);
         }
 
         if ($this->debug) {
-            return DebugErrorPresenter::present($e, $request, $code);
+            return $this->debugPresenter->present($e, $request, $code);
         }
 
         return $this->renderError($code, $safeMessage, $e->getTraceAsString());

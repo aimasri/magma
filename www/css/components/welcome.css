@@ -5,6 +5,10 @@
  * - Single Responsibility: Encapsulates layout, hero showcase, metric pills, lifecycle stepper,
  *   syllabus modules, philosophy cards, and terminal blocks for the Welcome landing view.
  * - Adheres strictly to dark theme palette matching the debug diagnostics view.
+ *
+ * Teaching notes:
+ * - Specific to the welcome landing page; isolated here to avoid polluting generic components.
+ * - Keep responsive breakpoints inside their respective blocks.
  */
 
 @layer components {

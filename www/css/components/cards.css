@@ -4,6 +4,10 @@
  * Purpose:
  * - Single Responsibility: Encapsulates surface containers, panels, and card grids.
  * - Open/Closed: Allows extension through variant modifier classes (`.card--elevated`, `.card--accent-flame`, `.card--interactive`).
+ *
+ * Teaching notes:
+ * - Cards are basic containers. Inner padding and borders are predefined to maintain unified structural rhythm.
+ * - Use standard `.card-grid` layouts for cohesive listing.
  */
 
 @layer components {

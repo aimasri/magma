@@ -38,10 +38,11 @@ class ReviewController extends BaseController
         TemplateEngine $templateEngine,
         \Magma\security\CsrfManager $csrfManager,
         \Magma\http\Session $session,
+        \Magma\interfaces\ResponseFactoryInterface $responseFactory,
         ReviewSubmissionServiceInterface $reviewSubmissionService,
         ReviewRequest $reviewRequest
     ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
+        parent::__construct($templateEngine, $csrfManager, $session, $responseFactory);
         $this->reviewSubmissionService = $reviewSubmissionService;
         $this->reviewRequest = $reviewRequest;
     }

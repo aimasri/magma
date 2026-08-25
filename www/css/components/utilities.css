@@ -13,6 +13,10 @@
  *   `.is-active`) always take final precedence.
  * - DRY Principle & Zero Static Inline Styles: Adheres strictly to framework design directives by replacing
  *   hardcoded inline `style="..."` attributes with reusable, tokenized utility classes.
+ *
+ * Teaching notes:
+ * - Strict adherence to utility classes over custom CSS reduces bundle size and unifies the design system.
+ * - Layer definitions here declare the architectural order for the entire application stylesheet.
  */
 
 @layer reset, tokens, components, utilities, states;

@@ -9,7 +9,7 @@ namespace Magma\services;
  * - Defines the contract for sending emails within the application.
  * - Abstracts the underlying mail delivery mechanism (e.g., Native, SMTP, API).
  *
- * Why this design:
+ * Why / Why this design:
  * - Strategy Pattern: Allows different email delivery strategies to be swapped at runtime (e.g., using a Mock transport during testing).
  * - Adheres to Dependency Inversion, ensuring high-level modules don't depend on low-level mail implementations.
  *

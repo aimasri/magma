@@ -12,7 +12,7 @@ use RuntimeException;
  * - Concrete implementation of StorageInterface for the local file system.
  * - Handles directory creation and path resolution safely.
  *
- * Why this design:
+ * Why / Why this design:
  * - Uses an adapter pattern approach allowing the storage mechanism to be swapped (e.g., to S3) without changing consuming code.
  * - Enforces path restrictions to prevent directory traversal vulnerabilities.
  *

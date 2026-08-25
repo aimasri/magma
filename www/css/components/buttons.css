@@ -4,6 +4,10 @@
  * Purpose:
  * - Single Responsibility: Encapsulates interactive button and link trigger styling.
  * - Interface Segregation: Distinguishes between primary, secondary, outline, and small modifiers.
+ *
+ * Teaching notes:
+ * - Avoid tying styles to specific HTML elements; buttons can be `<a>` or `<button>`.
+ * - Uses variables for transitions to ensure a unified feel across the application.
  */
 
 @layer components {

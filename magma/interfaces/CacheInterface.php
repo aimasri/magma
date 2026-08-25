@@ -45,6 +45,16 @@ interface CacheInterface
     public function set(string $key, mixed $value, null|int|DateInterval $ttl = null): bool;
 
     /**
+     * Persists an item in the cache only if it does not already exist.
+     *
+     * @param string $key The key of the item to store.
+     * @param mixed $value The value of the item to store.
+     * @param null|int|DateInterval $ttl Optional TTL.
+     * @return bool True if stored, false if it already existed.
+     */
+    public function add(string $key, mixed $value, null|int|DateInterval $ttl = null): bool;
+
+    /**
      * Deletes an item from the cache by its unique key.
      *
      * @param string $key The unique cache key of the item to delete.

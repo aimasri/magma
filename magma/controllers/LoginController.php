@@ -20,70 +20,58 @@ use Magma\view\TemplateEngine;
  * Why this design:
  * - Delegates actual authentication to the AuthenticationService.
  */
-class LoginController extends BaseController
+class LoginController
 {
-    protected Request $request;
-    protected AuthenticationService $authService;
-    protected Validator $validator;
-
-    public function __construct(
-        TemplateEngine $templateEngine, 
-        \Magma\security\CsrfManager $csrfManager,
-        \Magma\http\Session $session,
+    public function login(
         Request $request, 
         AuthenticationService $authService, 
-        Validator $validator
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
-        $this->request = $request;
-        $this->authService = $authService;
-        $this->validator = $validator;
-    }
-
-    public function login(): Response
-    {
-        $token = $this->request->cookie('remember_user');
+        \Magma\view\HtmlResponseBuilderInterface $html, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $token = $request->cookie('remember_user');
 
         if ($token) {
-            $result = $this->authService->attemptAutoLogin($token);
+            $result = $authService->attemptAutoLogin($token);
             if ($result->isSuccessful()) {
-                return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()));
+                return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
             }
             
-            $response = $this->render('auth/login', ['title' => 'Login']);
-            return $this->applyAuthResult($result, $response);
+            $response = $html->render('auth/login', ['title' => 'Login']);
+            return $this->applyAuthResult($result, $response, $request);
         }
 
-        if ($this->session->get('user')) {
-            $sessionUser = new \Magma\domain\AuthUser($this->session->get('user'));
+        if ($session->get('user')) {
+            $sessionUser = new \Magma\domain\AuthUser($session->get('user'));
             return $this->redirectToDashboard($sessionUser);
         }
 
-        return $this->render('auth/login', [
+        return $html->render('auth/login', [
             'title'   => 'Login',
         ]);
     }
 
-    public function authenticate(): Response
-    {
-        if ($redirect = $this->validateOrRedirect(new LoginRequest($this->request, $this->validator), '/login')) {
-            return $redirect;
-        }
-
-        $data = $this->request->request();
+    public function authenticate(
+        LoginRequest $loginRequest, 
+        Request $request, 
+        AuthenticationService $authService, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        // Validation is automatically handled by RouteParameterResolver for the LoginRequest parameter.
+        
+        $data = $request->request();
         $email = trim($data['email'] ?? '');
         $password = $data['password'] ?? '';
         $remember = !empty($data['remember_me']);
 
-        $result = $this->authService->attempt($email, $password, $remember);
+        $result = $authService->attempt($email, $password, $remember);
 
         if (!$result->isSuccessful()) {
-            $this->session->set('old', ['email' => $data['email'] ?? '']);
-            $this->session->set('errors', ['auth' => 'Invalid credentials']);
+            $session->set('old', ['email' => $data['email'] ?? '']);
+            $session->set('errors', ['auth' => 'Invalid credentials']);
             return new RedirectResponse('/login');
         }
 
-        return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()));
+        return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
     }
 
     private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
@@ -91,13 +79,13 @@ class LoginController extends BaseController
         return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole() ?? null));
     }
 
-    private function applyAuthResult(AuthenticationResult $result, Response $response): Response
+    private function applyAuthResult(AuthenticationResult $result, Response $response, Request $request): Response
     {
         foreach ($result->getCookiesToSet() as $cookie) {
-            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $this->request->isSecure(), true);
+            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $request->isSecure(), true);
         }
         foreach ($result->getCookiesToClear() as $name) {
-            $response->withCookie($name, '', time() - 3600, "/", "", $this->request->isSecure(), true);
+            $response->withCookie($name, '', time() - 3600, "/", "", $request->isSecure(), true);
         }
         return $response;
     }

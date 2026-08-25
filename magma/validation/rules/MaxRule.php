@@ -37,11 +37,14 @@ class MaxRule
     public function __invoke(string $field, mixed $value, array $params, array $data): ?string
     {
         $max = (int) ($params[0] ?? 0);
-        if (is_string($value) && strlen($value) > $max) {
-            return "The {$field} may not be greater than {$max} characters.";
-        }
-        if (is_numeric($value) && $value > $max) {
-            return "The {$field} may not be greater than {$max}.";
+        if (is_int($value) || is_float($value)) {
+            if ($value > $max) {
+                return "The {$field} may not be greater than {$max}.";
+            }
+        } elseif (is_string($value)) {
+            if (strlen($value) > $max) {
+                return "The {$field} may not be greater than {$max} characters.";
+            }
         }
         return null;
     }

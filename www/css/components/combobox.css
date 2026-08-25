@@ -4,6 +4,10 @@
  * Purpose:
  * - Styles the autocomplete combobox wrapper, input, floating dropdown, multi-line result items,
  *   and multi-line selected card with click-to-edit interactions.
+ *
+ * Teaching notes:
+ * - Designed to work with dynamic JS. Ensure state classes like `.is-highlighted` map to visual cues without `.js-` tight coupling.
+ * - Ensure high z-index for dropdowns so they don't clip inside containers.
  */
 
 @layer components {

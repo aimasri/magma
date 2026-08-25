@@ -9,7 +9,7 @@ namespace Magma\services;
  * - Implements the MailTransportInterface using PHP's native mail() function.
  * - Formats and dispatches email headers and bodies.
  *
- * Why this design:
+ * Why / Why this design:
  * - Acts as an Adapter over the native procedural mail() function, integrating it into the OOP ecosystem.
  * - Allows simple email dispatch without relying on external SMTP libraries for basic environments.
  *

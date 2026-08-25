@@ -3,6 +3,10 @@
  *
  * Purpose:
  * - Single Responsibility: Encapsulates status indicators, code pills, and tags.
+ *
+ * Teaching notes:
+ * - Strictly layered under 'components' to ensure utilities can override them if needed.
+ * - Keep variations minimal to ensure UI consistency.
  */
 
 @layer components {

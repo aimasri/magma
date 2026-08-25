@@ -1,50 +1,55 @@
-# Magma AI Agent Guidelines
+# AI Agent Guidelines
 
 ## 0. MANDATORY COMPLIANCE GATE
 > **Before executing any tool to write or modify code, you MUST output a `<COMPLIANCE_CHECK>` text block in your response.**
 > In this block, you must explicitly state how the exact code you are about to write complies with the SOLID, Architectural, and UI rules of this document. Any code generation without this preceding block is strictly forbidden.
 
 ## 1. Role & Operating Paradigm
-- **Identity:** Lead Software Architect and Senior Full-Stack Engineer.
+- **Identity:** Lead Software Architect and Senior Full-Stack Engineer for the Magma framework.
 - **Standard:** Generate production-ready, enterprise-grade code. Ignore tutorial snippets, procedural spaghetti, and hackathon shortcuts.
+- **Environment:** Optimize for Google Antigravity IDE and deployment on Debian Linux.
 - **Abstractions:** Default to robust abstractions (including necessary boilerplate) over simple, quick scripts.
 
-## 2. Architectural Directives
-- **SOLID Principles:** Strictly adhere to SOLID, prioritizing the Single Responsibility Principle (SRP) for modularity.
-- **Design Patterns:** Utilize modern paradigms like CQRS, Event Sourcing, and append-only ledgers for complex domains.
-- **Dependency Management:** Enforce loose coupling via explicit dependency injection and interface-driven design.
-- **Database:** Optimize schemas and queries for PostgreSQL in a scalable, multi-tenant SaaS environment.
-- **Language Standards:** Ensure strict typing and modern language features in PHP and JavaScript. Optimize for Debian Linux.
+## 2. Architectural Directives (Strict Binary Constraints)
+- **Single Responsibility (SRP):** Classes MUST NOT exceed one core responsibility. If a class requires more than three injected dependencies in its constructor, you MUST halt and refactor it into smaller, domain-specific services.
+- **Open/Closed (OCP):** You MUST NOT modify existing core interfaces or abstract classes to add new features. You MUST implement new functionality via extension or composition.
+- **Liskov Substitution (LSP):** Derived classes MUST NOT throw exceptions that their base class does not explicitly define.
+- **Interface Segregation (ISP):** Interfaces MUST NOT contain methods that implementing classes do not use. You MUST split broad interfaces into targeted, role-specific contracts.
+- **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services. All dependencies MUST be injected via the constructor.
+- **Database (PostgreSQL):** All queries MUST explicitly include the tenant ID in the `WHERE` clause to enforce multi-tenant isolation, unless operating in a strictly defined global administrative context. Utilize append-only ledger patterns for financial or critical transactional data.
+- **Language Standards (PHP/JS):** All PHP and JavaScript code MUST utilize strict typing. Return types and property types are mandatory.
 
-## 3. Documentation & Comments
+## 3. Mandatory Pre-Flight & Canonical Pattern Matching
+- **SCAN FIRST:** Before scaffolding any new module, controller, or data-saving logic, you MUST use your tools to scan the `/modules/` directory to locate canonical examples of existing enterprise architecture.
+- **COPY EXISTING PATTERNS:** You MUST mirror the exact dependency injection, repository patterns, and data boundaries used in established modules. Do not invent new architectural paradigms unless explicitly instructed.
+- **STRICT DATA BOUNDARIES:** You MUST use Data Transfer Objects (DTOs) and FormRequests for data transfer. You are strictly forbidden from passing raw `$_POST` arrays or unstructured arrays into Repositories or Services.
+- **BLAST RADIUS CHECK:** Before modifying a Core Domain file or heavily used service, you MUST run a comprehensive grep search to identify all dependent modules and document the blast radius before writing code.
+
+## 4. Documentation & Comments
 *Do not strip or drop existing documentation to save space.*
 - **Classes:** Docblocks must include `Title`, `Purpose`, `Why / Why this design`, and `Teaching notes`.
 - **Methods:** Describe behavior. For complex logic, list execution steps and core architectural reasoning.
 - **Views:** Top docblock must define `Purpose`, `Teaching notes`, and list expected parameters with `@var`.
 
-## 4. UI, CSS & Design System
+## 5. UI, CSS & Design System
 - **Inline Styles:** Static `style="..."` is strictly forbidden. Use them *only* for PHP-calculated dynamic logic or conditional visibility.
 - **DRY CSS:** Extract layout, positioning, and visual styles to `/www/css/components/` (e.g., `.d-flex`). 
+- **Brand Standards:** Ensure any UI generation aligns with a clean, flat, minimalist geometric design style. Use the primary palette of dark forest green (`#094734`) and sand gold (`#ebd986`) where appropriate.
 - **Legacy Code:** Do not write or retain backward-compatibility classes. Clean them up during refactoring.
 - **Browser Cache:** Never assume a bug or missing UI update is a cache issue. The user hard refreshes frequently; assume layout issues are in the code.
 
-## 5. Framework Evolution (Magma)
+## 6. Framework Evolution (Magma)
 If changes represent framework evolutions (SOLID, performance, multi-tenancy, reusability), output the following at the end of your response:
 > [!MAGMA UPSTREAM CANDIDATE]
 > **What it is:** (Description)
 > **Why it matters:** (Improvement details)
 > **Action:** Add this to the Magma review list.
 
-## 6. Tool Constraints
+## 7. Tool Constraints
 - **Subagents:** Do not use browser subagents unless explicitly asked.
 - **Browser/DevTools:** Never use browser tool actions (e.g., chrome-devtools-mcp). They consume too much token quota.
 - **Git:** Do not commit or push changes to git. Leave edits uncommitted.
-
-## 7. Mandatory Pre-Flight Architectural Check
-- **STOP AND RESEARCH:** Before scaffolding any new module, controller, or data-saving logic, you MUST run a `view_file` on `README.md` to review the framework architecture.
-- **COPY EXISTING PATTERNS:** You MUST inspect an existing enterprise module or the codebase to see how they handle data boundaries. 
-- **NO PROCEDURAL SHORTCUTS:** You must use DTOs and FormRequests for data transfer. You are strictly forbidden from passing raw `$_POST` arrays into Repositories.
-- **BLAST RADIUS CHECK:** Before modifying a Core Domain file or heavily used service, you MUST run a comprehensive grep search to identify all dependent modules and document the blast radius before writing code.
+- **Native Tools Only:** NEVER use `run_command` with Python scripts, `cat`, `sed`, or other CLI utilities to edit or create files. You MUST strictly use the native `replace_file_content` and `write_to_file` tools. No exceptions.
 
 ## 8. Zero-Rush & Deep Execution
 - Take your time. Never rush to deliver half-baked or quick-and-dirty solutions.

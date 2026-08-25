@@ -37,11 +37,14 @@ class MinRule
     public function __invoke(string $field, mixed $value, array $params, array $data): ?string
     {
         $min = (int) ($params[0] ?? 0);
-        if (is_string($value) && strlen($value) < $min) {
-            return "The {$field} must be at least {$min} characters.";
-        }
-        if (is_numeric($value) && $value < $min) {
-            return "The {$field} must be at least {$min}.";
+        if (is_int($value) || is_float($value)) {
+            if ($value < $min) {
+                return "The {$field} must be at least {$min}.";
+            }
+        } elseif (is_string($value)) {
+            if (strlen($value) < $min) {
+                return "The {$field} must be at least {$min} characters.";
+            }
         }
         return null;
     }

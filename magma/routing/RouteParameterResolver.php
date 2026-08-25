@@ -49,7 +49,22 @@ class RouteParameterResolver
 
             if ($className !== null && is_subclass_of($className, ValidatableRequestInterface::class)) {
                 $validatableRequest = $this->container->get($className);
-                $validatableRequest->validate();
+                try {
+                    $validatableRequest->validate();
+                } catch (\Magma\validation\ValidationException $e) {
+                    $expectsJson = $request->expectsJson() || $request->isJsonExpected();
+                    if (!$expectsJson && $this->container->has(\Magma\http\SessionInterface::class)) {
+                        $session = $this->container->get(\Magma\http\SessionInterface::class);
+                        $session->set('errors', $e->getErrors());
+                        $session->set('old', $request->request());
+                        
+                        $referer = $request->getServer('HTTP_REFERER') ?? '/';
+                        $redirect = new \Magma\http\RedirectResponse($referer);
+                        throw new \Magma\http\HttpResponseException($redirect);
+                    }
+                    throw $e;
+                }
+                
                 $args[] = $validatableRequest;
                 continue;
             }

@@ -26,4 +26,9 @@ class LoginRequest extends FormRequest
             'password' => 'required|max:100'
         ];
     }
+
+    public function toDTO(): object
+    {
+        return (object) $this->request->request();
+    }
 }

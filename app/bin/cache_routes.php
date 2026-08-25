@@ -3,7 +3,7 @@
 
 // Build script to pre-compile and cache routes
 /**
- * Route Caching Script
+ * Title: Route Caching Script
  *
  * Purpose:
  * - Pre-compile dynamic routing regular expressions and serialize them into a flat PHP array.

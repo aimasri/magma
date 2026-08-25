@@ -40,4 +40,9 @@ class ResetPasswordRequest extends FormRequest
             'password' => 'required|min:8|confirmed'
         ];
     }
+
+    public function toDTO(): object
+    {
+        return (object) $this->request->request();
+    }
 }

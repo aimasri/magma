@@ -23,23 +23,8 @@ use Magma\view\TemplateEngine;
  * Teaching notes:
  * - Notice how it checks for 'remember_user' cookie to pass to logout, enabling single-source session destruction.
  */
-class LogoutController extends BaseController
+class LogoutController
 {
-    protected Request $request;
-    protected AuthenticationService $authService;
-
-    public function __construct(
-        TemplateEngine $templateEngine, 
-        \Magma\security\CsrfManager $csrfManager,
-        \Magma\http\Session $session,
-        Request $request, 
-        AuthenticationService $authService
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
-        $this->request = $request;
-        $this->authService = $authService;
-    }
-
     /**
      * Executes the logout action.
      * 
@@ -50,12 +35,12 @@ class LogoutController extends BaseController
      * 
      * @return Response
      */
-    public function logout(): Response
+    public function logout(Request $request, AuthenticationService $authService): Response
     {
-        $token = $this->request->cookie('remember_user');
-        $result = $this->authService->logout($token);
+        $token = $request->cookie('remember_user');
+        $result = $authService->logout($token);
 
-        return $this->applyAuthResult($result, new RedirectResponse('/'));
+        return $this->applyAuthResult($result, new RedirectResponse('/'), $request);
     }
 
     /**
@@ -65,13 +50,13 @@ class LogoutController extends BaseController
      * @param Response $response
      * @return Response
      */
-    private function applyAuthResult(AuthenticationResult $result, Response $response): Response
+    private function applyAuthResult(AuthenticationResult $result, Response $response, Request $request): Response
     {
         foreach ($result->getCookiesToSet() as $cookie) {
-            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $this->request->isSecure(), true);
+            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $request->isSecure(), true);
         }
         foreach ($result->getCookiesToClear() as $name) {
-            $response->withCookie($name, '', time() - 3600, "/", "", $this->request->isSecure(), true);
+            $response->withCookie($name, '', time() - 3600, "/", "", $request->isSecure(), true);
         }
         return $response;
     }

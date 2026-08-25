@@ -27,19 +27,8 @@ use Magma\enums\PasswordResetStatus;
  * Teaching notes:
  * - Keep token generation and email sending inside a service to allow for easier testing and replacement (e.g., queueing email deliveries).
  */
-class PasswordResetController extends BaseController
+class PasswordResetController
 {
-    public function __construct(
-        TemplateEngine $templateEngine, 
-        \Magma\security\CsrfManager $csrfManager, 
-        \Magma\http\Session $session, 
-        protected Request $request, 
-        protected PasswordResetService $passwordResetService, 
-        protected Validator $validator
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session);
-    }
-    
     /**
      * Renders the initial "Forgot Password" request form.
      * 
@@ -52,12 +41,12 @@ class PasswordResetController extends BaseController
      * - The PRG (Post/Redirect/Get) pattern is used during form submission, so 
      *   errors must be flashed to the session and cleared immediately upon read.
      */
-    public function forgotPassword(): Response
+    public function forgotPassword(\Magma\view\HtmlResponseBuilderInterface $html, \Magma\http\SessionInterface $session): Response
     {
-        $status = $this->session->flash('reset_status');
-        $error = $this->session->flash('reset_error');
+        $status = $session->flash('reset_status');
+        $error = $session->flash('reset_error');
 
-        return $this->render('auth/forgot_password', [
+        return $html->render('auth/forgot_password', [
             'title'   => 'Forgot Password',
             'status'  => $status,
             'error'   => $error,
@@ -79,24 +68,24 @@ class PasswordResetController extends BaseController
      *   (handling `PasswordResetStatus::USER_NOT_FOUND`). 
      *   Otherwise, an attacker could probe the endpoint to harvest registered emails.
      */
-    public function sendResetLink(): Response
-    {
-        if ($redirect = $this->validateOrRedirect(new ForgotPasswordRequest($this->request, $this->validator), '/forgot-password')) {
-            return $redirect;
-        }
-
-        $data = $this->request->request();
+    public function sendResetLink(
+        ForgotPasswordRequest $forgotPasswordRequest, 
+        Request $request, 
+        PasswordResetService $passwordResetService, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $data = $request->request();
         $email = trim($data['email'] ?? '');
-        $status = $this->passwordResetService->requestReset($email);
+        $status = $passwordResetService->requestReset($email);
 
         if ($status === PasswordResetStatus::SUCCESS) {
-            $this->session->set('reset_status', 'A reset link has been sent.');
+            $session->set('reset_status', 'A reset link has been sent.');
         } elseif ($status === PasswordResetStatus::USER_NOT_FOUND) {
             // Maintain security: if requestReset returns USER_NOT_FOUND, 
             // provide generic success message.
-            $this->session->set('reset_status', 'If an account exists, a link has been sent.');
+            $session->set('reset_status', 'If an account exists, a link has been sent.');
         } else {
-            $this->session->set('reset_error', 'Failed to send email.');
+            $session->set('reset_error', 'Failed to send email.');
         }
 
         return new RedirectResponse('/forgot-password');
@@ -115,16 +104,20 @@ class PasswordResetController extends BaseController
      * - Verifying the token *before* rendering the form prevents attackers from 
      *   submitting brute-force password attempts against arbitrary tokens.
      */
-    public function resetPasswordForm(): Response
-    {
-        $token = $this->request->query('token');
-        $error = $this->session->flash('reset_error');
+    public function resetPasswordForm(
+        Request $request, 
+        PasswordResetService $passwordResetService, 
+        \Magma\view\HtmlResponseBuilderInterface $html, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $token = $request->query('token');
+        $error = $session->flash('reset_error');
 
-        if (empty($token) || !is_string($token) || !$this->passwordResetService->validateToken($token)) {
-            return $this->render('auth/forgot_password', ['title' => 'Forgot Password', 'error' => 'Invalid or expired token.', 'status' => null]);
+        if (empty($token) || !is_string($token) || !$passwordResetService->validateToken($token)) {
+            return $html->render('auth/forgot_password', ['title' => 'Forgot Password', 'error' => 'Invalid or expired token.', 'status' => null]);
         }
 
-        return $this->render('auth/reset_password', [
+        return $html->render('auth/reset_password', [
             'title'   => 'Reset Password',
             'token'   => $token,
             'error'   => $error,
@@ -145,28 +138,27 @@ class PasswordResetController extends BaseController
      * - The token is consumed (deleted) during `completeReset()` to ensure it 
      *   can only ever be used once, preventing replay attacks.
      */
-    public function resetPassword(): Response
-    {
-        $token = $this->request->request('token', '');
-
-        if ($redirect = $this->validateOrRedirect(new ResetPasswordRequest($this->request, $this->validator), '/reset-password?token=' . $token)) {
-            return $redirect;
-        }
-
-        $data = $this->request->request();
+    public function resetPassword(
+        ResetPasswordRequest $resetPasswordRequest, 
+        Request $request, 
+        PasswordResetService $passwordResetService, 
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $token = $request->request('token', '');
+        $data = $request->request();
 
         $password = $data['password'] ?? '';
-        $status = $this->passwordResetService->completeReset($token, $password);
+        $status = $passwordResetService->completeReset($token, $password);
 
         if ($status === PasswordResetStatus::SUCCESS) {
-            $this->session->set('reset_status', 'Password updated! Please log in.');
+            $session->set('reset_status', 'Password updated! Please log in.');
             return new RedirectResponse('/login');
         }
 
         if ($status === PasswordResetStatus::INVALID_TOKEN) {
-            $this->session->set('reset_error', 'Invalid or expired token.');
+            $session->set('reset_error', 'Invalid or expired token.');
         } else {
-            $this->session->set('reset_error', 'Failed to reset password. Please try again.');
+            $session->set('reset_error', 'Failed to reset password. Please try again.');
         }
         return new RedirectResponse('/forgot-password');
     }
