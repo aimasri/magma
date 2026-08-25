@@ -100,15 +100,37 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new Validator();
         });
 
+        $container->set(\Magma\interfaces\JsonErrorPresenterInterface::class, function ($c) {
+            return new \Magma\error\JsonErrorPresenter();
+        });
+
+        $container->set(\Magma\interfaces\DebugErrorPresenterInterface::class, function ($c) {
+            return new \Magma\error\DebugErrorPresenter();
+        });
+
         $container->set(ErrorHandlerInterface::class, function ($c) {
             return new ErrorHandler(
                 $c->get(TemplateEngine::class),
-                $c->get(\Magma\config\ConfigInterface::class)
+                $c->get(\Magma\config\ConfigInterface::class),
+                $c->get(\Magma\interfaces\JsonErrorPresenterInterface::class),
+                $c->get(\Magma\interfaces\DebugErrorPresenterInterface::class)
             );
         });
 
         $container->set(ErrorHandler::class, function ($c) {
             return $c->get(ErrorHandlerInterface::class);
+        });
+
+        $container->set(\Magma\view\HtmlResponseBuilderInterface::class, function ($c) {
+            return new \Magma\view\HtmlResponseBuilder(
+                $c->get(\Magma\view\TemplateEngine::class),
+                $c->get(\Magma\security\CsrfManager::class),
+                $c->get(\Magma\interfaces\ResponseFactoryInterface::class)
+            );
+        });
+
+        $container->set(\Magma\interfaces\ResponseFactoryInterface::class, function ($c) {
+            return new \Magma\http\ResponseFactory();
         });
 
         $container->set(\Magma\interfaces\EventDispatcherInterface::class, function ($c) {

@@ -58,15 +58,12 @@ class LoginController
     ): Response {
         // Validation is automatically handled by RouteParameterResolver for the LoginRequest parameter.
         
-        $data = $request->request();
-        $email = trim($data['email'] ?? '');
-        $password = $data['password'] ?? '';
-        $remember = !empty($data['remember_me']);
+        $dto = $loginRequest->toDTO();
 
-        $result = $authService->attempt($email, $password, $remember);
+        $result = $authService->attempt($dto->email, $dto->password, $dto->rememberMe);
 
         if (!$result->isSuccessful()) {
-            $session->set('old', ['email' => $data['email'] ?? '']);
+            $session->set('old', ['email' => $dto->email]);
             $session->set('errors', ['auth' => 'Invalid credentials']);
             return new RedirectResponse('/login');
         }

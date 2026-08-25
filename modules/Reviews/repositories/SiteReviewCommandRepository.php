@@ -38,10 +38,16 @@ class SiteReviewCommandRepository extends AbstractCommandRepository implements S
      */
     public function addReview(Review $review): bool
     {
-        $sql = "INSERT INTO site_reviews (author, comment, rating, status) 
-                VALUES (:author, :comment, :rating, :status)";
+        $tenantId = $this->getTenantId();
+        if ($tenantId === null) {
+            throw new \RuntimeException('Tenant context is required for inserting site reviews.');
+        }
+
+        $sql = "INSERT INTO site_reviews (tenant_id, author, comment, rating, status) 
+                VALUES (:tenant_id, :author, :comment, :rating, :status)";
         $stmt = $this->getDb()->prepare($sql);
         return $stmt->execute([
+            'tenant_id' => $tenantId,
             'author'  => $review->getAuthor(),
             'comment' => $review->getComment(),
             'rating'  => $review->getRating(),

@@ -42,8 +42,13 @@ class RegisterRequest extends FormRequest
         ];
     }
 
-    public function toDTO(): object
+    public function toDTO(): \Magma\dto\RegistrationDTO
     {
-        return (object) $this->request->request();
+        $data = $this->request->request();
+        return new \Magma\dto\RegistrationDTO(
+            name: $data['name'] ?? '',
+            email: $data['email'] ?? '',
+            password: $data['password'] ?? ''
+        );
     }
 }

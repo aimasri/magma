@@ -10,10 +10,7 @@ use Magma\http\RedirectResponse;
 use Modules\Reviews\services\ReviewSubmissionService;
 use Modules\Reviews\interfaces\ReviewSubmissionServiceInterface;
 use Modules\Reviews\dto\ReviewDTO;
-use Magma\validation\Validator;
 use Modules\Reviews\requests\ReviewRequest;
-use Magma\view\TemplateEngine;
-use Magma\controllers\BaseController;
 use Magma\security\CsrfManager;
 
 /**
@@ -29,24 +26,8 @@ use Magma\security\CsrfManager;
  * Teaching notes:
  * - Notice how validation is injected/encapsulated within a FormRequest-style object (ReviewRequest), keeping the controller thin.
  */
-class ReviewController extends BaseController
+class ReviewController
 {
-    private ReviewSubmissionServiceInterface $reviewSubmissionService;
-    private ReviewRequest $reviewRequest;
-
-    public function __construct(
-        TemplateEngine $templateEngine,
-        \Magma\security\CsrfManager $csrfManager,
-        \Magma\http\Session $session,
-        \Magma\interfaces\ResponseFactoryInterface $responseFactory,
-        ReviewSubmissionServiceInterface $reviewSubmissionService,
-        ReviewRequest $reviewRequest
-    ) {
-        parent::__construct($templateEngine, $csrfManager, $session, $responseFactory);
-        $this->reviewSubmissionService = $reviewSubmissionService;
-        $this->reviewRequest = $reviewRequest;
-    }
-
     /**
      * Processes new customer review submissions.
      * 
@@ -60,16 +41,17 @@ class ReviewController extends BaseController
      * - The PRG (Post/Redirect/Get) pattern prevents the user from accidentally 
      *   submitting the review twice if they refresh the page.
      */
-    public function submitReview(): Response
-    {
-        if ($redirect = $this->validateOrRedirect($this->reviewRequest, '/')) {
-            return $redirect;
-        }
+    public function submitReview(
+        ReviewRequest $reviewRequest,
+        ReviewSubmissionServiceInterface $reviewSubmissionService,
+        \Magma\http\SessionInterface $session
+    ): Response {
+        // Validation is automatically handled by RouteParameterResolver for the ReviewRequest parameter.
 
-        $dto = $this->reviewRequest->toDTO();
-        $this->reviewSubmissionService->submit($dto);
+        $dto = $reviewRequest->toDTO();
+        $reviewSubmissionService->submit($dto);
 
-        $this->session->set(\App\constants\AppConstants::SESSION_SUCCESS_MESSAGE, \App\constants\AppConstants::MSG_REVIEW_SUBMITTED);
+        $session->set(\App\constants\AppConstants::SESSION_SUCCESS_MESSAGE, \App\constants\AppConstants::MSG_REVIEW_SUBMITTED);
         return new RedirectResponse('/');
     }
 }

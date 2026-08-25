@@ -51,20 +51,19 @@ class RegisterController
      * @return Response
      */
     public function store(
-        RegisterRequest $registerRequest, 
-        Request $request, 
+        RegisterRequest $registerRequest,
         RegistrationService $registrationService, 
         AuthenticationService $authService, 
         \Magma\http\SessionInterface $session
     ): Response {
-        $data = $request->request();
+        $dto = $registerRequest->toDTO();
         
         try {
-            $user = $registrationService->registerUser($data);
+            $user = $registrationService->registerUser($dto);
             $authService->login($user);
         } catch (\Magma\validation\ValidationException $e) {
             $session->set('errors', $e->getErrors());
-            $session->set('old', ['name' => $data['name'] ?? '', 'email' => $data['email'] ?? '']);
+            $session->set('old', ['name' => $dto->name, 'email' => $dto->email]);
             return new RedirectResponse('/register');
         }
 

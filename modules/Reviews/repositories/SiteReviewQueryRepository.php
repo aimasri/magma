@@ -42,7 +42,12 @@ class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteR
      */
     public function getApprovedReviews(int $limit = 20, ?int $lastId = null): iterable
     {
-        $sql = "SELECT id, comment, author, rating FROM site_reviews WHERE status = :status";
+        $tenantId = $this->getTenantId();
+        if ($tenantId === null) {
+            throw new \RuntimeException('Tenant context is required for querying site reviews.');
+        }
+
+        $sql = "SELECT id, comment, author, rating FROM site_reviews WHERE status = :status AND tenant_id = :tenant_id";
         if ($lastId !== null) {
             $sql .= " AND id < :last_id";
         }
@@ -50,6 +55,7 @@ class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteR
         
         $stmt = $this->getDb()->prepare($sql);
         $stmt->bindValue(':status', Review::STATUS_APPROVED, \PDO::PARAM_STR);
+        $stmt->bindValue(':tenant_id', $tenantId, \PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         if ($lastId !== null) {
             $stmt->bindValue(':last_id', $lastId, \PDO::PARAM_INT);

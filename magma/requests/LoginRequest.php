@@ -27,8 +27,13 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    public function toDTO(): object
+    public function toDTO(): \Magma\dto\LoginDTO
     {
-        return (object) $this->request->request();
+        $data = $this->request->request();
+        return new \Magma\dto\LoginDTO(
+            email: trim($data['email'] ?? ''),
+            password: $data['password'] ?? '',
+            rememberMe: !empty($data['remember_me'])
+        );
     }
 }

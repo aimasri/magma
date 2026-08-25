@@ -63,13 +63,13 @@ class RegistrationService
      *   are strictly enforced at the service level, while still allowing the controller to 
      *   catch the exception and gracefully redirect the user back to the form.
      * 
-     * @param array $data The registration payload (must contain name, email, password)
+     * @param \Magma\dto\RegistrationDTO $dto The strictly typed registration DTO
      * @return \Magma\domain\AuthUser The newly created user entity.
      * @throws ValidationException If the email is already registered.
      */
-    public function registerUser(array $data): \Magma\domain\AuthUser
+    public function registerUser(\Magma\dto\RegistrationDTO $dto): \Magma\domain\AuthUser
     {
-        $registration = new \Magma\domain\UserRegistration($data['name'], $data['email'], $data['password']);
+        $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $dto->password);
         
         $user = $this->transactionManager->transactional(function () use ($registration) {
             try {
