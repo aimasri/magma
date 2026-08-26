@@ -227,3 +227,56 @@ VIEW;
 
 file_put_contents(dirname(__DIR__) . '/app/views/syllabus.php', $view);
 echo "Syllabus view regenerated successfully.\n";
+
+// Update Welcome Page landing grid
+$welcomePath = dirname(__DIR__) . '/app/views/welcome.php';
+$welcomeHtml = file_get_contents($welcomePath);
+
+$curated = [
+    1 => ['cat' => 'Philosophy', 'desc' => 'The cost of "Magic", explicit engineering, and understanding the TSP domain platform vision.'],
+    2 => ['cat' => 'Kernel', 'desc' => 'Bootstrapping, dual-mode kernels (HTTP vs CLI), and enforcing the public <code>www/</code> boundary.'],
+    3 => ['cat' => 'Core', 'desc' => 'Recursive reflection autowiring, singleton caching, and defending against circular deadlocks.'],
+    4 => ['cat' => 'Network', 'desc' => 'O(1) PCRE Regex compiled routing, the Middleware Onion architecture, and dual-mode compatibility.'],
+    5 => ['cat' => 'Logic', 'desc' => 'Declarative FormRequests, method injection, and enforcing the "Traffic Cop" rules for thin controllers.'],
+    6 => ['cat' => 'Database', 'desc' => 'The Repository Pattern, strict CQRS segregation, SERIALIZABLE ACID compliance, and the LSP firewall.'],
+    7 => ['cat' => 'UI', 'desc' => 'Logic-less views, multi-directory fallback, resolution caching, and O(N) DOM interpolation.'],
+    8 => ['cat' => 'Diagnostics', 'desc' => 'Catching everything gracefully, logging infrastructure, and the Interactive Diagnostics Boundary.'],
+    9 => ['cat' => 'Data', 'desc' => 'Crossing boundaries safely and Engine-Enforced Immutability via PHP 8.2 readonly modifiers.'],
+    10 => ['cat' => 'Domain', 'desc' => 'Transaction scripts vs rich models, and enforcing 100% pure domain entities with zero framework coupling.'],
+    11 => ['cat' => 'Events', 'desc' => 'The Pub/Sub Pattern, dispatching rich domain events, and breaking apart monolithic God Classes.'],
+    12 => ['cat' => 'Workers', 'desc' => 'The Transactional Outbox pattern, preventing dual-writes, and FOR UPDATE SKIP LOCKED concurrency.'],
+    13 => ['cat' => 'Testing', 'desc' => 'Testing as a byproduct of design, isolated unit tests, and comprehensive integration testing.'],
+    14 => ['cat' => 'Frontend', 'desc' => 'Deeply immutable ObservableStore, defensive garbage collection, and native CSS Cascade Layers.'],
+    15 => ['cat' => 'Security', 'desc' => 'Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.'],
+    16 => ['cat' => 'Hardening', 'desc' => 'Eradication of legacy facades, PHPStan Level 9 mathematical type safety, and cryptographic boundary enforcement.'],
+];
+
+$gridHtml = [];
+foreach ($toc_links as $link) {
+    if (preg_match('/^Module (\d+):\s*(.*)$/', $link['title'], $m)) {
+        $num = (int)$m[1];
+        $title = trim($m[2]);
+        $slug = $link['slug'];
+        
+        $cat = $curated[$num]['cat'] ?? 'Architecture';
+        $desc = $curated[$num]['desc'] ?? 'Explore this new module in the Masterclass Syllabus.';
+        $numFormatted = str_pad((string)$num, 2, '0', STR_PAD_LEFT);
+        
+        $gridHtml[] = '                <!-- Chapter ' . $numFormatted . ' -->';
+        $gridHtml[] = '                <a href="/syllabus#' . $slug . '" class="module-card">';
+        $gridHtml[] = '                    <div class="module-card__header"><span class="module-card__num">Chapter ' . $numFormatted . '</span><span class="badge badge--neutral">' . htmlspecialchars($cat) . '</span></div>';
+        $gridHtml[] = '                    <h3 class="module-card__title">' . htmlspecialchars($title) . '</h3>';
+        $gridHtml[] = '                    <p class="module-card__desc">' . $desc . '</p>';
+        $gridHtml[] = '                </a>';
+    }
+}
+
+$gridString = implode("\n", $gridHtml);
+$welcomeHtml = preg_replace(
+    '/<!-- SYLLABUS_GRID_START -->.*?<!-- SYLLABUS_GRID_END -->/s',
+    "<!-- SYLLABUS_GRID_START -->\n" . $gridString . "\n                <!-- SYLLABUS_GRID_END -->",
+    $welcomeHtml
+);
+
+file_put_contents($welcomePath, $welcomeHtml);
+echo "Welcome landing page grid regenerated successfully.\n";
