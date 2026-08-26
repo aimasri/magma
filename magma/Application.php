@@ -35,6 +35,7 @@ class Application
 {
     private Container $container;
     private ErrorHandlerInterface $errorHandler;
+    /** @var array<int, string|MiddlewareInterface> */
     private array $middleware = [];
 
     public function __construct(Container $container, ErrorHandlerInterface $errorHandler)
@@ -61,22 +62,6 @@ class Application
     }
 
     /**
-     * Executes the application lifecycle.
-     * 
-     * Execution Flow:
-     * 1. Resolve the primary RequestInterface object from the container.
-     * 2. Resolve the RouterInterface from the container.
-     * 3. Process the request through the middleware onion via the router.
-     * 4. Send the HTTP headers and body to the client.
-     * 5. Catch `RouteNotFoundException`, clear any partial output, and render a clean 404 response.
-     * 6. Catch any other `Throwable`, clear partial output, and render a 500 error response.
-     * 
-     * Logic behind the logic:
-     * - The try/catch block ensures that even if a fatal error occurs deep within a view 
-     *   or a controller, the output buffer is wiped (`ob_end_clean()`) preventing partial 
-     *   HTML from bleeding out. It enforces a strict, reliable error boundary for the application.
-     */
-    /**
      * Handles an incoming HTTP request and returns an HTTP Response object without sending it.
      * Ideal for functional testing and CLI simulations.
      *
@@ -86,7 +71,9 @@ class Application
     public function handle(RequestInterface $request): Response
     {
         try {
-            return $this->container->get(RouterInterface::class)->dispatch($request, $this->middleware);
+            $router = $this->container->get(RouterInterface::class);
+            assert($router instanceof RouterInterface);
+            return $router->dispatch($request, $this->middleware);
         } catch (\Throwable $e) {
             return $this->handleKernelError($e, $request);
         }
@@ -106,13 +93,15 @@ class Application
     {
         ob_start();
         $bufferedOutput = '';
+        $request = null;
         try {
             $request = $this->container->get(RequestInterface::class);
+            assert($request instanceof RequestInterface);
             $response = $this->handle($request);
-            $bufferedOutput = ob_get_clean();
+            $bufferedOutput = (string) ob_get_clean();
         } catch (\Throwable $e) {
             ob_end_clean();
-            $response = $this->handleKernelError($e, $request ?? null);
+            $response = $this->handleKernelError($e, $request instanceof RequestInterface ? $request : null);
         }
 
         // Send headers and body to the client

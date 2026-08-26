@@ -30,7 +30,7 @@ interface ResponseFactoryInterface
      *
      * @param string $content
      * @param int $status
-     * @param array $headers
+     * @param array<string, string> $headers
      * @return Response
      */
     public function create(string $content = '', int $status = 200, array $headers = []): Response;

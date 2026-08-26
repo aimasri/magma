@@ -23,5 +23,9 @@ interface MailableInterface
 {
     public function getSubject(): string;
     public function getTemplate(): string;
+
+    /**
+     * @return array<string, mixed>
+     */
     public function getVariables(): array;
 }

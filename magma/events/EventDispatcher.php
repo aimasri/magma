@@ -124,6 +124,7 @@ class EventDispatcher implements EventDispatcherInterface
         }
 
         $instance = is_object($listener) ? $listener : $this->container->get((string) $listener);
+        assert(is_object($instance));
 
         if (!method_exists($instance, 'handle')) {
             $className = is_object($listener) ? get_class($listener) : (string) $listener;

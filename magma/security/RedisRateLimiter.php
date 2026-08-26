@@ -49,7 +49,8 @@ class RedisRateLimiter implements RateLimiterInterface
      */
     public function tooManyAttempts(string $key, int $maxAttempts): bool
     {
-        $attempts = (int) $this->redis->get($this->prefix . $key);
+        $val = $this->redis->get($this->prefix . $key);
+        $attempts = is_scalar($val) ? (int)$val : 0;
         return $attempts >= $maxAttempts;
     }
 
@@ -81,7 +82,8 @@ class RedisRateLimiter implements RateLimiterInterface
             return current
         ";
         
-        return (int) $this->redis->eval($script, [$redisKey, $decaySeconds], 1);
+        $val = $this->redis->eval($script, [$redisKey, $decaySeconds], 1);
+        return is_scalar($val) ? (int)$val : 1;
     }
 
     /**

@@ -59,7 +59,9 @@ class AuthenticationService
     {
         $user = $this->userRepository->findForAuth($email);
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        $hash = is_scalar($user['password'] ?? null) ? (string) $user['password'] : '';
+
+        if (!$user || !password_verify($password, $hash)) {
             return AuthenticationResult::failure();
         }
 

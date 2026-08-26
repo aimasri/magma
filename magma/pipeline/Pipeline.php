@@ -172,7 +172,7 @@ class Pipeline
                     }
                 }
 
-                $type = is_object($pipe) ? get_class($pipe) : gettype($pipe);
+                $type = get_class($pipe);
                 throw new RuntimeException("Pipeline stage [{$type}] does not have a valid execution method ({$this->method} or handle) and is not callable.");
             };
         };

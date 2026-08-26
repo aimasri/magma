@@ -40,10 +40,13 @@ class SendWelcomeEmailJob implements JobInterface
      */
     public function handle(array $payload): void
     {
-        $mailable = new WelcomeEmail($payload['to_name']);
+        $toName = is_scalar($payload['to_name'] ?? null) ? (string)$payload['to_name'] : '';
+        $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
+
+        $mailable = new WelcomeEmail($toName);
         
         $this->mailerService->sendMailable(
-            $payload['to_email'],
+            $toEmail,
             $mailable
         );
     }

@@ -18,7 +18,7 @@ interface VendorQueryInterface
     /**
      * @param int $limit
      * @param int|null $lastId
-     * @return iterable<\Magma\dto\VendorDTO>
+     * @return iterable<int, \Magma\dto\VendorDTO>
      */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable;
     public function find(int $id): ?\Magma\dto\VendorDTO;

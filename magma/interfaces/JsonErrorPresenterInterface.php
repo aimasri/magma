@@ -33,7 +33,7 @@ interface JsonErrorPresenterInterface
      * @param string $message Error message
      * @param \Throwable|null $throwable Optional exception
      * @param bool $debug Whether to include debug data
-     * @param array|null $errors Additional error details
+     * @param array<string, mixed>|null $errors Additional error details
      * @return Response
      */
     public function present(
@@ -79,7 +79,7 @@ interface JsonErrorPresenterInterface
      *
      * 1. Wraps the generic present method with a 422 status and attaches validation errors.
      *
-     * @param array $errors
+     * @param array<string, mixed> $errors
      * @param string $message
      * @return Response
      */

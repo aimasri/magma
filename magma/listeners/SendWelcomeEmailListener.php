@@ -34,16 +34,11 @@ class SendWelcomeEmailListener
 
     public function handle(UserRegisteredEvent $event): void
     {
-        $payload = json_encode([
-            \Magma\queue\JobInterface::HANDLER_KEY => SendWelcomeEmailJob::class,
-            \Magma\queue\JobInterface::PAYLOAD_KEY => [
+        try {
+            $this->queue->push('emails', SendWelcomeEmailJob::class, [
                 'to_email' => $event->registration->getEmail(),
                 'to_name'  => $event->registration->getName()
-            ]
-        ]);
-        
-        try {
-            $this->queue->push('emails', $payload);
+            ]);
         } catch (\Throwable $e) {
             error_log("Failed to push welcome email to queue: " . $e->getMessage());
         }

@@ -144,13 +144,14 @@ class TenantContext
      */
     public function resolveFromRequest(RequestInterface $request): ?int
     {
-        if ($this->provider !== null) {
-            $tenantId = $this->provider->resolveTenantId($request);
+        $provider = $this->provider;
+        if ($provider !== null) {
+            $tenantId = $provider->resolveTenantId($request);
             if ($tenantId !== null) {
                 $this->setTenantId($tenantId);
             }
 
-            $venueId = $this->provider->resolveVenueId($request);
+            $venueId = $provider->resolveVenueId($request);
             if ($venueId !== null) {
                 $this->setVenueId($venueId);
             }

@@ -32,7 +32,7 @@ interface RouterInterface
      * - Returns a predictable Response object, enforcing the HTTP boundary.
      *
      * @param RequestInterface $request The incoming HTTP Request.
-     * @param array<int, string> $globalMiddleware Middleware applied across all routes.
+     * @param array<int, string|\Magma\middleware\MiddlewareInterface> $globalMiddleware Middleware applied across all routes.
      * @return Response The generated HTTP Response.
      */
     public function dispatch(RequestInterface $request, array $globalMiddleware = []): Response;

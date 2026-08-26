@@ -24,6 +24,7 @@ class VendorDTO
         public readonly string $subscription_status,
         public readonly ?string $billing_cycle_anchor,
         public readonly ?string $payment_gateway_customer_id,
+        /** @var array<string, mixed> */
         public readonly array $theme_settings = []
     ) {}
 }

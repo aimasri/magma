@@ -83,11 +83,11 @@ class RedisCache implements CacheInterface
 
         try {
             $raw = $this->redis->get($prefixedKey);
-            if ($raw === false) {
+            if ($raw === false || !is_string($raw)) {
                 return $default;
             }
 
-            $unserialized = @unserialize((string) $raw);
+            $unserialized = @unserialize($raw);
 
             // Guard against corrupted payload or incomplete class definitions
             if ($unserialized === false && $raw !== serialize(false)) {
@@ -127,17 +127,14 @@ class RedisCache implements CacheInterface
         $prefixedKey = $this->prefixKey($key);
         $seconds = $this->resolveTtl($ttl);
 
-        if ($seconds !== null && $seconds <= 0) {
+        if ($seconds <= 0) {
             return $this->delete($key);
         }
 
         $serialized = serialize($value);
 
         try {
-            if ($seconds !== null && $seconds > 0) {
-                return (bool) $this->redis->setex($prefixedKey, $seconds, $serialized);
-            }
-            return (bool) $this->redis->set($prefixedKey, $serialized);
+            return (bool) $this->redis->setex($prefixedKey, $seconds, $serialized);
         } catch (Throwable) {
             return false;
         }
@@ -148,17 +145,14 @@ class RedisCache implements CacheInterface
         $prefixedKey = $this->prefixKey($key);
         $seconds = $this->resolveTtl($ttl);
 
-        if ($seconds !== null && $seconds <= 0) {
+        if ($seconds <= 0) {
             return false;
         }
 
         $serialized = serialize($value);
 
         try {
-            if ($seconds !== null && $seconds > 0) {
-                return (bool) $this->redis->set($prefixedKey, $serialized, ['nx', 'ex' => $seconds]);
-            }
-            return (bool) $this->redis->set($prefixedKey, $serialized, ['nx']);
+            return (bool) $this->redis->set($prefixedKey, $serialized, ['nx', 'ex' => $seconds]);
         } catch (Throwable) {
             return false;
         }
@@ -290,12 +284,12 @@ class RedisCache implements CacheInterface
     }
 
     /**
-     * Resolves TTL input into an integer seconds value or null.
+     * Resolves TTL input into an integer seconds value.
      *
      * @param null|int|DateInterval $ttl
-     * @return int|null
+     * @return int
      */
-    private function resolveTtl(null|int|DateInterval $ttl): ?int
+    private function resolveTtl(null|int|DateInterval $ttl): int
     {
         if ($ttl === null) {
             return $this->defaultTtl;

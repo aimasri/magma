@@ -58,7 +58,7 @@ class PasswordResetEmail implements MailableInterface
     /**
      * Retrieves the variables to bind to the template.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getVariables(): array
     {

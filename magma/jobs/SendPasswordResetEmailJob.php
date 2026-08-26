@@ -42,13 +42,17 @@ class SendPasswordResetEmailJob implements JobInterface
      */
     public function handle(array $payload): void
     {
+        $toName = is_scalar($payload['to_name'] ?? null) ? (string)$payload['to_name'] : '';
+        $resetLink = is_scalar($payload['reset_link'] ?? null) ? (string)$payload['reset_link'] : '';
+        $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
+
         $mailable = new PasswordResetEmail(
-            $payload['to_name'],
-            $payload['reset_link']
+            $toName,
+            $resetLink
         );
         
         $this->mailerService->sendMailable(
-            $payload['to_email'],
+            $toEmail,
             $mailable
         );
     }
