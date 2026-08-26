@@ -188,7 +188,11 @@
             position: static;
             margin-bottom: var(--space-xl);
         }
-    
+
+        .syllabus-content {
+            max-width: 100%;
+        }
+
         .toc-summary {
             list-style: inherit;
             pointer-events: auto;

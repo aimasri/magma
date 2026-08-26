@@ -22,6 +22,12 @@ use Magma\interfaces\ResponseFactoryInterface;
  */
 class ResponseFactory implements ResponseFactoryInterface
 {
+    /**
+     * @param string $content
+     * @param int $status
+     * @param array<string, string> $headers
+     * @return Response
+     */
     public function create(string $content = '', int $status = 200, array $headers = []): Response
     {
         return new Response($content, $status, $headers);

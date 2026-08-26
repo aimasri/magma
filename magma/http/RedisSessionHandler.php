@@ -72,7 +72,7 @@ class RedisSessionHandler implements SessionHandlerInterface
     public function read(string $id): string|false
     {
         $data = $this->redis->get($this->prefix . $id);
-        return $data === false ? '' : $data;
+        return is_string($data) ? $data : '';
     }
 
     /**

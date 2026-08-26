@@ -21,8 +21,13 @@ namespace Magma\http;
  */
 class Session implements SessionInterface
 {
+    /** @var array<string, mixed> */
     private array $storage;
 
+    /**
+     * @param \SessionHandlerInterface|null $handler
+     * @param array<string, mixed>|null $storage
+     */
     public function __construct(?\SessionHandlerInterface $handler = null, ?array &$storage = null)
     {
         if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE && !headers_sent()) {
@@ -78,6 +83,9 @@ class Session implements SessionInterface
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function all(): array
     {
         return $this->storage;
@@ -122,15 +130,18 @@ class Session implements SessionInterface
         if (session_status() === PHP_SESSION_ACTIVE) {
             if (ini_get("session.use_cookies")) {
                 $params = session_get_cookie_params();
-                setcookie(
-                    session_name(),
-                    '',
-                    time() - 42000,
-                    $params["path"],
-                    $params["domain"],
-                    $params["secure"],
-                    $params["httponly"]
-                );
+                $sessionName = session_name();
+                if (is_string($sessionName) && $sessionName !== '') {
+                    setcookie(
+                        $sessionName,
+                        '',
+                        time() - 42000,
+                        $params["path"],
+                        $params["domain"],
+                        $params["secure"],
+                        $params["httponly"]
+                    );
+                }
             }
             session_destroy();
         }

@@ -19,9 +19,16 @@ class Response
 {
     private string $content;
     private int $statusCode;
+    /** @var array<string, string> */
     private array $headers;
+    /** @var array<int, array{name: string, value: string, expires: int, path: string, domain: string, secure: bool, httponly: bool}> */
     private array $cookies = [];
 
+    /**
+     * @param string $content
+     * @param int $statusCode
+     * @param array<string, string> $headers
+     */
     public function __construct(string $content = '', int $statusCode = 200, array $headers = [])
     {
         $this->content = $content;
@@ -57,6 +64,9 @@ class Response
         return $this;
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function getHeaders(): array
     {
         return $this->headers;

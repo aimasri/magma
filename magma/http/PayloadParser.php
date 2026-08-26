@@ -23,7 +23,7 @@ class PayloadParser
      * 
      * @param string $contentType The Content-Type header value.
      * @param string|null $rawBody The raw request body (if already read).
-     * @return array|null The parsed array, or null if not JSON.
+     * @return array<int|string, mixed>|null The parsed array, or null if not JSON.
      * @throws \RuntimeException if the JSON is malformed.
      */
     public static function parseJsonPayload(string $contentType, ?string &$rawBody = null): ?array

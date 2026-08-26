@@ -96,10 +96,10 @@ interface RequestInterface
      * Retrieves a specific HTTP header from the request.
      *
      * @param string $key
-     * @param mixed $default
+     * @param string|null $default
      * @return string|null
      */
-    public function header(string $key, mixed $default = null): ?string;
+    public function header(string $key, ?string $default = null): ?string;
 
     /**
      * Retrieves the raw, unparsed request payload body.

@@ -39,19 +39,28 @@ class Request implements RequestInterface
         }
     }
 
+    /** @var array<string, mixed> */
     private array $get;
+    /** @var array<string, mixed> */
     private array $post;
+    /** @var array<string, mixed> */
     private array $cookies;
+    /** @var array<string, mixed> */
     private array $files;
+    /** @var array<string, mixed> */
     private array $server;
 
     private string $method;
     private string $uri;
     private string $path;
 
+    /** @var array<int|string, mixed>|null */
     private ?array $parsedJson = null;
+    /** @var array<string, mixed> */
     private array $attributes = [];
+    /** @var array<int|string, mixed>|null */
     private ?array $requestData = null;
+    /** @var array<int, string> */
     private readonly array $segments;
     private ?string $rawBody = null;
 
@@ -60,12 +69,12 @@ class Request implements RequestInterface
      *
      * @param string $method
      * @param string $uri
-     * @param array $get
-     * @param array $post
-     * @param array $server
-     * @param array $files
-     * @param array $cookies
-     * @param array|null $parsedJson
+     * @param array<string, mixed> $get
+     * @param array<string, mixed> $post
+     * @param array<string, mixed> $server
+     * @param array<string, mixed> $files
+     * @param array<string, mixed> $cookies
+     * @param array<int|string, mixed>|null $parsedJson
      * @param string|null $rawBody
      */
     public function __construct(
@@ -81,7 +90,8 @@ class Request implements RequestInterface
     ) {
         $this->method = strtoupper($method);
         $this->uri = $uri;
-        $this->path = parse_url($this->uri, PHP_URL_PATH) ?? '/';
+        $parsedPath = parse_url($this->uri, PHP_URL_PATH);
+        $this->path = is_string($parsedPath) ? $parsedPath : '/';
         $this->get = $get;
         $this->post = $post;
         $this->server = $server;
@@ -95,7 +105,7 @@ class Request implements RequestInterface
         if ($cleanPath === '') {
             $this->segments = [];
         } else {
-            $this->segments = array_values(array_filter(explode('/', $cleanPath), 'strlen'));
+            $this->segments = array_values(array_filter(explode('/', $cleanPath), static fn(string $segment): bool => strlen($segment) > 0));
         }
     }
 
@@ -112,11 +122,11 @@ class Request implements RequestInterface
      * Logic behind the logic:
      * - Encapsulating method spoofing and payload parsing in this builder guarantees that unit tests passing custom arrays receive identical normalization behavior as live HTTP requests.
      *
-     * @param array|null $get
-     * @param array|null $post
-     * @param array|null $cookies
-     * @param array|null $files
-     * @param array|null $server
+     * @param array<string, mixed>|null $get
+     * @param array<string, mixed>|null $post
+     * @param array<string, mixed>|null $cookies
+     * @param array<string, mixed>|null $files
+     * @param array<string, mixed>|null $server
      * @param string|null $rawBody
      * @return self
      */
@@ -134,7 +144,8 @@ class Request implements RequestInterface
         $cookieData = $cookies ?? [];
         $filesData = $files ?? [];
 
-        $rawMethod = strtoupper((string)($serverData['REQUEST_METHOD'] ?? 'GET'));
+        $rawMethodVal = $serverData['REQUEST_METHOD'] ?? 'GET';
+        $rawMethod = is_scalar($rawMethodVal) ? strtoupper((string)$rawMethodVal) : 'GET';
 
         if (!in_array($rawMethod, self::$allowedMethods, true)) {
             throw new \RuntimeException("Method Not Allowed: {$rawMethod}", 405);
@@ -144,14 +155,14 @@ class Request implements RequestInterface
 
         // HTTP Method Spoofing via POST parameter or header
         if ($method === 'POST') {
-            if (isset($postData['_method'])) {
+            if (isset($postData['_method']) && is_scalar($postData['_method'])) {
                 $spoofedMethod = strtoupper((string)$postData['_method']);
                 if (in_array($spoofedMethod, self::$allowedMethods, true)) {
                     $method = $spoofedMethod;
                 } else {
                     throw new \RuntimeException("Method Not Allowed: {$spoofedMethod}", 405);
                 }
-            } elseif (isset($serverData['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
+            } elseif (isset($serverData['HTTP_X_HTTP_METHOD_OVERRIDE']) && is_scalar($serverData['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
                 $spoofedMethod = strtoupper((string)$serverData['HTTP_X_HTTP_METHOD_OVERRIDE']);
                 if (in_array($spoofedMethod, self::$allowedMethods, true)) {
                     $method = $spoofedMethod;
@@ -159,9 +170,11 @@ class Request implements RequestInterface
             }
         }
 
-        $uri = (string)($serverData['REQUEST_URI'] ?? '/');
+        $uriVal = $serverData['REQUEST_URI'] ?? '/';
+        $uri = is_scalar($uriVal) ? (string)$uriVal : '/';
 
-        $contentType = strtolower((string)($serverData['CONTENT_TYPE'] ?? $serverData['HTTP_CONTENT_TYPE'] ?? ''));
+        $ctVal = $serverData['CONTENT_TYPE'] ?? $serverData['HTTP_CONTENT_TYPE'] ?? '';
+        $contentType = is_scalar($ctVal) ? strtolower((string)$ctVal) : '';
         $parsedJson = null;
 
         if (str_contains($contentType, 'application/json') && $rawBody !== null && trim($rawBody) !== '') {
@@ -252,14 +265,14 @@ class Request implements RequestInterface
         return $this->attributes[$key] ?? $default;
     }
 
-    public function header(string $key, mixed $default = null): ?string
+    public function header(string $key, ?string $default = null): ?string
     {
         $key = str_replace('-', '_', strtoupper($key));
         $headerKey = (str_starts_with($key, 'HTTP_') || $key === 'CONTENT_TYPE' || $key === 'CONTENT_LENGTH')
             ? $key
             : 'HTTP_' . $key;
 
-        return isset($this->server[$headerKey]) ? (string)$this->server[$headerKey] : $default;
+        return isset($this->server[$headerKey]) && is_scalar($this->server[$headerKey]) ? (string)$this->server[$headerKey] : $default;
     }
 
     public function getRawBody(): string
@@ -311,11 +324,15 @@ class Request implements RequestInterface
     public function isSecure(): bool
     {
         $https = $this->server['HTTPS'] ?? '';
-        if ((!empty($https) && strtolower((string)$https) !== 'off') || ((int)($this->server['SERVER_PORT'] ?? 0)) === 443) {
+        $isHttpsOn = !empty($https) && is_scalar($https) && strtolower((string)$https) !== 'off';
+        $isPort443 = isset($this->server['SERVER_PORT']) && is_scalar($this->server['SERVER_PORT']) && ((int)$this->server['SERVER_PORT']) === 443;
+        
+        if ($isHttpsOn || $isPort443) {
             return true;
         }
 
-        $remoteAddr = (string)($this->server['REMOTE_ADDR'] ?? '');
+        $remoteAddrVal = $this->server['REMOTE_ADDR'] ?? '';
+        $remoteAddr = is_scalar($remoteAddrVal) ? (string)$remoteAddrVal : '';
         $trustedProxies = \Magma\config\Config::get('TRUSTED_PROXIES', ['127.0.0.1']);
         if (is_string($trustedProxies)) {
             $trustedProxies = explode(',', $trustedProxies);

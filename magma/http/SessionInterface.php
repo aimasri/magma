@@ -55,9 +55,9 @@ interface SessionInterface
     public function remove(string $key): void;
 
     /**
-     * Returns all items currently stored in the session.
+     * Retrieves all data from the session storage.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function all(): array;
 
