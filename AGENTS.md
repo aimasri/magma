@@ -47,7 +47,7 @@ If changes represent framework evolutions (SOLID, performance, multi-tenancy, re
 ## 7. Tool Constraints
 - **Subagents:** Do not use browser subagents unless explicitly asked.
 - **Browser/DevTools:** Never use browser tool actions (e.g., chrome-devtools-mcp). They consume too much token quota.
-- **Git:** Do not commit or push changes to git. Leave edits uncommitted.
+- **Git:** You may commit and push changes to git when explicitly asked by the user.
 - **Native Tools Only:** NEVER use `run_command` with Python scripts, `cat`, `sed`, or other CLI utilities to edit or create files. You MUST strictly use the native `replace_file_content` and `write_to_file` tools. No exceptions.
 
 ## 8. Zero-Rush & Deep Execution
