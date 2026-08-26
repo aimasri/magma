@@ -45,7 +45,7 @@ abstract class AbstractKeysetRepository extends AbstractQueryRepository
      *
      * @param string $table Target database table.
      * @param PaginationDTO $pagination Keyset pagination parameters (limit, lastId).
-     * @param array<string, mixed> $conditions Associative column => value or SQL clauses to filter by.
+     * @param array<int|string, mixed> $conditions Associative column => value or SQL clauses to filter by.
      * @param string $cursorColumn Column to paginate on (default 'id').
      * @param string $direction Sort direction ('ASC' or 'DESC').
      * @param array<int, string> $columns List of columns to select.
@@ -75,7 +75,7 @@ abstract class AbstractKeysetRepository extends AbstractQueryRepository
         foreach ($conditions as $clause => $paramValue) {
             if (is_int($clause)) {
                 // Raw SQL clause with no parameters
-                $builder->where((string) $paramValue);
+                $builder->where(is_scalar($paramValue) ? (string) $paramValue : '');
             } elseif (is_string($clause) && !str_contains($clause, ' ')) {
                 // Simple 'column' => value equality condition
                 $paramKey = ':cond_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $clause);

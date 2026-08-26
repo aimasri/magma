@@ -120,7 +120,7 @@ class StateMachine
      *
      * @param string $fromState Originating state.
      * @param string $toState Requested destination state.
-     * @param array $context Optional metadata for audit logging.
+     * @param array<string, mixed> $context Optional metadata for audit logging.
      * @return string Normalized destination state.
      * @throws InvalidStateTransitionException If transition is forbidden.
      */

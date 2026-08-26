@@ -35,10 +35,7 @@ class AssetVersionManager
     /** @var string|null Global application release version tag. */
     private ?string $releaseVersion = null;
 
-    /** @var string|null Path to JSON build manifest file. */
-    private ?string $manifestPath = null;
-
-    /** @var array<string, string> Parsed build manifest mappings. */
+    /** @var array<string, string|array<string, mixed>> Parsed build manifest mappings. */
     private array $manifest = [];
 
     /** @var array<string, string> In-memory cache of resolved asset URLs. */
@@ -61,7 +58,10 @@ class AssetVersionManager
         if ($releaseVersion !== null) {
             $this->releaseVersion = $releaseVersion;
         } elseif (class_exists(Config::class)) {
-            $this->releaseVersion = Config::get('APP_ASSET_VERSION', Config::get('APP_VERSION', null));
+            $cfgVersion = Config::get('APP_ASSET_VERSION', Config::get('APP_VERSION', null));
+            if (is_scalar($cfgVersion)) {
+                $this->releaseVersion = (string)$cfgVersion;
+            }
         }
 
         if ($manifestPath !== null) {
@@ -125,7 +125,6 @@ class AssetVersionManager
      */
     public function setManifestPath(string $manifestPath): void
     {
-        $this->manifestPath = $manifestPath;
         $this->manifest = [];
 
         if (file_exists($manifestPath)) {
@@ -166,7 +165,8 @@ class AssetVersionManager
         $manifestKey = ltrim($normalizedPath, '/');
         if (isset($this->manifest[$manifestKey])) {
             $hashed = $this->manifest[$manifestKey];
-            $url = is_array($hashed) && isset($hashed['file']) ? '/' . $hashed['file'] : '/' . ltrim((string)$hashed, '/');
+            $fileStr = is_array($hashed) ? ($hashed['file'] ?? '') : $hashed;
+            $url = '/' . ltrim(is_scalar($fileStr) ? (string)$fileStr : '', '/');
             $this->urlCache[$normalizedPath] = $url;
             return $url;
         }

@@ -88,7 +88,7 @@ abstract class AbstractQueryRepository
     {
         $stmt = $this->executeQuery($sql, $params);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result !== false ? $result : null;
+        return is_array($result) ? $result : null;
     }
 
     /**
@@ -145,7 +145,7 @@ abstract class AbstractQueryRepository
      * @param PaginationDTO $pagination Keyset pagination parameters.
      * @param string $cursorColumn Column to paginate on (default 'id').
      * @param string $direction Sort direction ('ASC' or 'DESC').
-     * @return array{items: array, nextCursor: int|null, hasMore: bool, limit: int}
+     * @return array{items: array<int, array<string, mixed>>, nextCursor: int|null, hasMore: bool, limit: int}
      */
     protected function cursorPaginate(
         string $baseSql,
@@ -178,7 +178,7 @@ abstract class AbstractQueryRepository
         $nextCursor = null;
         if (!empty($rows)) {
             $lastItem = end($rows);
-            $nextCursor = isset($lastItem[$cursorColumn]) ? (int) $lastItem[$cursorColumn] : null;
+            $nextCursor = (isset($lastItem[$cursorColumn]) && is_scalar($lastItem[$cursorColumn])) ? (int) $lastItem[$cursorColumn] : null;
         }
 
         return [

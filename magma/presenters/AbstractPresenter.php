@@ -26,6 +26,9 @@ use ArrayAccess;
  * - Presenter methods take precedence over raw entity properties. When accessing `$presenter->price`,
  *   if `getPrice()` exists in the presenter it will be called; otherwise it delegates to the entity.
  */
+/**
+ * @implements ArrayAccess<string, mixed>
+ */
 abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
 {
     /** @var object|array<string, mixed> The wrapped domain entity or data structure. */
@@ -167,9 +170,7 @@ abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
             if (isset($this->entity->{$name})) {
                 return $this->entity->{$name};
             }
-        }
-
-        if (is_array($this->entity) && array_key_exists($name, $this->entity)) {
+        } elseif (is_array($this->entity) && array_key_exists($name, $this->entity)) {
             return $this->entity[$name];
         }
 
@@ -209,11 +210,7 @@ abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
             return isset($this->entity->{$name}) || method_exists($this->entity, $getter);
         }
 
-        if (is_array($this->entity)) {
-            return isset($this->entity[$name]);
-        }
-
-        return false;
+        return isset($this->entity[$name]);
     }
 
     /**
@@ -235,22 +232,28 @@ abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
 
     /**
      * ArrayAccess: offsetExists
+     * @param mixed $offset
      */
     public function offsetExists(mixed $offset): bool
     {
-        return $this->__isset((string) $offset);
+        $offsetStr = is_scalar($offset) ? (string) $offset : '';
+        return $this->__isset($offsetStr);
     }
 
     /**
      * ArrayAccess: offsetGet
+     * @param mixed $offset
      */
     public function offsetGet(mixed $offset): mixed
     {
-        return $this->__get((string) $offset);
+        $offsetStr = is_scalar($offset) ? (string) $offset : '';
+        return $this->__get($offsetStr);
     }
 
     /**
      * ArrayAccess: offsetSet (Immutable Presenter)
+     * @param mixed $offset
+     * @param mixed $value
      */
     public function offsetSet(mixed $offset, mixed $value): void
     {
@@ -259,6 +262,7 @@ abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
 
     /**
      * ArrayAccess: offsetUnset (Immutable Presenter)
+     * @param mixed $offset
      */
     public function offsetUnset(mixed $offset): void
     {

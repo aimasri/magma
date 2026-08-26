@@ -29,12 +29,13 @@ abstract class AbstractStateTransition implements JsonSerializable
     protected string $fromState;
     protected string $toState;
     protected DateTimeImmutable $occurredAt;
+    /** @var array<string, mixed> */
     protected array $context;
 
     /**
      * @param string $fromState Originating state identifier.
      * @param string $toState Destination state identifier.
-     * @param array $context Contextual metadata (e.g. user_id, reason, ip_address).
+     * @param array<string, mixed> $context Contextual metadata (e.g. user_id, reason, ip_address).
      * @param DateTimeImmutable|null $occurredAt Exact transition timestamp (defaults to UTC now).
      */
     public function __construct(
@@ -64,6 +65,9 @@ abstract class AbstractStateTransition implements JsonSerializable
         return $this->occurredAt;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getContext(): array
     {
         return $this->context;
@@ -82,7 +86,7 @@ abstract class AbstractStateTransition implements JsonSerializable
     /**
      * Converts the transition into a serializable array format.
      *
-     * @return array{from_state: string, to_state: string, occurred_at: string, context: array}
+     * @return array{from_state: string, to_state: string, occurred_at: string, context: array<string, mixed>}
      */
     public function jsonSerialize(): array
     {

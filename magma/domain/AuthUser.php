@@ -38,15 +38,27 @@ readonly class AuthUser
      *   we ensure that sensitive fields (like password hashes) cannot be accidentally 
      *   retained in the object state.
      *
-     * @param array $data The raw user array from the database.
+     * @param array<string, mixed> $data The raw user array from the database.
      */
     public function __construct(array $data)
     {
-        $this->id = (int)($data['id'] ?? 0);
-        $this->name = $data['name'] ?? '';
-        $this->role = $data['role'] ?? 'user';
-        $this->email = $data['email'] ?? '';
-        $this->vendorId = isset($data['vendor_id']) ? (int)$data['vendor_id'] : null;
+        $idVal = $data['id'] ?? 0;
+        $this->id = is_scalar($idVal) ? (int)$idVal : 0;
+        
+        $nameVal = $data['name'] ?? '';
+        $this->name = is_scalar($nameVal) ? (string)$nameVal : '';
+        
+        $roleVal = $data['role'] ?? 'user';
+        $this->role = is_scalar($roleVal) ? (string)$roleVal : 'user';
+        
+        $emailVal = $data['email'] ?? '';
+        $this->email = is_scalar($emailVal) ? (string)$emailVal : '';
+        
+        if (isset($data['vendor_id'])) {
+            $this->vendorId = is_scalar($data['vendor_id']) ? (int)$data['vendor_id'] : null;
+        } else {
+            $this->vendorId = null;
+        }
     }
 
     public function hasVendorId(): bool
@@ -91,7 +103,7 @@ readonly class AuthUser
      *   store primitives, not serialized domain objects, to prevent class hydration 
      *   vulnerabilities during deserialization on subsequent requests.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function toSessionArray(): array
     {
