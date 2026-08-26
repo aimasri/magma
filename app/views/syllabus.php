@@ -12,6 +12,7 @@ $pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="/css/components/syllabus.css">
 </head>
 <body class="welcome-page">
     <div class="welcome-container">
@@ -23,7 +24,7 @@ $pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
 </div>
 <main class="syllabus-page">
     <div class="container syllabus-layout">
-        <div class="syllabus-sidebar"><details class="syllabus-toc" open><summary class="toc-summary"><h3>Chapters</h3></summary><ul><li><a href="#module-1-introduction-philosophy"><span class="toc-num">1</span> <span class="toc-title">Introduction & Philosophy</span></a></li><li><a href="#module-2-the-request-lifecycle-front-controller"><span class="toc-num">2</span> <span class="toc-title">The Request Lifecycle & Front Controller</span></a></li><li><a href="#module-3-the-dependency-injection-container-the-core"><span class="toc-num">3</span> <span class="toc-title">The Dependency Injection Container (The Core)</span></a></li><li><a href="#module-4-routing-the-http-request"><span class="toc-num">4</span> <span class="toc-title">Routing & The HTTP Request</span></a></li><li><a href="#module-5-controllers-services-the-business-logic"><span class="toc-num">5</span> <span class="toc-title">Controllers & Services (The Business Logic)</span></a></li><li><a href="#module-6-data-persistence-multi-tenancy"><span class="toc-num">6</span> <span class="toc-title">Data Persistence & Multi-Tenancy</span></a></li><li><a href="#module-7-views-and-the-template-engine"><span class="toc-num">7</span> <span class="toc-title">Views and the Template Engine</span></a></li><li><a href="#module-8-error-handling-logging"><span class="toc-num">8</span> <span class="toc-title">Error Handling & Logging</span></a></li><li><a href="#module-9-the-final-polish-dtos-data-transfer-objects"><span class="toc-num">9</span> <span class="toc-title">The Final Polish - DTOs (Data Transfer Objects)</span></a></li><li><a href="#module-10-the-evolution-domain-driven-design-ddd"><span class="toc-num">10</span> <span class="toc-title">The Evolution - Domain-Driven Design (DDD)</span></a></li><li><a href="#module-11-decoupling-with-event-driven-architecture"><span class="toc-num">11</span> <span class="toc-title">Decoupling with Event-Driven Architecture</span></a></li><li><a href="#module-12-asynchronous-background-workers"><span class="toc-num">12</span> <span class="toc-title">Asynchronous Background Workers</span></a></li><li><a href="#module-13-end-of-cycle-considerations-automated-testing"><span class="toc-num">13</span> <span class="toc-title">End of Cycle Considerations - Automated Testing</span></a></li><li><a href="#module-14-frontend-architecture-deep-freeze-css-layers"><span class="toc-num">14</span> <span class="toc-title">Frontend Architecture: Deep Freeze & CSS Layers</span></a></li><li><a href="#module-15-security-big-o-analytics"><span class="toc-num">15</span> <span class="toc-title">Security & Big-O Analytics</span></a></li></ul></details></div>
+        <div class="syllabus-sidebar"><details class="syllabus-toc" open><summary class="toc-summary"><h3>Chapters</h3></summary><ul><li><a href="#module-1-introduction-philosophy"><span class="toc-num">1</span> <span class="toc-title">Introduction & Philosophy</span></a></li><li><a href="#module-2-the-request-lifecycle-front-controller"><span class="toc-num">2</span> <span class="toc-title">The Request Lifecycle & Front Controller</span></a></li><li><a href="#module-3-the-dependency-injection-container-the-core"><span class="toc-num">3</span> <span class="toc-title">The Dependency Injection Container (The Core)</span></a></li><li><a href="#module-4-routing-the-http-request"><span class="toc-num">4</span> <span class="toc-title">Routing & The HTTP Request</span></a></li><li><a href="#module-5-controllers-services-the-business-logic"><span class="toc-num">5</span> <span class="toc-title">Controllers & Services (The Business Logic)</span></a></li><li><a href="#module-6-data-persistence-multi-tenancy"><span class="toc-num">6</span> <span class="toc-title">Data Persistence & Multi-Tenancy</span></a></li><li><a href="#module-7-views-and-the-template-engine"><span class="toc-num">7</span> <span class="toc-title">Views and the Template Engine</span></a></li><li><a href="#module-8-error-handling-logging"><span class="toc-num">8</span> <span class="toc-title">Error Handling & Logging</span></a></li><li><a href="#module-9-the-final-polish-dtos-data-transfer-objects"><span class="toc-num">9</span> <span class="toc-title">The Final Polish - DTOs (Data Transfer Objects)</span></a></li><li><a href="#module-10-the-evolution-domain-driven-design-ddd"><span class="toc-num">10</span> <span class="toc-title">The Evolution - Domain-Driven Design (DDD)</span></a></li><li><a href="#module-11-decoupling-with-event-driven-architecture"><span class="toc-num">11</span> <span class="toc-title">Decoupling with Event-Driven Architecture</span></a></li><li><a href="#module-12-asynchronous-background-workers"><span class="toc-num">12</span> <span class="toc-title">Asynchronous Background Workers</span></a></li><li><a href="#module-13-end-of-cycle-considerations-automated-testing"><span class="toc-num">13</span> <span class="toc-title">End of Cycle Considerations - Automated Testing</span></a></li><li><a href="#module-14-frontend-architecture-deep-freeze-css-layers"><span class="toc-num">14</span> <span class="toc-title">Frontend Architecture: Deep Freeze & CSS Layers</span></a></li><li><a href="#module-15-security-big-o-analytics"><span class="toc-num">15</span> <span class="toc-title">Security & Big-O Analytics</span></a></li><li><a href="#module-16-the-lava-hardening-phase-enterprise-quality-control"><span class="toc-num">16</span> <span class="toc-title">The Lava Hardening Phase - Enterprise Quality Control</span></a></li></ul></details></div>
         <div class="syllabus-content">
             <h1 class="syllabus-title">Magma Framework: The Masterclass Textbook</h1>
 <div class="chapter-module" id="module-1-introduction-philosophy"><h2 class="chapter-title">Module 1: Introduction & Philosophy</h2>
@@ -47,11 +48,11 @@ This gives us immediate clues about our domain entities and data structures:
 However, the defining characteristic of our architecture is the <strong>Platform Vision</strong>.
 </p>
 <p>
-While Sandbox Corp is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct tenants in the future. This concept is known as <strong>Multi-Tenancy</strong>.
+While Sandbox Corp is our *first* client (our "Tenant"), our intent is to design this system from the ground up as a platform capable of supporting *multiple* distinct vendors in the future. This concept is known as <strong>Multi-Tenancy</strong>.
 </p>
 <h4>Analyzing the Principles: Designing for Multi-Tenancy from Day One</h4>
 <p>
-It is a common trap in software development to hardcode business logic for a single client, assuming you can "generalize it later." Generalizing a massive, tightly-coupled codebase later is incredibly expensive and error-prone. As we established, hardcoding rules for one tenant means they will inevitably be incorrectly applied to future tenants.
+It is a common trap in software development to hardcode business logic for a single client, assuming you can "generalize it later." Generalizing a massive, tightly-coupled codebase later is incredibly expensive and error-prone. As we established, hardcoding rules for one vendor means they will inevitably be incorrectly applied to future vendors.
 </p>
 <p>
 Instead, we are adopting a platform-first mindset.
@@ -63,9 +64,9 @@ Instead, we are adopting a platform-first mindset.
 To achieve this in the Magma Framework framework, we apply the following principles:
 </p>
 <ol class="syllabus-list">
-<li><strong>Strict Data Isolation at the Repository Layer:</strong> By establishing the Repository Pattern early, we ensure that every database query can eventually be scoped to a specific <code>tenant_id</code>. A controller will never accidentally query <code>SELECT * FROM orders</code>; it will always ask the repository for <code>Orders for Tenant X</code>. This mitigates the massive risk of cross-tenant data leakage—the most critical danger in a shared database environment.</li>
-<li><strong>Agnostic Core Domain:</strong> The core application doesn't care that Sandbox Corp makes modules. It only understands abstract concepts: <code>Tenants</code>, <code>Products</code>, <code>Orders</code>, and <code>Inventory</code>. The specifics are data, not code.</li>
-<li><strong>Configuration over Hardcoding:</strong> If a tenant has a specific rule, we abstract this into a configurable business rule associated with the tenant's profile, rather than burying it in <code>if/else</code> statements within our services.</li>
+<li><strong>Strict Data Isolation at the Repository Layer:</strong> By establishing the Repository Pattern early, we ensure that every database query can eventually be scoped to a specific <code>vendor_id</code>. A controller will never accidentally query <code>SELECT * FROM orders</code>; it will always ask the repository for <code>Orders for Vendor X</code>. This mitigates the massive risk of cross-tenant data leakage—the most critical danger in a shared database environment.</li>
+<li><strong>Agnostic Core Domain:</strong> The core application doesn't care that Sandbox Corp makes modules. It only understands abstract concepts: <code>Vendors</code>, <code>Products</code>, <code>Orders</code>, and <code>Inventory</code>. The specifics are data, not code.</li>
+<li><strong>Configuration over Hardcoding:</strong> If a vendor has a specific rule, we abstract this into a configurable business rule associated with the vendor's profile, rather than burying it in <code>if/else</code> statements within our services.</li>
 </ol>
 <p>
 <strong>Code Example: Hardcoding vs. Abstraction</strong>
@@ -95,15 +96,15 @@ Imagine Sandbox Corp does not allow orders to be placed on Sundays.
 </p>
 <pre><code>class OrderService 
 {
-    // We inject the specific Tenant configuration into the service
-    public function placeOrder(OrderDTO $order, TenantProfile $tenant): bool 
+    // We inject the specific Vendor configuration into the service
+    public function placeOrder(OrderDTO $order, VendorProfile $vendor): bool 
     {
-        // GOOD: The core logic asks the Tenant&#039;s configuration if the day is valid.
+        // GOOD: The core logic asks the Vendor&#039;s configuration if the day is valid.
         // The fact that it&#039;s Sunday is now purely data, not code.
         $dayOfWeek = date(&#039;l&#039;, strtotime($order-&gt;deliveryDate));
         
-        if (!in_array($dayOfWeek, $tenant-&gt;getOperatingDays())) {
-            throw new Exception(&quot;This tenant does not operate on &quot; . $dayOfWeek);
+        if (!in_array($dayOfWeek, $vendor-&gt;getOperatingDays())) {
+            throw new Exception(&quot;This vendor does not operate on &quot; . $dayOfWeek);
         }
         
         // ... proceed with order
@@ -243,7 +244,7 @@ SOLID is an acronym coined by Robert C. Martin (Uncle Bob) representing five des
 While we will see these in action constantly, here is a brief overview tailored to our context:
 </p>
 <ol class="syllabus-list">
-<li><strong>Single Responsibility Principle (SRP):</strong> A class should have one, and only one, reason to change. A <code>TenantRepository</code> handles database queries. It does *not* format HTML.</li>
+<li><strong>Single Responsibility Principle (SRP):</strong> A class should have one, and only one, reason to change. A <code>VendorRepository</code> handles database queries. It does *not* format HTML.</li>
 <li><strong>Open/Closed Principle (OCP):</strong> Software entities should be open for extension but closed for modification. If we add a new Payment Gateway (Stripe vs PayPal), we shouldn't have to rewrite the <code>CheckoutService</code>. We simply create a new class that implements the <code>PaymentGatewayInterface</code>.</li>
 <li><strong>Liskov Substitution Principle (LSP):</strong> If you swap a parent class for its child class (or an interface for an implementation), the application shouldn't break or behave unexpectedly.</li>
 </ol>
@@ -1154,23 +1155,17 @@ To prevent "Fat Controllers," we enforce three absolute rules for any Controller
 <p>
 Let's look at what a perfectly clean Controller looks like when a customer submits an order:
 </p>
-<pre><code>namespace magma\controllers;
+<pre><code>namespace app\controllers;
 
 use core\http\Request;
 use core\http\Response;
-use magma\services\OrderService;
+use app\services\OrderService;
 
 class CheckoutController 
 {
-    private OrderService $orderService;
-
-    // 1. Dependency Injection: The Container provides the Service
-    public function __construct(OrderService $orderService) 
-    {
-        $this-&gt;orderService = $orderService;
-    }
-
-    public function process(Request $request): Response 
+    // 1. Dual Dependency Injection Strategy: Application controllers use Method Injection!
+    // The Router injects the OrderService exactly when this specific route is hit, keeping the class lightweight.
+    public function process(Request $request, OrderService $orderService): Response 
     {
         // 2. Extract the clean data from the Request object
         $productId = $request-&gt;getPostInt(&#039;product_id&#039;);
@@ -1178,7 +1173,7 @@ class CheckoutController
 
         try {
             // 3. Delegate the actual work to the Service!
-            $success = $this-&gt;orderService-&gt;placeOrder($productId, $quantity);
+            $success = $orderService-&gt;placeOrder($productId, $quantity);
 
             // 4. Return the appropriate Response
             return new Response(&quot;Order Placed Successfully!&quot;);
@@ -1349,7 +1344,7 @@ In legacy applications, you often find raw SQL queries (<code>SELECT * FROM orde
 This creates three massive problems:
 </p>
 <ol class="syllabus-list">
-<li><strong>Tenant Lock-in:</strong> If you have MySQL-specific queries hardcoded in 500 different files, migrating to PostgreSQL is nearly impossible.</li>
+<li><strong>Vendor Lock-in:</strong> If you have MySQL-specific queries hardcoded in 500 different files, migrating to PostgreSQL is nearly impossible.</li>
 <li><strong>Duplication:</strong> You will inevitably write the same "Find user by ID" query in dozens of different places.</li>
 <li><strong>Security (Our biggest concern):</strong> If SQL is everywhere, it is incredibly easy for a developer to accidentally forget to add a critical <code>WHERE</code> clause, exposing data they shouldn't.</li>
 </ol>
@@ -1364,7 +1359,7 @@ A Repository acts as an intermediary collection. To the <code>OrderService</code
 </p>
 <h4>The Theory: The Contract of the Repository</h4>
 <p>
-Because we want to protect against Tenant Lock-in (Problem 1), we don't just inject a concrete Repository into our Service. We inject an <strong>Interface</strong>.
+Because we want to protect against Vendor Lock-in (Problem 1), we don't just inject a concrete Repository into our Service. We inject an <strong>Interface</strong>.
 </p>
 <pre><code>namespace core\interfaces;
 
@@ -1415,19 +1410,19 @@ class PostgresOrderRepository implements OrderRepositoryInterface
 </code></pre>
 <h4>Analyzing the Principles: The Multi-Tenancy Shield</h4>
 <p>
-Let's return to the most critical business requirement of the Magma framework: <strong>Multi-Tenancy</strong> (supporting multiple tenants on one platform).
+Let's return to the most critical business requirement of the Magma framework: <strong>Multi-Tenancy</strong> (supporting multiple vendors on one platform).
 </p>
 <p>
-If we share one database table for *all* tenants, the biggest risk is that "Tenant A" logs in and accidentally sees "Tenant B's" orders. This is a catastrophic failure.
+If we share one database table for *all* vendors, the biggest risk is that "Vendor A" logs in and accidentally sees "Vendor B's" orders. This is a catastrophic failure.
 </p>
 <p>
-If developers are allowed to write SQL in controllers or services, it is almost guaranteed that someone will write <code>SELECT * FROM orders</code> and forget to add <code>WHERE tenant_id = 1</code>.
+If developers are allowed to write SQL in controllers or services, it is almost guaranteed that someone will write <code>SELECT * FROM orders</code> and forget to add <code>WHERE vendor_id = 1</code>.
 </p>
 <p>
-Because we use the Repository Pattern, we can enforce Multi-Tenancy centrally. We can inject the <code>TenantContext</code> directly into the Repository, and the Repository can *automatically* append the <code>tenant_id</code> to every single query it runs!
+Because we use the Repository Pattern, we can enforce Multi-Tenancy centrally. We can inject the <code>TenantContext</code> directly into the Repository, and the Repository can *automatically* append the <code>vendor_id</code> to every single query it runs!
 </p>
 <p>
-The developer writing the <code>OrderService</code> literally cannot make a mistake and query another tenant's data, because the Repository intercepts and scopes the query automatically.
+The developer writing the <code>OrderService</code> literally cannot make a mistake and query another vendor's data, because the Repository intercepts and scopes the query automatically.
 </p>
 <h4>Common Questions and Answers</h4>
 <blockquote class="syllabus-quote">
@@ -1444,38 +1439,38 @@ The developer writing the <code>OrderService</code> literally cannot make a mist
 <h3>Chapter 6.2: Tenant Context - The Invisible Shield</h3>
 <h4>Subject & Intent: The Greatest Risk in SaaS</h4>
 <p>
-As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many tenants share one database) is <strong>Cross-Tenant Data Leakage</strong>.
+As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many vendors share one database) is <strong>Cross-Tenant Data Leakage</strong>.
 </p>
 <p>
 If "Sandbox Corp" logs into their dashboard, and due to a coding error, they see "Client B's" orders, you have a massive legal and security breach on your hands.
 </p>
 <p>
-If we rely on developers to manually type <code>WHERE tenant_id = X</code> in every single repository method they ever write, human error *will* eventually cause a data leak. We need a systematic, invisible shield that protects the data automatically.
+If we rely on developers to manually type <code>WHERE vendor_id = X</code> in every single repository method they ever write, human error *will* eventually cause a data leak. We need a systematic, invisible shield that protects the data automatically.
 </p>
 <h4>The Theory: The Context Object</h4>
 <p>
 To build this shield, we use a concept called a <strong>Context Object</strong>.
 </p>
 <p>
-When a user logs into the application, or when we determine which tenant's subdomain is currently being accessed (e.g., <code>client.sandboxplatform.com</code>), our early Middleware creates a <code>TenantContext</code> object.
+When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., <code>client.sandboxplatform.com</code>), our early Middleware creates a <code>TenantContext</code> object.
 </p>
 <p>
-This object holds the immutable ID of the current tenant.
+This object holds the immutable ID of the current vendor.
 </p>
 <pre><code>namespace core\context;
 
 class TenantContext 
 {
-    private int $tenantId;
+    private int $vendorId;
 
-    public function __construct(int $tenantId) 
+    public function __construct(int $vendorId) 
     {
-        $this-&gt;tenantId = $tenantId;
+        $this-&gt;vendorId = $vendorId;
     }
 
-    public function getTenantId(): int 
+    public function getVendorId(): int 
     {
-        return $this-&gt;tenantId;
+        return $this-&gt;vendorId;
     }
 }
 </code></pre>
@@ -1484,7 +1479,7 @@ class TenantContext
 The magic happens when we combine this <code>TenantContext</code> with the Dependency Injection Container and our Repositories.
 </p>
 <p>
-Instead of passing the tenant ID around manually to every function, we inject the <code>TenantContext</code> directly into the Repository's constructor.
+Instead of passing the vendor ID around manually to every function, we inject the <code>TenantContext</code> directly into the Repository's constructor.
 </p>
 <pre><code>namespace magma\repositories;
 
@@ -1505,13 +1500,13 @@ class PostgresOrderRepository implements OrderRepositoryInterface
 
     public function getLatestOrders(): array 
     {
-        // The developer doesn&#039;t have to &#039;remember&#039; the tenant ID.
+        // The developer doesn&#039;t have to &#039;remember&#039; the vendor ID.
         // It is inherently part of the repository&#039;s state!
         
-        $sql = &quot;SELECT * FROM orders WHERE tenant_id = :tenant_id ORDER BY created_at DESC&quot;;
+        $sql = &quot;SELECT * FROM orders WHERE vendor_id = :vendor_id ORDER BY created_at DESC&quot;;
         
         return $this-&gt;db-&gt;fetchAll($sql, [
-            &#039;tenant_id&#039; =&gt; $this-&gt;tenant-&gt;getTenantId()
+            &#039;vendor_id&#039; =&gt; $this-&gt;tenant-&gt;getVendorId()
         ]);
     }
 }
@@ -1521,18 +1516,18 @@ class PostgresOrderRepository implements OrderRepositoryInterface
 Why is this architecture superior?
 </p>
 <ol class="syllabus-list">
-<li><strong>Secure by Default:</strong> The <code>OrderService</code> simply calls <code>$this-&gt;orderRepo-&gt;getLatestOrders()</code>. The Service does not know about the <code>tenant_id</code>. The Repository handles it automatically. The data is fundamentally isolated at the lowest level.</li>
+<li><strong>Secure by Default:</strong> The <code>OrderService</code> simply calls <code>$this-&gt;orderRepo-&gt;getLatestOrders()</code>. The Service does not know about the <code>vendor_id</code>. The Repository handles it automatically. The data is fundamentally isolated at the lowest level.</li>
 <li><strong>Immutability:</strong> Because the <code>TenantContext</code> is injected via the constructor, a malicious or buggy script cannot easily "swap" the tenant ID halfway through execution. The repository is locked to that tenant for the duration of the request.</li>
-<li><strong>No Global State:</strong> We didn't use <code>$_SESSION[&#039;tenant_id&#039;]</code> inside the repository. Using the session superglobal inside a repository would make it impossible to use that repository in a background cron job (which doesn't have a session). By injecting a formal <code>TenantContext</code> object, our cron job can just manually create a <code>new TenantContext(1)</code> and use the exact same secure repository.</li>
+<li><strong>No Global State:</strong> We didn't use <code>$_SESSION[&#039;vendor_id&#039;]</code> inside the repository. Using the session superglobal inside a repository would make it impossible to use that repository in a background cron job (which doesn't have a session). By injecting a formal <code>TenantContext</code> object, our cron job can just manually create a <code>new TenantContext(1)</code> and use the exact same secure repository.</li>
 </ol>
 <h4>Common Questions and Answers</h4>
 <blockquote class="syllabus-quote">
-<strong>Q: We write a terminal command that runs every night at midnight to generate a sales report for *all* tenants on the platform. If our Repositories are strictly locked to a single injected <code>TenantContext</code>, how would a single script generate reports for multiple different tenants?</strong><br>
+<strong>Q: We write a terminal command that runs every night at midnight to generate a sales report for *all* vendors on the platform. If our Repositories are strictly locked to a single injected <code>TenantContext</code>, how would a single script generate reports for multiple different vendors?</strong><br>
 <br>
-<strong>A:</strong> The script would write a loop to fetch each tenant. For every iteration of the loop, it creates a *brand new* <code>TenantContext</code> object and uses it to build a new repository instance specifically for that tenant. We don't try to use a "master key" or bypass the security; we just sequentially put on the "hat" of each tenant, ensuring the strict data isolation is never broken.<br>
+<strong>A:</strong> The script would write a loop to fetch each tenant. For every iteration of the loop, it creates a *brand new* <code>TenantContext</code> object and uses it to build a new repository instance specifically for that tenant. We don't try to use a "master key" or bypass the security; we just sequentially put on the "hat" of each vendor, ensuring the strict data isolation is never broken.<br>
 </blockquote>
 <blockquote class="syllabus-quote">
-<strong>Q: Some ORMs use "Global Scopes," where the framework magically intercepts the SQL behind the scenes and adds <code>WHERE tenant_id = 1</code> before it hits the database. Based on our philosophy in Module 1, why might we prefer explicitly writing the <code>WHERE</code> clause in the Repository over using a framework's magical global scope?</strong><br>
+<strong>Q: Some ORMs use "Global Scopes," where the framework magically intercepts the SQL behind the scenes and adds <code>WHERE vendor_id = 1</code> before it hits the database. Based on our philosophy in Module 1, why might we prefer explicitly writing the <code>WHERE</code> clause in the Repository over using a framework's magical global scope?</strong><br>
 <br>
 <strong>A:</strong> You have to know what is going on behind the scenes to properly code new functions. Relying on "magic" can backfire entirely if you don't actually know where the data you are receiving is coming from, or if you encounter an edge case where you *need* to bypass the magic but can't figure out how. By explicitly injecting the context and writing the <code>WHERE</code> clause in the repository, the mechanism is completely transparent, readable, and debuggable.<br>
 </blockquote>
@@ -2138,6 +2133,31 @@ Magma utilizes <strong>Keyset Seeking</strong> (<code>WHERE id &gt; :cursor_last
 <p>
 Repositories returning large collections do not load the resulting array into memory. Instead, Magma streams the records directly from the database driver using PHP generators (<code>yield</code>). This keeps RAM consumption entirely flat, preventing OOM crashes during heavy analytical workloads.
 </p>
+</div>
+<div class="chapter-module" id="module-16-the-lava-hardening-phase-enterprise-quality-control"><h2 class="chapter-title">Module 16: The Lava Hardening Phase - Enterprise Quality Control</h2>
+<h3>Chapter 16.1: The Eradication of Legacy Facades and "Magic"</h3>
+<p>
+Enterprise software accumulates technical debt primarily through backward compatibility. To achieve true architectural purity, Magma underwent a "Lava" hardening phase where all legacy facades were systematically eliminated.
+</p>
+<p>
+The framework entirely abandoned primitive tuple arrays in the Routing engine in favor of strongly-typed <code>RouteDefinition</code> Value Objects. Backward-compatible interfaces and legacy middleware were completely purged. The result is a framework that forces modern, object-oriented contracts at every layer.
+</p>
+<h3>Chapter 16.2: Mathematical Type Safety via PHPStan Level 9</h3>
+<p>
+Type safety is the ultimate defense against runtime defects. The Magma core implements <strong>PHPStan Level 9</strong>, the most stringent static analysis level available.
+</p>
+<p>
+By enforcing strict scalar types (<code>declare(strict_types=1)</code>), demanding explicit array shapes, and mathematically proving the impossibility of <code>mixed</code> types passing through boundaries, the framework eliminates silent type-coercion bugs entirely. Any code that cannot be statically proven to be safe will instantly fail the CI/CD pipeline.
+</p>
+<h3>Chapter 16.3: Advanced Cryptography and Boundary Enforcement</h3>
+<p>
+Security is not bolted on; it is embedded into the core.
+</p>
+<ol class="syllabus-list">
+<li><strong>Argon2id Hashing:</strong> We replaced legacy Bcrypt with Argon2id—the most robust, memory-hard hashing algorithm available, defending against GPU-based brute-force attacks.</li>
+<li><strong>Transparent Rehashing:</strong> The <code>AuthenticationService</code> actively listens for legacy hashes during successful logins and transparently upgrades them to Argon2id via the <code>UserCommandRepository</code>.</li>
+<li><strong>Strict Headers:</strong> The injection of <code>Permissions-Policy</code> disables intrusive browser features (camera, microphone, geolocation) by default, dramatically reducing the application's attack surface.</li>
+</ol>
 </div>
         </div>
     </div>

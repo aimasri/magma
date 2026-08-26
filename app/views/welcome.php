@@ -255,6 +255,12 @@ $serverOs = $diag->serverOs;
                     <h3 class="module-card__title">Security & Big-O Analytics</h3>
                     <p class="module-card__desc">Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.</p>
                 </a>
+                <!-- Chapter 16 -->
+                <a href="/syllabus#module-16-the-lava-hardening-phase-enterprise-quality-control" class="module-card">
+                    <div class="module-card__header"><span class="module-card__num">Chapter 16</span><span class="badge badge--neutral">Hardening</span></div>
+                    <h3 class="module-card__title">The Lava Hardening Phase</h3>
+                    <p class="module-card__desc">Eradication of legacy facades, PHPStan Level 9 mathematical type safety, and cryptographic boundary enforcement.</p>
+                </a>
             </div>
             <div class="mt-6 text-center">
                 <a href="/syllabus" class="btn btn--primary">View Full Masterclass Syllabus</a>

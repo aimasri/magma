@@ -1868,3 +1868,20 @@ Magma utilizes **Keyset Seeking** (`WHERE id > :cursor_last_id`). By leveraging 
 ### Chapter 15.3: Memory-Streaming Generators
 
 Repositories returning large collections do not load the resulting array into memory. Instead, Magma streams the records directly from the database driver using PHP generators (`yield`). This keeps RAM consumption entirely flat, preventing OOM crashes during heavy analytical workloads.
+## Module 16: The Lava Hardening Phase - Enterprise Quality Control
+
+### Chapter 16.1: The Eradication of Legacy Facades and "Magic"
+Enterprise software accumulates technical debt primarily through backward compatibility. To achieve true architectural purity, Magma underwent a "Lava" hardening phase where all legacy facades were systematically eliminated. 
+
+The framework entirely abandoned primitive tuple arrays in the Routing engine in favor of strongly-typed `RouteDefinition` Value Objects. Backward-compatible interfaces and legacy middleware were completely purged. The result is a framework that forces modern, object-oriented contracts at every layer.
+
+### Chapter 16.2: Mathematical Type Safety via PHPStan Level 9
+Type safety is the ultimate defense against runtime defects. The Magma core implements **PHPStan Level 9**, the most stringent static analysis level available. 
+
+By enforcing strict scalar types (`declare(strict_types=1)`), demanding explicit array shapes, and mathematically proving the impossibility of `mixed` types passing through boundaries, the framework eliminates silent type-coercion bugs entirely. Any code that cannot be statically proven to be safe will instantly fail the CI/CD pipeline.
+
+### Chapter 16.3: Advanced Cryptography and Boundary Enforcement
+Security is not bolted on; it is embedded into the core. 
+1. **Argon2id Hashing:** We replaced legacy Bcrypt with Argon2id—the most robust, memory-hard hashing algorithm available, defending against GPU-based brute-force attacks.
+2. **Transparent Rehashing:** The `AuthenticationService` actively listens for legacy hashes during successful logins and transparently upgrades them to Argon2id via the `UserCommandRepository`.
+3. **Strict Headers:** The injection of `Permissions-Policy` disables intrusive browser features (camera, microphone, geolocation) by default, dramatically reducing the application's attack surface.
