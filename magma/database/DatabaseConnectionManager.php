@@ -30,12 +30,19 @@ class DatabaseConnectionManager
     private ?PDO $writeInstance = null;
     private ?PDO $readInstance = null;
 
+    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} */
     private array $writeSettings;
+    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} */
     private array $readSettings;
     private bool $emulatePrepares;
 
     private bool $forceWrite = false;
 
+    /**
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $writeSettings
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $readSettings
+     * @param bool $emulatePrepares
+     */
     public function __construct(array $writeSettings, array $readSettings, bool $emulatePrepares = false)
     {
         $this->writeSettings = $writeSettings;
@@ -111,7 +118,7 @@ class DatabaseConnectionManager
      * - Wrapping the creation in a `try/catch` prevents raw PDO exception strings 
      *   (which may contain passwords) from accidentally leaking to the frontend.
      *
-     * @param array $settings The connection settings.
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $settings The connection settings.
      * @return PDO The configured connection.
      */
     private function createConnection(array $settings): PDO

@@ -29,12 +29,15 @@ class MultiTenantKeysetQueryBuilder
 {
     private string $table = '';
     private string $alias = '';
+    /** @var array<int, string> */
     private array $columns = ['*'];
     private ?int $tenantId = null;
     private string $tenantColumn = 'tenant_id';
     private ?int $venueId = null;
     private string $venueColumn = 'venue_id';
+    /** @var array<int, string> */
     private array $whereClauses = [];
+    /** @var array<string, mixed> */
     private array $params = [];
     private ?PaginationDTO $pagination = null;
     private string $cursorColumn = 'id';

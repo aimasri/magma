@@ -51,7 +51,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
      *   returning only free rows. This provides frictionless horizontal scaling for queue publishing workers.
      *
      * @param int $limit Maximum number of pending records to fetch and lock.
-     * @return array<int, array{id: int, queue: string, handler: string, payload: array, headers: array, attempts: int, created_at: string}>
+     * @return array<int, array{id: int, queue: string, handler: string, payload: array<string, mixed>, headers: array<string, mixed>, attempts: int, created_at: string}>
      */
     public function fetchAndLockPending(int $limit = 100): array
     {
@@ -140,8 +140,8 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
      *
      * @param string $queue Target queue name.
      * @param string $handlerClass Fully qualified handler class name.
-     * @param array $payload Domain payload data.
-     * @param array $headers Metadata headers.
+     * @param array<string, mixed> $payload Domain payload data.
+     * @param array<string, mixed> $headers Metadata headers.
      * @return int The primary key of the inserted outbox record.
      */
     public function record(string $queue, string $handlerClass, array $payload, array $headers = []): int
@@ -165,7 +165,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     /**
      * Records multiple jobs into the transactional outbox table in a single batched insert.
      *
-     * @param array $jobs
+     * @param array<int, array{queue: string, handler: string, payload: array<string, mixed>, headers?: array<string, mixed>}> $jobs
      */
     public function recordBulk(array $jobs): void
     {

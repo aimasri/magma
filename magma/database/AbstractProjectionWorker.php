@@ -54,13 +54,13 @@ abstract class AbstractProjectionWorker implements JobInterface
      * - Performing both the projection calculation and the checkpoint insertion within the same transaction
      *   ensures that either the read model AND the checkpoint are committed together, or neither is.
      *
-     * @param array $payload The JSON-decoded payload from the queue.
+     * @param array<string, mixed> $payload The JSON-decoded payload from the queue.
      * @throws Throwable If transaction or projection fails.
      */
     public function handle(array $payload): void
     {
         $eventId = $this->resolveEventId($payload);
-        $tenantId = isset($payload['tenant_id']) ? (int) $payload['tenant_id'] : null;
+        $tenantId = isset($payload['tenant_id']) && is_scalar($payload['tenant_id']) ? (int) $payload['tenant_id'] : null;
         $projectionName = $this->getProjectionName();
 
         $this->beforeProject($payload);
@@ -86,7 +86,7 @@ abstract class AbstractProjectionWorker implements JobInterface
     /**
      * Resolves the unique event identifier from the payload.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      * @return string
      */
     protected function resolveEventId(array $payload): string
@@ -100,13 +100,17 @@ abstract class AbstractProjectionWorker implements JobInterface
         }
 
         // Fallback: create deterministic SHA-256 hash of payload
-        return hash('sha256', json_encode($payload));
+        $encoded = json_encode($payload);
+        if ($encoded === false) {
+            throw new RuntimeException("Failed to encode payload for event hash generation.");
+        }
+        return hash('sha256', $encoded);
     }
 
     /**
      * Hook invoked before projection execution.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     protected function beforeProject(array $payload): void
     {
@@ -116,7 +120,7 @@ abstract class AbstractProjectionWorker implements JobInterface
     /**
      * Hook invoked after successful projection commit.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     protected function afterProject(array $payload): void
     {
@@ -133,7 +137,7 @@ abstract class AbstractProjectionWorker implements JobInterface
     /**
      * Performs the domain calculation and read-model persistence for this projection.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     abstract protected function project(array $payload): void;
 }

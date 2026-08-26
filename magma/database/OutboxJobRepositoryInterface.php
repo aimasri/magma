@@ -27,7 +27,7 @@ interface OutboxJobRepositoryInterface
      * Fetches and locks pending outbox jobs ready for publishing.
      *
      * @param int $limit Maximum number of jobs to fetch and lock.
-     * @return array<int, array{id: int, queue: string, handler: string, payload: array, headers: array, attempts: int, created_at: string}>
+     * @return array<int, array{id: int, queue: string, handler: string, payload: array<string, mixed>, headers: array<string, mixed>, attempts: int, created_at: string}>
      */
     public function fetchAndLockPending(int $limit = 100): array;
 
@@ -43,8 +43,8 @@ interface OutboxJobRepositoryInterface
      *
      * @param string $queue Target queue name (e.g. 'emails', 'events', 'inventory').
      * @param string $handlerClass Fully qualified class name of the Job handler.
-     * @param array $payload Domain data payload for the job.
-     * @param array $headers Optional metadata headers (e.g. tenant_id, correlation_id, timestamp).
+     * @param array<string, mixed> $payload Domain data payload for the job.
+     * @param array<string, mixed> $headers Optional metadata headers (e.g. tenant_id, correlation_id, timestamp).
      * @return int The generated outbox job ID.
      */
     public function record(string $queue, string $handlerClass, array $payload, array $headers = []): int;
@@ -52,7 +52,7 @@ interface OutboxJobRepositoryInterface
     /**
      * Records multiple jobs into the transactional outbox table in a single batched insert.
      *
-     * @param array $jobs Array of associative arrays, each containing 'queue', 'handler', 'payload', and optional 'headers'.
+     * @param array<int, array{queue: string, handler: string, payload: array<string, mixed>, headers?: array<string, mixed>}> $jobs Array of associative arrays, each containing 'queue', 'handler', 'payload', and optional 'headers'.
      */
     public function recordBulk(array $jobs): void;
 

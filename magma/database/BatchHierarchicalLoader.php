@@ -116,17 +116,23 @@ class BatchHierarchicalLoader
         string $childrenKey = 'children'
     ): array {
         $tree = [];
+        /** @var array<int|string, array<string, mixed>> $indexed */
         $indexed = [];
 
         foreach ($flatRows as $row) {
             $row[$childrenKey] = [];
-            $indexed[$row[$idKey]] = $row;
+            $id = $row[$idKey] ?? null;
+            if (is_scalar($id)) {
+                $indexed[(string)$id] = $row;
+            }
         }
 
         foreach ($indexed as $id => &$node) {
             $parentId = $node[$parentKey] ?? null;
-            if ($parentId !== null && isset($indexed[$parentId])) {
-                $indexed[$parentId][$childrenKey][] = &$node;
+            if ($parentId !== null && is_scalar($parentId) && isset($indexed[(string)$parentId])) {
+                if (is_array($indexed[(string)$parentId][$childrenKey] ?? null)) {
+                    $indexed[(string)$parentId][$childrenKey][] = &$node;
+                }
             } else {
                 $tree[] = &$node;
             }
