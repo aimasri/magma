@@ -103,7 +103,7 @@ class FormViewComposer
      * Static factory method for fluid builder instantiation.
      *
      * @param object|array<string, mixed>|null $entity
-     * @param array<string, mixed> $options
+     * @param array{action?: string, method?: string, old?: array<string, mixed>, errors?: array<string, string>, csrf_token?: string, submit_label?: string, title?: string} $options
      * @return self
      */
     public static function make(object|array|null $entity = null, array $options = []): self

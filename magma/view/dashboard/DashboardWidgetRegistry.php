@@ -111,7 +111,7 @@ class DashboardWidgetRegistry
         }
 
         // Sort widgets by order weight
-        uasort($rendered, static fn(array $a, array $b): int => ($a['order'] ?? 10) <=> ($b['order'] ?? 10));
+        uasort($rendered, static fn(array $a, array $b): int => $a['order'] <=> $b['order']);
 
         return $rendered;
     }

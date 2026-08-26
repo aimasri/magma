@@ -15,288 +15,290 @@
  *   refactor the HTML structure instead.
  */
 
-.syllabus-hero {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding-top: var(--space-xl);
-    padding-bottom: var(--space-xl);
-}
-
-.syllabus-hero__subtitle {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.syllabus-page {
-    padding: var(--space-3xl) 0;
-    background-color: var(--bg-base);
-}
-
-.syllabus-content {
-    max-width: 800px;
-    margin: 0 auto;
-    font-size: 1.1rem;
-    line-height: 1.7;
-    color: var(--text-base);
-}
-
-.syllabus-title {
-    display: none; /* We already have it in the hero */
-}
-
-.syllabus-content h2 {
-    font-size: 2rem;
-    color: var(--brand-primary);
-    margin-top: var(--space-3xl);
-    margin-bottom: var(--space-lg);
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: var(--space-sm);
-}
-
-.syllabus-content h3 {
-    font-size: 1.5rem;
-    color: #ffdbbb;
-    margin-top: var(--space-xl);
-    margin-bottom: var(--space-md);
-}
-
-.syllabus-content h4 {
-    font-size: 1.15rem;
-    color: var(--brand-primary);
-    margin-top: var(--space-lg);
-    margin-bottom: var(--space-sm);
-    font-weight: 600;
-}
-
-.syllabus-content h5 {
-    font-size: 1.05rem;
-    color: var(--text-main);
-    margin-top: var(--space-md);
-    margin-bottom: var(--space-xs);
-    font-weight: 600;
-}
-
-.syllabus-content h6 {
-    font-size: 0.95rem;
-    color: var(--text-muted);
-    margin-top: var(--space-md);
-    margin-bottom: var(--space-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.syllabus-content p {
-    margin-bottom: var(--space-md);
-}
-
-.syllabus-content ul, 
-.syllabus-content ol {
-    margin-bottom: var(--space-lg);
-    padding-left: var(--space-xl);
-}
-
-.syllabus-content li {
-    margin-bottom: var(--space-sm);
-}
-
-.syllabus-content a {
-    color: var(--brand-secondary);
-    text-decoration: none;
-    border-bottom: 1px dotted var(--brand-secondary);
-    transition: color 0.2s, border-color 0.2s;
-}
-
-.syllabus-content a:hover {
-    color: var(--brand-primary);
-    border-bottom-style: solid;
-}
-
-.syllabus-content pre {
-    background-color: var(--bg-surface);
-    padding: var(--space-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-subtle);
-    overflow-x: auto;
-    margin: var(--space-lg) 0;
-}
-
-.syllabus-content code {
-    font-family: var(--font-mono);
-    font-size: 0.9em;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 2px 4px;
-    border-radius: var(--radius-sm);
-}
-
-.syllabus-content pre code {
-    background-color: transparent;
-    padding: 0;
-}
-
-.toc-list {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg) var(--space-xl);
-    list-style-type: decimal;
-}
-
-hr {
-    border: none;
-    border-top: 1px solid var(--border-subtle);
-    margin: var(--space-2xl) 0;
-}
-
-/* Textbook Layout Update */
-.syllabus-layout {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: var(--space-3xl);
-    align-items: start;
-}
-
-.syllabus-sidebar {
-    position: sticky;
-    top: var(--space-2xl);
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    padding: var(--space-xl);
-    margin-top: 0 !important;
-}
-
-/* Accordion Summary defaults for Desktop */
-.toc-summary {
-    list-style: none; /* Hide default triangle in many browsers */
-    pointer-events: none; /* Non-clickable on desktop */
-}
-.toc-summary::-webkit-details-marker {
-    display: none; /* Hide triangle in WebKit */
-}
-
-@media (max-width: 1200px) {
+@layer components {
+    .syllabus-hero {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding-top: var(--space-xl);
+        padding-bottom: var(--space-xl);
+    }
+    
+    .syllabus-hero__subtitle {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .syllabus-page {
+        padding: var(--space-2xl) 0;
+        background-color: var(--bg-canvas);
+    }
+    
+    .syllabus-content {
+        max-width: 800px;
+        margin: 0 auto;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: var(--text-main);
+    }
+    
+    .syllabus-title {
+        display: none; /* We already have it in the hero */
+    }
+    
+    .syllabus-content h2 {
+        font-size: 2rem;
+        color: var(--brand-flame);
+        margin-top: var(--space-2xl);
+        margin-bottom: var(--space-lg);
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: var(--space-sm);
+    }
+    
+    .syllabus-content h3 {
+        font-size: 1.5rem;
+        color: #ffdbbb;
+        margin-top: var(--space-xl);
+        margin-bottom: var(--space-md);
+    }
+    
+    .syllabus-content h4 {
+        font-size: 1.15rem;
+        color: var(--brand-flame);
+        margin-top: var(--space-lg);
+        margin-bottom: var(--space-sm);
+        font-weight: 600;
+    }
+    
+    .syllabus-content h5 {
+        font-size: 1.05rem;
+        color: var(--text-main);
+        margin-top: var(--space-md);
+        margin-bottom: var(--space-xs);
+        font-weight: 600;
+    }
+    
+    .syllabus-content h6 {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        margin-top: var(--space-md);
+        margin-bottom: var(--space-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .syllabus-content p {
+        margin-bottom: var(--space-md);
+    }
+    
+    .syllabus-content ul, 
+    .syllabus-content ol {
+        margin-bottom: var(--space-lg);
+        padding-left: var(--space-xl);
+    }
+    
+    .syllabus-content li {
+        margin-bottom: var(--space-sm);
+    }
+    
+    .syllabus-content a {
+        color: var(--color-info);
+        text-decoration: none;
+        border-bottom: 1px dotted var(--color-info);
+        transition: color 0.2s, border-color 0.2s;
+    }
+    
+    .syllabus-content a:hover {
+        color: var(--brand-flame);
+        border-bottom-style: solid;
+    }
+    
+    .syllabus-content pre {
+        background-color: var(--bg-surface);
+        padding: var(--space-lg);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        overflow-x: auto;
+        margin: var(--space-lg) 0;
+    }
+    
+    .syllabus-content code {
+        font-family: var(--font-mono);
+        font-size: 0.9em;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 2px 4px;
+        border-radius: var(--radius-sm);
+    }
+    
+    .syllabus-content pre code {
+        background-color: transparent;
+        padding: 0;
+    }
+    
+    .toc-list {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: var(--space-lg) var(--space-xl);
+        list-style-type: decimal;
+    }
+    
+    hr {
+        border: none;
+        border-top: 1px solid var(--border-subtle);
+        margin: var(--space-2xl) 0;
+    }
+    
+    /* Textbook Layout Update */
     .syllabus-layout {
-        grid-template-columns: 1fr;
-        gap: var(--space-xl);
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: var(--space-2xl);
+        align-items: start;
     }
     
     .syllabus-sidebar {
-        position: static;
-        margin-bottom: var(--space-xl);
-    }
-
-    .toc-summary {
-        list-style: inherit;
-        pointer-events: auto;
-        cursor: pointer;
-    }
-    .toc-summary::-webkit-details-marker {
-        display: block;
+        position: sticky;
+        top: var(--space-2xl);
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: var(--space-xl);
+        margin-top: 0 !important;
     }
     
-    .toc-summary h3 {
-        display: inline-block;
-        border-bottom: none;
-        margin-bottom: 0;
+    /* Accordion Summary defaults for Desktop */
+    .toc-summary {
+        list-style: none; /* Hide default triangle in many browsers */
+        pointer-events: none; /* Non-clickable on desktop */
     }
-}
-
-.syllabus-toc h3 {
-    font-size: 1.2rem;
-    color: #ffdbbb;
-    margin-bottom: var(--space-md);
-    margin-top: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border-subtle);
-    padding-bottom: var(--space-sm);
-}
-
-.syllabus-toc ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    margin-top: var(--space-md);
-}
-
-.syllabus-toc li {
-    margin-bottom: var(--space-sm);
-}
-
-.syllabus-toc a {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-sm);
-    color: var(--text-muted);
-    text-decoration: none;
-    border-bottom: none;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    padding: var(--space-xs) 0;
-    transition: color 0.2s;
-}
-
-.syllabus-toc a:hover {
-    color: var(--brand-primary);
-    border-bottom: none;
-}
-
-.toc-num {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-main);
-    font-weight: 700;
-    font-size: 0.75rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-}
-
-/* Make chapters look like distinct textbook modules */
-.chapter-module {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-lg);
-    padding: var(--space-2xl);
-    margin-bottom: 5rem; /* Increased spacing between cards */
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
-.chapter-module:target {
-    border-color: var(--brand-primary);
-    box-shadow: 0 0 0 1px var(--brand-primary), 0 10px 25px rgba(0,0,0,0.3);
-}
-
-.chapter-title {
-    margin-top: 0 !important;
-    padding-bottom: var(--space-md) !important;
-}
-
-.syllabus-content > .chapter-module:first-of-type {
-    margin-top: 0 !important;
-}
-
-/* Hide the raw TOC if it exists in the markdown since we have a sidebar */
-#table-of-contents { display: none; }
-#table-of-contents + .syllabus-list { display: none; }
-
-.syllabus-quote {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-left: 4px solid var(--brand-flame);
-    margin: var(--space-lg) 0;
-    padding: var(--space-md) var(--space-lg);
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    font-style: italic;
-    color: var(--text-muted);
-}
-
-.alert-tag {
-    color: var(--brand-primary);
-    font-style: normal;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.05em;
-    display: inline-block;
-    margin-bottom: var(--space-xs);
+    .toc-summary::-webkit-details-marker {
+        display: none; /* Hide triangle in WebKit */
+    }
+    
+    @media (max-width: 1200px) {
+        .syllabus-layout {
+            grid-template-columns: 1fr;
+            gap: var(--space-xl);
+        }
+        
+        .syllabus-sidebar {
+            position: static;
+            margin-bottom: var(--space-xl);
+        }
+    
+        .toc-summary {
+            list-style: inherit;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .toc-summary::-webkit-details-marker {
+            display: block;
+        }
+        
+        .toc-summary h3 {
+            display: inline-block;
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+    }
+    
+    .syllabus-toc h3 {
+        font-size: 1.2rem;
+        color: #ffdbbb;
+        margin-bottom: var(--space-md);
+        margin-top: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: var(--space-sm);
+    }
+    
+    .syllabus-toc ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        margin-top: var(--space-md);
+    }
+    
+    .syllabus-toc li {
+        margin-bottom: var(--space-sm);
+    }
+    
+    .syllabus-toc a {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-sm);
+        color: var(--text-muted);
+        text-decoration: none;
+        border-bottom: none;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        padding: var(--space-xs) 0;
+        transition: color 0.2s;
+    }
+    
+    .syllabus-toc a:hover {
+        color: var(--brand-flame);
+        border-bottom: none;
+    }
+    
+    .toc-num {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        font-weight: 700;
+        font-size: 0.75rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }
+    
+    /* Make chapters look like distinct textbook modules */
+    .chapter-module {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: var(--space-2xl);
+        margin-bottom: 5rem; /* Increased spacing between cards */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    
+    .chapter-module:target {
+        border-color: var(--brand-flame);
+        box-shadow: 0 0 0 1px var(--brand-flame), 0 10px 25px rgba(0,0,0,0.3);
+    }
+    
+    .chapter-title {
+        margin-top: 0 !important;
+        padding-bottom: var(--space-md) !important;
+    }
+    
+    .syllabus-content > .chapter-module:first-of-type {
+        margin-top: 0 !important;
+    }
+    
+    /* Hide the raw TOC if it exists in the markdown since we have a sidebar */
+    #table-of-contents { display: none; }
+    #table-of-contents + .syllabus-list { display: none; }
+    
+    .syllabus-quote {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-left: 4px solid var(--brand-flame);
+        margin: var(--space-lg) 0;
+        padding: var(--space-md) var(--space-lg);
+        border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        font-style: italic;
+        color: var(--text-muted);
+    }
+    
+    .alert-tag {
+        color: var(--brand-flame);
+        font-style: normal;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.05em;
+        display: inline-block;
+        margin-bottom: var(--space-xs);
+    }
 }

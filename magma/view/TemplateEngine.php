@@ -215,10 +215,8 @@ class TemplateEngine
 
         if ($layout !== null && $layout !== '') {
             $layoutFile = $this->resolveLayoutPath($layout);
-            if ($layoutFile !== null) {
-                $data['content'] = $content;
-                return $this->loadFile($layoutFile, $data);
-            }
+            $data['content'] = $content;
+            return $this->loadFile($layoutFile, $data);
         }
 
         return $content;
@@ -284,10 +282,10 @@ class TemplateEngine
      * Resolves a layout template path.
      *
      * @param string $layout Layout identifier.
-     * @return string|null Absolute file path, or null if layout cannot be resolved.
+     * @return string Absolute file path.
      * @throws \RuntimeException If layout is specified but missing.
      */
-    private function resolveLayoutPath(string $layout): ?string
+    private function resolveLayoutPath(string $layout): string
     {
         if (isset($this->resolvedLayoutCache[$layout])) {
             return $this->resolvedLayoutCache[$layout];

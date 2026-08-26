@@ -29,7 +29,7 @@ interface HtmlResponseBuilderInterface
      * 2. Transforms the rendered template string into a standard HTTP Response object.
      *
      * @param string $template Template name or path
-     * @param array $data View variables
+     * @param array<string, mixed> $data View variables
      * @param string|null $layout Layout wrapper
      * @return Response
      */

@@ -50,7 +50,7 @@ class Container
 
     /**
      * In-memory cache for constructor reflection parameter metadata.
-     * @var array<string, array>
+     * @var array<string, array<int, array{class?: string, default?: mixed}>>
      */
     private static array $reflectionCache = [];
 
@@ -204,11 +204,11 @@ class Container
     {
         $class = $this->aliases[$class] ?? $class;
 
-        try {
-            $reflectionClass = new ReflectionClass($class);
-        } catch (ReflectionException $e) {
-            throw new RuntimeException("Target class [{$class}] does not exist.", 0, $e);
+        if (!class_exists($class)) {
+            throw new RuntimeException("Target class [{$class}] does not exist.");
         }
+
+        $reflectionClass = new ReflectionClass($class);
 
         if (!$reflectionClass->isInstantiable()) {
             throw new RuntimeException("Target class [{$class}] is not instantiable.");
@@ -256,18 +256,18 @@ class Container
                 foreach (self::$reflectionCache[$id] as $param) {
                     if (array_key_exists('default', $param)) {
                         $dependencies[] = $param['default'];
-                    } else {
+                    } elseif (array_key_exists('class', $param)) {
                         $dependencies[] = $this->get($param['class']);
                     }
                 }
                 return new $id(...$dependencies);
             }
 
-            try {
-                $reflectionClass = new ReflectionClass($id);
-            } catch (ReflectionException $e) {
-                throw new RuntimeException("Target class [{$id}] does not exist.", 0, $e);
+            if (!class_exists($id)) {
+                throw new RuntimeException("Target class [{$id}] does not exist.");
             }
+
+            $reflectionClass = new ReflectionClass($id);
 
             if (!$reflectionClass->isInstantiable()) {
                 throw new RuntimeException("Target class [{$id}] is not instantiable.");
@@ -295,6 +295,12 @@ class Container
 
     /**
      * Resolves dependencies for constructor injection.
+     * 
+     * @param \ReflectionParameter[] $parameters
+     * @param string $class
+     * @param array<int|string, mixed> $args
+     * @param array<int, array{class?: string, default?: mixed}>|null $cacheEntry
+     * @return array<int, mixed>
      */
     private function buildDependencies(array $parameters, string $class, array $args = [], ?array &$cacheEntry = null): array
     {

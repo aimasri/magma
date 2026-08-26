@@ -30,6 +30,16 @@
 
 
 @layer utilities {
+    /* Layout & Containers */
+    .container {
+        width: 100%;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
+    }
+
     /* Display & Layout */
     .d-flex { display: flex; }
     .d-inline-flex { display: inline-flex; }

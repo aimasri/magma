@@ -20,7 +20,7 @@ abstract class ViewModel
     /**
      * Converts the view model into an array for the template engine.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     abstract public function toArray(): array;
 }

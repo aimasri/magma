@@ -46,7 +46,7 @@ class HtmlResponseBuilder implements HtmlResponseBuilderInterface
      * 3. Uses the ResponseFactory to create and return a Response object containing the output.
      *
      * @param string $template Template name or path
-     * @param array $data View variables
+     * @param array<string, mixed> $data View variables
      * @param string|null $layout Layout wrapper
      * @return Response
      */
