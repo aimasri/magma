@@ -15,9 +15,20 @@ namespace Magma\interfaces\cqrs;
  * Teaching notes:
  * - Interface Segregation Principle (ISP) at work. Clients that only need to read vendors shouldn't depend on an interface that includes write methods.
  */
-interface VendorCommandInterface extends \Magma\database\CommandInterface
+interface VendorCommandInterface extends \Magma\interfaces\cqrs\CommandInterface
 {
+    /**
+     * @param array<string, mixed> $data
+     * @return bool
+     */
     public function create(array $data): bool;
+
+    /**
+     * @param int $id
+     * @param array<string, mixed> $data
+     * @return bool
+     */
     public function update(int $id, array $data): bool;
+
     public function delete(int $id): bool;
 }

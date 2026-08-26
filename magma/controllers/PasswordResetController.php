@@ -65,8 +65,8 @@ class PasswordResetController
         PasswordResetRequestService $passwordResetRequestService, 
         \Magma\http\SessionInterface $session
     ): Response {
-        $data = $request->request();
-        $email = trim($data['email'] ?? '');
+        $email = $request->request('email');
+        $email = is_string($email) ? trim($email) : '';
         $status = $passwordResetRequestService->requestReset($email);
 
         if ($status === PasswordResetStatus::SUCCESS) {
@@ -125,10 +125,12 @@ class PasswordResetController
         PasswordResetCompletionService $passwordResetCompletionService, 
         \Magma\http\SessionInterface $session
     ): Response {
-        $token = $request->request('token', '');
-        $data = $request->request();
-
-        $password = $data['password'] ?? '';
+        $token = $request->request('token');
+        $token = is_string($token) ? $token : '';
+        
+        $password = $request->request('password');
+        $password = is_string($password) ? $password : '';
+        
         $status = $passwordResetCompletionService->completeReset($token, $password);
 
         if ($status === PasswordResetStatus::SUCCESS) {

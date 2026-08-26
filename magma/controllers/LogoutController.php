@@ -38,7 +38,8 @@ class LogoutController
     public function logout(Request $request, AuthenticationService $authService): Response
     {
         $token = $request->cookie('remember_user');
-        $result = $authService->logout($token);
+        $tokenStr = is_string($token) ? $token : null;
+        $result = $authService->logout($tokenStr);
 
         return $this->applyAuthResult($result, new RedirectResponse('/'), $request);
     }

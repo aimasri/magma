@@ -51,19 +51,23 @@ class LoginController
     {
         $token = $request->cookie('remember_user');
 
-        if ($token) {
+        if (is_string($token) && $token !== '') {
             $result = $this->authService->attemptAutoLogin($token);
             if ($result->isSuccessful()) {
-                return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
+                $user = $result->getUser();
+                if ($user !== null) {
+                    return $this->applyAuthResult($result, $this->redirectToDashboard($user), $request);
+                }
             }
             
             $response = $this->html->render('auth/login', ['title' => 'Login']);
             return $this->applyAuthResult($result, $response, $request);
         }
 
-        if ($this->session->get('user')) {
-            $sessionUser = new \Magma\domain\AuthUser($this->session->get('user'));
-            return $this->redirectToDashboard($sessionUser);
+        $sessionUser = $this->session->get('user');
+        if (is_array($sessionUser)) {
+            $authUser = new \Magma\domain\AuthUser($sessionUser);
+            return $this->redirectToDashboard($authUser);
         }
 
         return $this->html->render('auth/login', [
@@ -92,7 +96,12 @@ class LoginController
             return new RedirectResponse('/login');
         }
 
-        return $this->applyAuthResult($result, $this->redirectToDashboard($result->getUser()), $request);
+        $user = $result->getUser();
+        if ($user !== null) {
+            return $this->applyAuthResult($result, $this->redirectToDashboard($user), $request);
+        }
+
+        return new RedirectResponse('/login');
     }
 
     /**
@@ -100,7 +109,7 @@ class LoginController
      */
     private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
     {
-        return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole() ?? null));
+        return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole()));
     }
 
     /**

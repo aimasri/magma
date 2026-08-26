@@ -15,6 +15,11 @@ namespace Magma\interfaces\cqrs;
  */
 interface VendorQueryInterface
 {
+    /**
+     * @param int $limit
+     * @param int|null $lastId
+     * @return iterable<\Magma\dto\VendorDTO>
+     */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable;
     public function find(int $id): ?\Magma\dto\VendorDTO;
     public function getPrimaryVendor(): ?\Magma\dto\VendorDTO;

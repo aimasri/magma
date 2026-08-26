@@ -20,9 +20,9 @@ interface AnalyticsInterface
     /**
      * Aggregates data based on provided metrics and criteria.
      *
-     * @param array $metrics What to calculate (e.g., sums, averages).
-     * @param array $criteria Filters for the analytics window (e.g., date ranges).
-     * @return array The aggregated analytics results.
+     * @param array<string, mixed> $metrics What to calculate (e.g., sums, averages).
+     * @param array<string, mixed> $criteria Filters for the analytics window (e.g., date ranges).
+     * @return array<string, mixed> The aggregated analytics results.
      */
     public function aggregate(array $metrics, array $criteria = []): array;
 }
