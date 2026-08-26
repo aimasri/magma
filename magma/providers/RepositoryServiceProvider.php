@@ -57,20 +57,27 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(VendorQueryInterface::class, function ($c) {
+            $primaryCfg = Config::get('PRIMARY_VENDOR_ID', 1);
+            $primaryId = is_scalar($primaryCfg) ? (int)$primaryCfg : 1;
+            
             $baseRepo = new VendorQueryRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class),
                 new \Magma\repositories\VendorMapper(),
-                Config::get('PRIMARY_VENDOR_ID', 1)
+                $primaryId
             );
             $redisRepo = new CachedVendorQueryRepository(
                 $baseRepo,
                 $c->get(\Redis::class),
-                Config::get('PRIMARY_VENDOR_ID', 1)
+                $primaryId
             );
+            
+            $limitCfg = Config::get('VENDOR_CACHE_LIMIT', 500);
+            $limit = is_scalar($limitCfg) ? (int)$limitCfg : 500;
+            
             return new \Magma\repositories\InMemoryVendorQueryRepository(
                 $redisRepo, 
-                (int) Config::get('VENDOR_CACHE_LIMIT', 500)
+                $limit
             );
         });
 

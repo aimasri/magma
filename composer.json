@@ -9,7 +9,9 @@
     },
     "autoload": {
         "psr-4": {
-            "Magma\\": "magma/"
+            "Magma\\": "magma/",
+            "Modules\\": "modules/",
+            "App\\": "app/"
         }
     },
     "autoload-dev": {

@@ -50,36 +50,53 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
         $container->set(LocalStorageService::class, function () {
             $storagePath = Config::get('STORAGE_PATH', ROOT_DIR . '/storage');
             $storageUrl = Config::get('STORAGE_URL', '/storage');
-            return new LocalStorageService($storagePath, $storageUrl);
+            return new LocalStorageService(
+                is_string($storagePath) ? $storagePath : ROOT_DIR . '/storage', 
+                is_string($storageUrl) ? $storageUrl : '/storage'
+            );
         });
 
         $container->set(StorageInterface::class, function (Container $c) {
             $driver = Config::get('STORAGE_DRIVER', 'local');
             if ($driver === 's3') {
+                $bucket = Config::get('AWS_BUCKET', 'magma-uploads');
+                $region = Config::get('AWS_DEFAULT_REGION', 'us-east-1');
+                $key = Config::get('AWS_ACCESS_KEY_ID', '');
+                $secret = Config::get('AWS_SECRET_ACCESS_KEY', '');
+                $endpoint = Config::get('AWS_ENDPOINT');
+                $url = Config::get('AWS_URL');
+                
                 return new S3StorageService(
-                    (string)Config::get('AWS_BUCKET', 'magma-uploads'),
-                    (string)Config::get('AWS_DEFAULT_REGION', 'us-east-1'),
-                    (string)Config::get('AWS_ACCESS_KEY_ID', ''),
-                    (string)Config::get('AWS_SECRET_ACCESS_KEY', ''),
-                    Config::get('AWS_ENDPOINT'),
-                    Config::get('AWS_URL')
+                    is_scalar($bucket) ? (string)$bucket : 'magma-uploads',
+                    is_scalar($region) ? (string)$region : 'us-east-1',
+                    is_scalar($key) ? (string)$key : '',
+                    is_scalar($secret) ? (string)$secret : '',
+                    is_scalar($endpoint) ? (string)$endpoint : null,
+                    is_scalar($url) ? (string)$url : null
                 );
             }
-            return $c->get(LocalStorageService::class);
+            $local = $c->get(LocalStorageService::class);
+            assert($local instanceof StorageInterface);
+            return $local;
         });
 
         $container->set(\Magma\interfaces\StorageInterface::class, function (Container $c) {
-            return $c->get(StorageInterface::class);
+            $storage = $c->get(StorageInterface::class);
+            assert($storage instanceof \Magma\interfaces\StorageInterface);
+            return $storage;
         });
 
         $container->set(\Redis::class, function () {
             $redis = new \Redis();
 
             try {
-                $timeout = (float)Config::get('REDIS_TIMEOUT', 2.0);
+                $timeoutCfg = Config::get('REDIS_TIMEOUT', 2.0);
+                $timeout = is_scalar($timeoutCfg) ? (float)$timeoutCfg : 2.0;
+                $hostCfg = Config::get('REDIS_HOST', '127.0.0.1');
+                $portCfg = Config::get('REDIS_PORT', 6379);
                 $connected = $redis->connect(
-                    Config::get('REDIS_HOST', '127.0.0.1'),
-                    (int)Config::get('REDIS_PORT', 6379),
+                    is_string($hostCfg) ? $hostCfg : '127.0.0.1',
+                    is_scalar($portCfg) ? (int)$portCfg : 6379,
                     $timeout
                 );
 
@@ -88,12 +105,12 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                 }
 
                 $password = Config::get('REDIS_PASSWORD');
-                if ($password !== null) {
+                if ($password !== null && (is_string($password) || is_array($password))) {
                     $redis->auth($password);
                 }
 
                 $db = Config::get('REDIS_DB');
-                if ($db !== null) {
+                if ($db !== null && is_scalar($db)) {
                     $redis->select((int)$db);
                 }
             } catch (\RedisException $e) {
@@ -106,14 +123,18 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
         $container->set(CacheInterface::class, function ($c) {
             try {
                 $redis = $c->get(\Redis::class);
-                return new RedisCache($redis, 'magma:cache:', (int)Config::get('CACHE_TTL', 3600));
+                assert($redis instanceof \Redis);
+                $ttl = Config::get('CACHE_TTL', 3600);
+                return new RedisCache($redis, 'magma:cache:', is_scalar($ttl) ? (int)$ttl : 3600);
             } catch (\Throwable) {
                 return new ArrayCache();
             }
         });
 
         $container->set(\Magma\services\ImageProcessingService::class, function (Container $c) {
-            return new \Magma\services\ImageProcessingService($c->get(StorageInterface::class));
+            $storage = $c->get(StorageInterface::class);
+            assert($storage instanceof StorageInterface);
+            return new \Magma\services\ImageProcessingService($storage);
         });
 
         $container->set(RateLimiterInterface::class, function ($c) {

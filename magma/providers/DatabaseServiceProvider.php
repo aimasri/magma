@@ -43,9 +43,14 @@ class DatabaseServiceProvider implements ServiceProviderInterface
     public function register(Container $container): void
     {
         $container->set(DatabaseConnectionManager::class, function ($c) {
+            /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $primary */
+            $primary = Config::getDatabaseSettings();
+            /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $replica */
+            $replica = Config::getReplicaDatabaseSettings();
+
             return new DatabaseConnectionManager(
-                Config::getDatabaseSettings(),
-                Config::getReplicaDatabaseSettings(),
+                $primary,
+                $replica,
                 Config::get('DB_EMULATE_PREPARES', 'false') === 'true'
             );
         });
@@ -61,11 +66,15 @@ class DatabaseServiceProvider implements ServiceProviderInterface
         $container->bind(TransactionManagerInterface::class, DatabaseTransactionManager::class);
 
         $container->set(DatabaseTransactionManager::class, function ($c) {
-            return new DatabaseTransactionManager($c->get(DatabaseConnectionManager::class));
+            $manager = $c->get(DatabaseConnectionManager::class);
+            assert($manager instanceof DatabaseConnectionManager);
+            return new DatabaseTransactionManager($manager);
         });
 
         $container->set(SchemaInitializer::class, function ($c) {
-            return new SchemaInitializer($c->get(DatabaseConnectionManager::class), defined('ROOT_DIR') ? ROOT_DIR : null);
+            $manager = $c->get(DatabaseConnectionManager::class);
+            assert($manager instanceof DatabaseConnectionManager);
+            return new SchemaInitializer($manager, defined('ROOT_DIR') ? ROOT_DIR : null);
         });
     }
 }

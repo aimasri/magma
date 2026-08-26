@@ -59,9 +59,10 @@ class CoreServiceProvider implements ServiceProviderInterface
         $container->set(Session::class, function ($c) {
             $handler = null;
             if (Config::get('SESSION_DRIVER') === 'redis') {
+                $lifetime = Config::get('SESSION_LIFETIME_ADMIN', 7200);
                 $handler = new \Magma\http\RedisSessionHandler(
                     $c->get(\Redis::class),
-                    (int)Config::get('SESSION_LIFETIME_ADMIN', 7200)
+                    is_scalar($lifetime) ? (int)$lifetime : 7200
                 );
             }
             return new Session($handler);

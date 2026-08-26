@@ -51,6 +51,7 @@ class EventServiceProvider implements ServiceProviderInterface
     public function register(Container $container): void
     {
         $dispatcher = $container->get(EventDispatcherInterface::class);
+        assert($dispatcher instanceof EventDispatcherInterface);
 
         foreach ($this->listen as $event => $listeners) {
             foreach ($listeners as $listener) {

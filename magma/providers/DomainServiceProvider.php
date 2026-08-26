@@ -68,10 +68,15 @@ class DomainServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(MailerService::class, function ($c) {
+            $config = Config::getMailerSettings();
+            $stringConfig = [];
+            foreach ($config as $k => $v) {
+                $stringConfig[(string)$k] = (string)$v;
+            }
             return new MailerService(
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\services\MailTransportInterface::class),
-                Config::getMailerSettings()
+                $stringConfig
             );
         });
 
@@ -109,11 +114,14 @@ class DomainServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(RegistrationService::class, function ($c) {
-            return new RegistrationService(
-                $c->get(UserCommandInterface::class),
-                $c->get(\Magma\interfaces\EventDispatcherInterface::class),
-                $c->get(TransactionManagerInterface::class)
-            );
+            $cmd = $c->get(UserCommandInterface::class);
+            assert($cmd instanceof UserCommandInterface);
+            $evt = $c->get(\Magma\interfaces\EventDispatcherInterface::class);
+            assert($evt instanceof \Magma\interfaces\EventDispatcherInterface);
+            $tx = $c->get(TransactionManagerInterface::class);
+            assert($tx instanceof TransactionManagerInterface);
+
+            return new RegistrationService($cmd, $evt, $tx);
         });
 
         $container->set(ReviewSubmissionService::class, function ($c) {
@@ -127,7 +135,9 @@ class DomainServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(\Magma\queue\IdempotentProjectionGuard::class, function ($c) {
-            return new \Magma\queue\IdempotentProjectionGuard($c->get(\Magma\database\DatabaseConnectionManager::class));
+            $db = $c->get(\Magma\database\DatabaseConnectionManager::class);
+            assert($db instanceof \Magma\database\DatabaseConnectionManager);
+            return new \Magma\queue\IdempotentProjectionGuard($db);
         });
     }
 }

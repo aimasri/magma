@@ -58,21 +58,32 @@ class RoutingServiceProvider implements ServiceProviderInterface
 
         $container->set(RouterInterface::class, function (Container $c) {
             $collection = $c->get(RouteCollection::class);
-            $dispatcher = new RouteDispatcher($c, $c->get(MiddlewareResolver::class));
+            assert($collection instanceof RouteCollection);
+            $middlewareResolver = $c->get(MiddlewareResolver::class);
+            assert($middlewareResolver instanceof MiddlewareResolver);
+            $dispatcher = new RouteDispatcher($c, $middlewareResolver);
             $routeCache = $c->get(RouteCacheInterface::class);
+            assert($routeCache instanceof RouteCacheInterface);
 
-            return new Router($collection, $dispatcher, $routeCache, $c);
+            return new Router($collection, $dispatcher, $routeCache);
         });
 
         $container->set(Router::class, function (Container $c) {
-            return $c->get(RouterInterface::class);
+            $router = $c->get(RouterInterface::class);
+            assert($router instanceof Router);
+            return $router;
         });
 
         $container->set(UrlGenerator::class, function (Container $c) {
+            $request = $c->get(RequestInterface::class);
+            assert($request instanceof RequestInterface);
+            $appUrl = Config::get('APP_URL', 'http://localhost');
+            $collection = $c->get(RouteCollection::class);
+            assert($collection instanceof RouteCollection);
             return new UrlGenerator(
-                $c->get(RequestInterface::class),
-                Config::get('APP_URL', 'http://localhost'),
-                $c->get(RouteCollection::class)
+                $request,
+                is_scalar($appUrl) ? (string)$appUrl : 'http://localhost',
+                $collection
             );
         });
     }

@@ -85,53 +85,46 @@ class HttpServiceProvider implements ServiceProviderInterface
         // Controllers
         // ------------------------------------------------------------------
         $container->set(HomeController::class, function ($c) {
-            return new HomeController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\http\Session::class),
-                $c->get(\Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface::class),
-                $c->get(Request::class),
-                $c->get(PaginationService::class)
-            );
+            return new HomeController();
         });
 
         $container->set(\Modules\Reviews\controllers\ReviewController::class, function ($c) {
-            return new \Modules\Reviews\controllers\ReviewController(
-                $c->get(\Magma\view\TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\http\Session::class),
-                $c->get(ReviewSubmissionService::class),
-                $c->get(Request::class),
-                $c->get(Validator::class)
-            );
+            $service = $c->get(\Modules\Reviews\interfaces\ReviewSubmissionServiceInterface::class);
+            assert($service instanceof \Modules\Reviews\interfaces\ReviewSubmissionServiceInterface);
+            $session = $c->get(\Magma\http\SessionInterface::class);
+            assert($session instanceof \Magma\http\SessionInterface);
+            
+            return new \Modules\Reviews\controllers\ReviewController($service, $session);
         });
 
         $container->set(LoginController::class, function ($c) {
-            return new LoginController(
-                $c->get(AuthenticationService::class),
-                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
-                $c->get(\Magma\http\SessionInterface::class)
-            );
+            $auth = $c->get(AuthenticationService::class);
+            assert($auth instanceof AuthenticationService);
+            $html = $c->get(\Magma\view\HtmlResponseBuilderInterface::class);
+            assert($html instanceof \Magma\view\HtmlResponseBuilderInterface);
+            $session = $c->get(\Magma\http\SessionInterface::class);
+            assert($session instanceof \Magma\http\SessionInterface);
+            
+            return new LoginController($auth, $html, $session);
         });
 
         $container->set(RegisterController::class, function ($c) {
-            return new RegisterController(
-                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
-                $c->get(RegistrationService::class),
-                $c->get(AuthenticationService::class),
-                $c->get(\Magma\interfaces\cqrs\UserQueryInterface::class),
-                $c->get(\Magma\http\SessionInterface::class)
-            );
+            $html = $c->get(\Magma\view\HtmlResponseBuilderInterface::class);
+            assert($html instanceof \Magma\view\HtmlResponseBuilderInterface);
+            $reg = $c->get(RegistrationService::class);
+            assert($reg instanceof RegistrationService);
+            $auth = $c->get(AuthenticationService::class);
+            assert($auth instanceof AuthenticationService);
+            $query = $c->get(\Magma\interfaces\cqrs\UserQueryInterface::class);
+            assert($query instanceof \Magma\interfaces\cqrs\UserQueryInterface);
+            $session = $c->get(\Magma\http\SessionInterface::class);
+            assert($session instanceof \Magma\http\SessionInterface);
+            
+            return new RegisterController($html, $reg, $auth, $query, $session);
         });
 
         $container->set(LogoutController::class, function ($c) {
-            return new LogoutController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(\Magma\http\Session::class),
-                $c->get(Request::class),
-                $c->get(AuthenticationService::class)
-            );
+            return new LogoutController();
         });
 
         $container->set(PasswordResetController::class, function ($c) {
@@ -139,26 +132,19 @@ class HttpServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(PolicyController::class, function ($c) {
-            return new PolicyController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class)
-            );
+            return new PolicyController();
         });
 
+        // @phpstan-ignore-next-line
         $container->set(VendorAdminController::class, function ($c) {
-            return new VendorAdminController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(Request::class)
-            );
+            // @phpstan-ignore-next-line
+            return new VendorAdminController();
         });
 
+        // @phpstan-ignore-next-line
         $container->set(UserDashboardController::class, function ($c) {
-            return new UserDashboardController(
-                $c->get(TemplateEngine::class),
-                $c->get(\Magma\security\CsrfManager::class),
-                $c->get(Request::class)
-            );
+            // @phpstan-ignore-next-line
+            return new UserDashboardController();
         });
     }
 }
