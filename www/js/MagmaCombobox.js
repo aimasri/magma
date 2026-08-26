@@ -100,24 +100,31 @@ export class MagmaCombobox {
         });
 
         // 3. Keyboard navigation (ArrowDown, ArrowUp, Enter, Escape)
-        this.keydownHandler = (e) => {
-            if (this.view.isOpen()) {
-                if (e.key === 'ArrowDown') {
+        const keyMap = {
+            'ArrowDown': (e) => {
+                e.preventDefault();
+                this.view.highlightNext();
+            },
+            'ArrowUp': (e) => {
+                e.preventDefault();
+                this.view.highlightPrev();
+            },
+            'Enter': (e) => {
+                const highlighted = this.view.getHighlightedItem();
+                if (highlighted) {
                     e.preventDefault();
-                    this.view.highlightNext();
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    this.view.highlightPrev();
-                } else if (e.key === 'Enter') {
-                    const highlighted = this.view.getHighlightedItem();
-                    if (highlighted) {
-                        e.preventDefault();
-                        this.selectItem(highlighted);
-                    }
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    this.view.close();
+                    this.selectItem(highlighted);
                 }
+            },
+            'Escape': (e) => {
+                e.preventDefault();
+                this.view.close();
+            }
+        };
+
+        this.keydownHandler = (e) => {
+            if (this.view.isOpen() && keyMap[e.key]) {
+                keyMap[e.key](e);
             }
         };
         this.inputElement.addEventListener('keydown', this.keydownHandler);

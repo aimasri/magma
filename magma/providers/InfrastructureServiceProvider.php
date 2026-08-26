@@ -80,11 +80,6 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             return $local;
         });
 
-        $container->set(\Magma\interfaces\StorageInterface::class, function (Container $c) {
-            $storage = $c->get(StorageInterface::class);
-            assert($storage instanceof \Magma\interfaces\StorageInterface);
-            return $storage;
-        });
 
         $container->set(\Redis::class, function () {
             $redis = new \Redis();
@@ -131,10 +126,8 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             }
         });
 
-        $container->set(\Magma\services\ImageProcessingService::class, function (Container $c) {
-            $storage = $c->get(StorageInterface::class);
-            assert($storage instanceof StorageInterface);
-            return new \Magma\services\ImageProcessingService($storage);
+        $container->set(\Magma\services\ImageProcessingService::class, function () {
+            return new \Magma\services\ImageProcessingService();
         });
 
         $container->set(RateLimiterInterface::class, function ($c) {

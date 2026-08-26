@@ -52,6 +52,8 @@ if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
     pcntl_signal(SIGINT, $signalHandler);
 }
 
+use Magma\config\Config;
+
 /** @var OutboxJobRepositoryInterface $outboxRepo */
 $outboxRepo = $container->has(OutboxJobRepositoryInterface::class)
     ? $container->get(OutboxJobRepositoryInterface::class)
@@ -66,14 +68,15 @@ $txManager = $container->get(DatabaseTransactionManager::class);
 /** @var DatabaseConnectionManager $dbManager */
 $dbManager = $container->get(DatabaseConnectionManager::class);
 
-$batchSize = 100;
-$idleSleepMicroseconds = 1000000; // 1 second
+$batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
+$idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
+$timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
 
 echo "[" . date('Y-m-d H:i:s') . "] Outbox publisher daemon started. Polling outbox_jobs...\n";
 
 while ($keepRunning) {
     try {
-        set_time_limit(60);
+        set_time_limit($timeLimit);
 
         $processedCount = $txManager->transactional(function () use ($outboxRepo, $queue, $batchSize): int {
             $jobs = $outboxRepo->fetchAndLockPending($batchSize);

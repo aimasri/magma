@@ -21,6 +21,8 @@ use Modules\Reviews\domain\Review;
  */
 class SiteReviewCommandRepository extends AbstractCommandRepository implements SiteReviewCommandInterface
 {
+    public const TABLE_NAME = 'site_reviews';
+
     /**
      * Inserts a new review record into the site_reviews table.
      *
@@ -38,13 +40,11 @@ class SiteReviewCommandRepository extends AbstractCommandRepository implements S
      */
     public function addReview(Review $review): bool
     {
-        $tenantId = $this->getTenantId();
-        if ($tenantId === null) {
-            throw new \RuntimeException('Tenant context is required for inserting site reviews.');
-        }
-
-        $id = $this->insertAndGetId('site_reviews', [
-            'tenant_id' => $tenantId,
+        $sql = 'INSERT INTO "' . self::TABLE_NAME . '" ("tenant_id", "author", "comment", "rating", "status", "created_at") '
+             . 'VALUES (:tenant_id, :author, :comment, :rating, :status, NOW()) RETURNING "id"';
+        
+        $id = $this->insertAndGetId($sql, [
+            'tenant_id' => $review->getTenantId(),
             'author'  => $review->getAuthor(),
             'comment' => $review->getComment(),
             'rating'  => $review->getRating(),

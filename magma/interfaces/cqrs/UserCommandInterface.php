@@ -42,7 +42,7 @@ interface UserCommandInterface extends CommandInterface
      * Updates the role designation for a specific user.
      *
      * @param int $userId Target user ID.
-     * @param string $role Role identifier (e.g. 'admin', 'vendor', 'user').
+     * @param string $role Role identifier (e.g. 'admin', 'tenant', 'user').
      * @return bool True if record was updated, false otherwise.
      */
     public function updateRole(int $userId, string $role): bool;

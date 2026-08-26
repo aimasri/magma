@@ -79,6 +79,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
         $response->addHeader('X-Content-Type-Options', 'nosniff');
         $response->addHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         $response->addHeader('Content-Security-Policy', $cspHeader);
+        $response->addHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=()');
         $response->addHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->addHeader('X-XSS-Protection', '0'); // Modern best practice: disable buggy browser XSS auditors
 

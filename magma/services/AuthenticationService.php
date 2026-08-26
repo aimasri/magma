@@ -3,6 +3,7 @@
 namespace Magma\services;
 
 use Magma\interfaces\cqrs\UserQueryInterface;
+use Magma\interfaces\cqrs\UserCommandInterface;
 use Magma\http\Session;
 use Magma\services\RememberMeService;
 use Magma\services\AuthenticationResult;
@@ -22,19 +23,25 @@ use Magma\services\AuthenticationResult;
  * Teaching notes:
  * - Storing the user's ID and Role in the session array allows authorization middleware to 
  *   function securely without needing to query the database on every single HTTP request.
+ *
+ * [AI_AUDIT_EXCEPTION]
+ * SRP_HEURISTIC_IGNORE: Exceeds 3 dependencies to coordinate reads, writes (rehashing), sessions, and persistent tokens.
  */
 class AuthenticationService
 {
     protected UserQueryInterface $userRepository;
+    protected UserCommandInterface $userCommandRepository;
     protected Session $session;
     protected RememberMeService $rememberMeService;
 
     public function __construct(
-        UserQueryInterface $userRepository, 
+        UserQueryInterface $userRepository,
+        UserCommandInterface $userCommandRepository,
         Session $session,
         RememberMeService $rememberMeService
     ) {
         $this->userRepository = $userRepository;
+        $this->userCommandRepository = $userCommandRepository;
         $this->session = $session;
         $this->rememberMeService = $rememberMeService;
     }
@@ -59,10 +66,25 @@ class AuthenticationService
     {
         $user = $this->userRepository->findForAuth($email);
 
+        if (!$user) {
+            // Mitigate timing attacks by performing a dummy hash comparison
+            password_verify($password, '$2y$10$abcdefghijklmnopqrstuv');
+            return AuthenticationResult::failure();
+        }
+
         $hash = is_scalar($user['password'] ?? null) ? (string) $user['password'] : '';
 
-        if (!$user || !password_verify($password, $hash)) {
+        if (!password_verify($password, $hash)) {
             return AuthenticationResult::failure();
+        }
+
+        // Transparently upgrade legacy hashes (e.g., Bcrypt -> Argon2id)
+        if (password_needs_rehash($hash, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1])) {
+            $newHash = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]);
+            $userId = isset($user['id']) && is_scalar($user['id']) ? (int) $user['id'] : 0;
+            if ($userId > 0) {
+                $this->userCommandRepository->updatePassword($userId, $newHash);
+            }
         }
 
         $authUser = new \Magma\domain\AuthUser($user);

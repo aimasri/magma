@@ -42,7 +42,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
      *
      * Execution Flow:
      * 1. Validate the payload schema using `validatePayload()`.
-     * 2. Configure the multi-tenant context if a tenant/vendor ID is present.
+     * 2. Configure the multi-tenant context if a tenant ID is present.
      * 3. Invoke the `beforeHandle()` lifecycle hook.
      * 4. Delegate to the abstract `execute()` method to invoke domain services.
      * 5. Invoke the `afterHandle()` lifecycle hook upon successful completion.
@@ -82,9 +82,9 @@ abstract class AbstractDomainWorkerJob implements JobInterface
             return;
         }
 
-        $tenantId = $payload['tenant_id'] ?? $payload['vendor_id'] ?? null;
+        $tenantId = $payload['tenant_id'] ?? null;
         if ($tenantId !== null && is_numeric($tenantId)) {
-            $this->tenantContext->setVendorId((int) $tenantId);
+            $this->tenantContext->setTenantId((int) $tenantId);
         }
     }
 

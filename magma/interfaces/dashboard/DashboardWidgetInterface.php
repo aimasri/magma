@@ -17,7 +17,7 @@ namespace Magma\interfaces\dashboard;
  *
  * Teaching notes:
  * - Implement this interface for each new panel or statistic card on a dashboard.
- * - The registry will automatically inject the `$vendorId` (tenant context) to enforce multi-tenancy.
+ * - The registry will automatically inject the `$tenantId` (tenant context) to enforce multi-tenancy.
  */
 interface DashboardWidgetInterface
 {
@@ -31,10 +31,10 @@ interface DashboardWidgetInterface
     /**
      * Executes necessary metric queries and returns the widget's rendered data or view payload.
      *
-     * @param int $vendorId The tenant context identifier.
+     * @param int $tenantId The tenant context identifier.
      * @return array<string, mixed> Associative array containing metric data, template name, and title.
      */
-    public function render(int $vendorId): array;
+    public function render(int $tenantId): array;
 
     /**
      * Gets the display title for the widget header.

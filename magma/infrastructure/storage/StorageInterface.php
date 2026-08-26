@@ -54,16 +54,16 @@ interface StorageInterface
     public function delete(string $path): bool;
 
     /**
-     * Validates and securely stores an uploaded file ($_FILES item).
+     * Validates and securely stores an uploaded file.
      *
-     * @param array<string, mixed> $fileInfo Standard PHP file array (tmp_name, name, size, error, type)
+     * @param \Magma\interfaces\UploadedFileInterface $file Strongly typed uploaded file object
      * @param string $directory Destination folder or key prefix (e.g., 'recipes/photos')
-     * @param string[]|null $allowedExtensions Array of lowercase extensions (default: ['jpg', 'jpeg', 'png', 'webp'])
+     * @param string[]|null $allowedExtensions Array of lowercase extensions (default: ['jpg', 'jpeg', 'png', 'webp', 'pdf'])
      * @return string Stored relative file path
      * @throws \RuntimeException On upload failure, MIME mismatch, or security violation
      */
     public function storeUploadedFile(
-        array $fileInfo,
+        \Magma\interfaces\UploadedFileInterface $file,
         string $directory = 'uploads',
         ?array $allowedExtensions = null
     ): string;

@@ -8,11 +8,11 @@ use Magma\config\Config;
 use Magma\database\TransactionManagerInterface;
 use Magma\database\DatabaseTransactionManager;
 
-use Magma\repositories\VendorCommandRepository;
-use Magma\interfaces\cqrs\VendorCommandInterface;
-use Magma\repositories\VendorQueryRepository;
-use Magma\interfaces\cqrs\VendorQueryInterface;
-use Magma\repositories\CachedVendorQueryRepository;
+use Magma\repositories\TenantCommandRepository;
+use Magma\interfaces\cqrs\TenantCommandInterface;
+use Magma\repositories\TenantQueryRepository;
+use Magma\interfaces\cqrs\TenantQueryInterface;
+use Magma\repositories\CachedTenantQueryRepository;
 use Modules\Reviews\repositories\SiteReviewQueryRepository;
 use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
 use Modules\Reviews\repositories\SiteReviewCommandRepository;
@@ -33,11 +33,11 @@ use Magma\repositories\PasswordResetTokenRepository;
  * - Wire up dependencies for data access including tenant context, connections, and cache layers.
  *
  * Why / Why this design:
- * - Centralizes the binding of concrete repositories to their interfaces (e.g. `VendorQueryInterface` -> `VendorQueryRepository`).
- * - Encapsulates complex instantiation logic (such as wrapping a base repository in a `CachedVendorQueryRepository`).
+ * - Centralizes the binding of concrete repositories to their interfaces (e.g. `TenantQueryInterface` -> `TenantQueryRepository`).
+ * - Encapsulates complex instantiation logic (such as wrapping a base repository in a `CachedTenantQueryRepository`).
  *
  * Teaching notes:
- * - Decorator Pattern is heavily used here. For instance, `VendorQueryInterface` binds to an `InMemoryVendorQueryRepository`, which decorates a `CachedVendorQueryRepository` (Redis), which ultimately decorates the base PostgreSQL `VendorQueryRepository`.
+ * - Decorator Pattern is heavily used here. For instance, `TenantQueryInterface` binds to an `InMemoryTenantQueryRepository`, which decorates a `CachedTenantQueryRepository` (Redis), which ultimately decorates the base PostgreSQL `TenantQueryRepository`.
  */
 class RepositoryServiceProvider implements ServiceProviderInterface
 {
@@ -48,34 +48,33 @@ class RepositoryServiceProvider implements ServiceProviderInterface
      */
     public function register(Container $container): void
     {
-        $container->set(VendorCommandInterface::class, function ($c) {
-            return new VendorCommandRepository(
+        $container->set(TenantCommandInterface::class, function ($c) {
+            return new TenantCommandRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class),
-                new \Magma\repositories\VendorMapper()
+                $c->get(\Magma\security\TenantContext::class)
             );
         });
 
-        $container->set(VendorQueryInterface::class, function ($c) {
-            $primaryCfg = Config::get('PRIMARY_VENDOR_ID', 1);
+        $container->set(TenantQueryInterface::class, function ($c) {
+            $primaryCfg = Config::get('PRIMARY_TENANT_ID', 1);
             $primaryId = is_scalar($primaryCfg) ? (int)$primaryCfg : 1;
             
-            $baseRepo = new VendorQueryRepository(
+            $baseRepo = new TenantQueryRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class),
-                new \Magma\repositories\VendorMapper(),
+                new \Magma\repositories\TenantMapper(),
                 $primaryId
             );
-            $redisRepo = new CachedVendorQueryRepository(
+            $redisRepo = new CachedTenantQueryRepository(
                 $baseRepo,
                 $c->get(\Redis::class),
                 $primaryId
             );
             
-            $limitCfg = Config::get('VENDOR_CACHE_LIMIT', 500);
+            $limitCfg = Config::get('TENANT_CACHE_LIMIT', 500);
             $limit = is_scalar($limitCfg) ? (int)$limitCfg : 500;
             
-            return new \Magma\repositories\InMemoryVendorQueryRepository(
+            return new \Magma\repositories\InMemoryTenantQueryRepository(
                 $redisRepo, 
                 $limit
             );
@@ -109,14 +108,14 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(RememberTokenRepository::class, function ($c) {
+        $container->set(\Magma\interfaces\repositories\RememberTokenRepositoryInterface::class, function ($c) {
             return new RememberTokenRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class)
             );
         });
 
-        $container->set(PasswordResetTokenRepository::class, function ($c) {
+        $container->set(\Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface::class, function ($c) {
             return new PasswordResetTokenRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
                 $c->get(\Magma\security\TenantContext::class)

@@ -32,24 +32,24 @@ trait BulkInsertTrait
      * - Uses dynamic chunking to avoid exceeding the maximum number of bound parameters allowed by PDO in a single query.
      * - Managing transactions ensures partial inserts are rolled back, maintaining database integrity.
      */
+    abstract protected function getTransactionManager(): \Magma\database\TransactionManagerInterface;
+
     public function insertBulk(string $table, array $columns, array $rows, int $chunkSize = 500): void
     {
         if (empty($rows) || empty($columns)) {
             return;
         }
 
-        $colCount = count($columns);
-        $escapedColumns = array_map(fn($col) => '"' . str_replace('"', '""', $col) . '"', $columns);
-        $columnList = implode(', ', $escapedColumns);
-        $escapedTable = '"' . str_replace('"', '""', $table) . '"';
+        $txManager = $this->getTransactionManager();
 
-        $dbWrite = $this->getDb(); // Assuming command repository has getDb() representing dbWrite
-        $isNested = $dbWrite->inTransaction();
-        if (!$isNested) {
-            $dbWrite->beginTransaction();
-        }
-        
-        try {
+        $txManager->transactional(function () use ($table, $columns, $rows, $chunkSize) {
+            $colCount = count($columns);
+            $escapedColumns = array_map(fn($col) => '"' . str_replace('"', '""', $col) . '"', $columns);
+            $columnList = implode(', ', $escapedColumns);
+            $escapedTable = '"' . str_replace('"', '""', $table) . '"';
+
+            $dbWrite = $this->getDb(); // Assuming command repository has getDb() representing dbWrite
+            
             $maxAllowedChunk = (int) floor(65000 / $colCount);
             $safeChunkSize = min($chunkSize, $maxAllowedChunk);
             
@@ -72,15 +72,6 @@ trait BulkInsertTrait
                 
                 $stmt->execute($flatValues);
             }
-
-            if (!$isNested) {
-                $dbWrite->commit();
-            }
-        } catch (\Throwable $e) {
-            if (!$isNested && $dbWrite->inTransaction()) {
-                $dbWrite->rollBack();
-            }
-            throw $e;
-        }
+        });
     }
 }

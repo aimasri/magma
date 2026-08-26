@@ -128,7 +128,7 @@ abstract class AbstractProjectionWorker implements JobInterface
     }
 
     /**
-     * Returns the unique name of this projection (e.g. 'vendor_inventory_totals', 'order_metrics').
+     * Returns the unique name of this projection (e.g. 'tenant_inventory_totals', 'order_metrics').
      *
      * @return string
      */

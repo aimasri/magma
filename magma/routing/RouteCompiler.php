@@ -46,16 +46,7 @@ class RouteCompiler
         foreach ($dynamicRoutes as $method => $routes) {
             $regexes = [];
             foreach ($routes as $index => $route) {
-                if ($route instanceof Route) {
-                    $path = $route->getUri();
-                    $constraints = $route->getConstraints();
-                } else {
-                    $pathVal = $route[1] ?? '/';
-                    $path = is_scalar($pathVal) || $pathVal instanceof \Stringable ? (string)$pathVal : '/';
-                    $constraintsRaw = $route[3] ?? [];
-                    $constraints = is_array($constraintsRaw) ? array_filter($constraintsRaw, 'is_string') : [];
-                }
-
+                [$path, $constraints] = self::extractRouteDetails($route);
                 $pattern = self::replaceTokensWithRegex($path, $constraints);
                 $regexes[] = $pattern . '(*MARK:' . $index . ')';
             }
@@ -129,15 +120,7 @@ class RouteCompiler
         $routeMap = [];
         foreach ($dynamicRoutes as $method => $routes) {
             foreach ($routes as $route) {
-                if ($route instanceof Route) {
-                    $path = $route->getUri();
-                    $constraints = $route->getConstraints();
-                } else {
-                    $pathVal = $route[1] ?? '/';
-                    $path = is_scalar($pathVal) || $pathVal instanceof \Stringable ? (string)$pathVal : '/';
-                    $constraintsRaw = $route[3] ?? [];
-                    $constraints = is_array($constraintsRaw) ? array_filter($constraintsRaw, 'is_string') : [];
-                }
+                [$path, $constraints] = self::extractRouteDetails($route);
                 
                 $pattern = self::replaceTokensWithRegex($path, $constraints);
                 if (!isset($routeMap[$pattern])) {
@@ -160,5 +143,25 @@ class RouteCompiler
         }
 
         return $index;
+    }
+
+    /**
+     * Extracts path URI and constraints from a Route object or array tuple.
+     *
+     * @param Route|array<int, mixed> $route
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private static function extractRouteDetails(mixed $route): array
+    {
+        if ($route instanceof Route) {
+            return [$route->getUri(), $route->getConstraints()];
+        }
+
+        $pathVal = $route[1] ?? '/';
+        $path = is_scalar($pathVal) || $pathVal instanceof \Stringable ? (string)$pathVal : '/';
+        $constraintsRaw = $route[3] ?? [];
+        $constraints = is_array($constraintsRaw) ? array_filter($constraintsRaw, 'is_string') : [];
+
+        return [$path, $constraints];
     }
 }

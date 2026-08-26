@@ -17,7 +17,7 @@ class MenuDTO
 {
     public function __construct(
         public readonly int $id,
-        public readonly int $vendorId,
+        public readonly int $tenantId,
         public readonly ?int $parentId,
         public readonly string $name,
         public readonly bool $isActive

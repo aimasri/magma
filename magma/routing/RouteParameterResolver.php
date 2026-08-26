@@ -64,27 +64,7 @@ class RouteParameterResolver
                     throw new \RuntimeException(sprintf("Resolved class '%s' does not implement ValidatableRequestInterface.", $className));
                 }
                 
-                try {
-                    $validatableRequest->validate();
-                } catch (\Magma\validation\ValidationException $e) {
-                    $expectsJson = $request->expectsJson() || $request->isJsonExpected();
-                    if (!$expectsJson && $this->container->has(\Magma\http\SessionInterface::class)) {
-                        $session = $this->container->get(\Magma\http\SessionInterface::class);
-                        if ($session instanceof \Magma\http\SessionInterface) {
-                            $session->set('errors', $e->getErrors());
-                            
-                            $requestData = $request->request();
-                            if (is_array($requestData)) {
-                                $session->set('old', $requestData);
-                            }
-                        }
-                        
-                        $referer = $request->server('HTTP_REFERER');
-                        $redirect = new \Magma\http\RedirectResponse(is_string($referer) ? $referer : '/');
-                        throw new \Magma\http\HttpResponseException($redirect);
-                    }
-                    throw $e;
-                }
+                $validatableRequest->validate();
                 
                 $args[] = $validatableRequest;
                 continue;

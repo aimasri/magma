@@ -128,10 +128,13 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
         } else {
             $this->transactionLevel = 0;
-            if ($dbWrite->inTransaction()) {
-                $dbWrite->commit();
+            try {
+                if ($dbWrite->inTransaction()) {
+                    $dbWrite->commit();
+                }
+            } finally {
+                $this->dbManager->forceWriteForReads(false);
             }
-            $this->dbManager->forceWriteForReads(false);
         }
     }
 
@@ -154,10 +157,13 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             $dbWrite->exec("ROLLBACK TO SAVEPOINT {$savepoint}");
         } else {
             $this->transactionLevel = 0;
-            if ($dbWrite->inTransaction()) {
-                $dbWrite->rollBack();
+            try {
+                if ($dbWrite->inTransaction()) {
+                    $dbWrite->rollBack();
+                }
+            } finally {
+                $this->dbManager->forceWriteForReads(false);
             }
-            $this->dbManager->forceWriteForReads(false);
         }
     }
 

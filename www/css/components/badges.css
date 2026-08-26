@@ -25,11 +25,14 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         line-height: 1.2;
+        background-color: var(--badge-bg, transparent);
+        color: var(--badge-color, inherit);
+        border: 1px solid var(--badge-border, transparent);
     }
 
     .badge--brand {
-        background-color: var(--color-success);
-        color: var(--bg-canvas);
+        --badge-bg: var(--color-success);
+        --badge-color: var(--bg-canvas);
     }
 
     .badge--pill {
@@ -40,26 +43,26 @@
     }
 
     .badge--success {
-        background-color: var(--color-success-subtle);
-        color: var(--color-success);
-        border: 1px solid var(--color-success);
+        --badge-bg: var(--color-success-subtle);
+        --badge-color: var(--color-success);
+        --badge-border: var(--color-success);
     }
 
     .badge--info {
-        background-color: var(--color-info-subtle);
-        color: var(--color-info);
-        border: 1px solid var(--color-info);
+        --badge-bg: var(--color-info-subtle);
+        --badge-color: var(--color-info);
+        --badge-border: var(--color-info);
     }
 
     .badge--warning {
-        background-color: var(--color-warning-subtle);
-        color: var(--color-warning);
-        border: 1px solid var(--color-warning);
+        --badge-bg: var(--color-warning-subtle);
+        --badge-color: var(--color-warning);
+        --badge-border: var(--color-warning);
     }
 
     .badge--neutral {
-        background-color: var(--bg-code);
-        color: var(--text-muted);
-        border: 1px solid var(--border-subtle);
+        --badge-bg: var(--bg-code);
+        --badge-color: var(--text-muted);
+        --badge-border: var(--border-subtle);
     }
 }

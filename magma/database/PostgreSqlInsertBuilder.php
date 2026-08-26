@@ -54,8 +54,9 @@ class PostgreSqlInsertBuilder
         $params = [];
 
         foreach ($data as $column => $value) {
-            $cleanCol = (string) $column;
-            $paramKey = ':ins_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $cleanCol);
+            // Strip any non-alphanumeric/underscore characters to completely eliminate SQL injection vectors.
+            $cleanCol = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $column) ?? '';
+            $paramKey = ':ins_' . $cleanCol;
             
             $columns[] = "\"{$cleanCol}\"";
             $placeholders[] = $paramKey;

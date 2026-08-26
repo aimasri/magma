@@ -131,7 +131,7 @@ class Container
             if (count(self::$classExistsCache) >= 1000) {
                 unset(self::$classExistsCache[array_key_first(self::$classExistsCache)]);
             }
-            self::$classExistsCache[$id] = class_exists($id, true) || interface_exists($id, true);
+            self::$classExistsCache[$id] = class_exists($id, true);
         }
 
         return self::$classExistsCache[$id];

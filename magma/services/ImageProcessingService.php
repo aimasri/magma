@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Magma\services;
 
-use Magma\infrastructure\storage\StorageInterface;
 use RuntimeException;
 use GdImage;
 
@@ -13,10 +12,10 @@ use GdImage;
  *
  * Purpose:
  * - Provides high-performance image manipulation, proportional resizing, center-square cropping, and WebP compression using PHP's native `ext-gd`.
- * - Decouples image rendering from local disk storage via `StorageInterface` injection.
+ * - Decouples image rendering from local disk storage, adhering to the Single Responsibility Principle.
  *
  * Why / Why this design:
- * - Dependency Inversion Principle (DIP): Uploaded images and thumbnails are saved via `StorageInterface`, enabling instant cloud compatibility (AWS S3, Cloudflare R2) and diskless unit testing.
+ * - Single Responsibility Principle (SRP): This service only handles image manipulation. Storage is handled elsewhere.
  * - Zero Heavy Dependencies: Uses native PHP GD functions rather than pulling in massive external composer libraries (Intervention, Imagick).
  * - Modern Next-Gen Format Enforcement: Automatically converts raw JPEG/PNG images to lightweight WebP, reducing client bandwidth consumption by up to 80%.
  *
@@ -25,51 +24,37 @@ use GdImage;
  */
 class ImageProcessingService
 {
-    private StorageInterface $storage;
-
-    public function __construct(StorageInterface $storage)
-    {
-        $this->storage = $storage;
-    }
-
     /**
-     * Processes, resizes with center square cropping, converts to WebP, and persists to storage.
+     * Processes, resizes with center square cropping, and converts to WebP.
      *
      * Execution Flow:
-     * 1. Extracts binary contents from uploaded file array, file path, or raw stream.
-     * 2. Creates a GD image canvas from the binary payload.
-     * 3. Calculates center-crop offsets and resamples onto a truecolor canvas.
-     * 4. Encodes canvas into compressed WebP binary bytes in memory.
-     * 5. Generates a randomized cryptographic filename (`bin2hex(random_bytes(16)) . '.webp'`).
-     * 6. Persists the WebP payload via `StorageInterface::put()`.
-     * 7. Frees GD memory buffers and returns the relative storage key.
+     * 1. Creates a GD image canvas from the binary payload.
+     * 2. Calculates center-crop offsets and resamples onto a truecolor canvas.
+     * 3. Encodes canvas into compressed WebP binary bytes in memory.
+     * 4. Frees GD memory buffers and returns the raw WebP bytes.
      *
      * Logic behind the logic:
      * - In-memory output buffering (`ob_start()`) avoids creating intermediate temporary files on disk.
      *
-     * @param string|array<string, mixed> $sourceFile File path or standard $_FILES item
-     * @param string $destinationDir Directory or key prefix in storage
+     * @param string $sourceData Raw binary image payload
      * @param int $targetWidth Target width in pixels
      * @param int $targetHeight Target height in pixels
      * @param int $quality WebP quality factor (1-100)
-     * @return string Stored relative path/key
+     * @return string Raw WebP binary bytes
      * @throws RuntimeException
      */
-    public function processAndStore(
-        string|array $sourceFile,
-        string $destinationDir = 'uploads/images',
+    public function processImage(
+        string $sourceData,
         int $targetWidth = 800,
         int $targetHeight = 800,
         int $quality = 85
     ): string {
-        $sourceData = $this->resolveSourceData($sourceFile);
         $srcImage = $this->createImageFromSource($sourceData);
         $dstImage = null;
 
         try {
             $dstImage = $this->cropAndResize($srcImage, $targetWidth, $targetHeight);
-            $webpBytes = $this->encodeToWebp($dstImage, $quality);
-            return $this->storeWebp($webpBytes, $destinationDir);
+            return $this->encodeToWebp($dstImage, $quality);
         } finally {
             imagedestroy($srcImage);
             if ($dstImage !== null) imagedestroy($dstImage);
@@ -144,50 +129,33 @@ class ImageProcessingService
         return $webpBytes;
     }
 
-    private function storeWebp(string $webpBytes, string $destinationDir): string
-    {
-        $token = bin2hex(random_bytes(16));
-        $cleanDir = trim(str_replace('\\', '/', $destinationDir), '/');
-        $key = $cleanDir !== '' ? "{$cleanDir}/{$token}.webp" : "{$token}.webp";
-
-        if (!$this->storage->put($key, $webpBytes)) {
-            throw new RuntimeException("Failed to persist processed image to storage key [{$key}].");
-        }
-        return $key;
-    }
-
     /**
      * Resizes and center-crops an image into a 1:1 square thumbnail.
      *
-     * @param string|array<string, mixed> $sourceFile
+     * @param string $sourceData Raw binary image payload
      * @param int $size Width and height in pixels
      * @param int $quality Compression quality
-     * @param string $destinationDir
-     * @return string Stored relative path
+     * @return string Raw WebP binary bytes
      */
     public function cropToSquare(
-        string|array $sourceFile,
+        string $sourceData,
         int $size = 800,
-        int $quality = 85,
-        string $destinationDir = 'uploads/squares'
+        int $quality = 85
     ): string {
-        return $this->processAndStore($sourceFile, $destinationDir, $size, $size, $quality);
+        return $this->processImage($sourceData, $size, $size, $quality);
     }
 
     /**
      * Converts an image to optimized WebP format without resizing dimensions.
      *
-     * @param string|array<string, mixed> $sourceFile
+     * @param string $sourceData Raw binary image payload
      * @param int $quality Compression quality
-     * @param string $destinationDir
-     * @return string Stored relative path
+     * @return string Raw WebP binary bytes
      */
     public function convertToWebp(
-        string|array $sourceFile,
-        int $quality = 85,
-        string $destinationDir = 'uploads/webp'
+        string $sourceData,
+        int $quality = 85
     ): string {
-        $sourceData = $this->resolveSourceData($sourceFile);
         $srcImage = $this->createImageFromSource($sourceData);
 
         try {
@@ -200,47 +168,9 @@ class ImageProcessingService
             $webpBytes = $this->encodeToWebp($dstImage, $quality);
             imagedestroy($dstImage);
 
-            return $this->storeWebp($webpBytes, $destinationDir);
+            return $webpBytes;
         } finally {
             imagedestroy($srcImage);
         }
-    }
-
-    /**
-     * Resolves raw binary image payload from file path, $_FILES array, or storage key.
-     *
-     * @param string|array<string, mixed> $sourceFile
-     * @return string
-     * @throws RuntimeException
-     */
-    private function resolveSourceData(string|array $sourceFile): string
-    {
-        if (is_array($sourceFile)) {
-            $tmpPath = isset($sourceFile['tmp_name']) && is_string($sourceFile['tmp_name']) ? $sourceFile['tmp_name'] : '';
-            if ($tmpPath === '' || !file_exists($tmpPath)) {
-                throw new RuntimeException("Uploaded temporary file does not exist.");
-            }
-            $data = file_get_contents($tmpPath);
-            if ($data === false) {
-                throw new RuntimeException("Failed to read uploaded temporary file data.");
-            }
-            return $data;
-        }
-
-        if (file_exists($sourceFile)) {
-            $data = file_get_contents($sourceFile);
-            if ($data !== false) {
-                return $data;
-            }
-        }
-
-        if ($this->storage->exists($sourceFile)) {
-            $data = $this->storage->get($sourceFile);
-            if ($data !== null) {
-                return $data;
-            }
-        }
-
-        throw new RuntimeException("Source image could not be resolved from path or storage key: [{$sourceFile}].");
     }
 }

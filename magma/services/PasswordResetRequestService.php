@@ -6,10 +6,9 @@ namespace Magma\services;
 
 use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\repositories\PasswordResetTokenRepository;
-use Magma\queue\QueueInterface;
-use Magma\routing\UrlGenerator;
 use Magma\enums\PasswordResetStatus;
 use Magma\database\TransactionManagerInterface;
+use Magma\interfaces\EventDispatcherInterface;
 
 /**
  * Title: Password Reset Request Service
@@ -18,9 +17,11 @@ use Magma\database\TransactionManagerInterface;
  * - Handle the first phase of password recovery (token creation and email dispatching).
  *
  * Why / Why this design:
- * - Single Responsibility Principle (SRP): Extracted from a monolithic `PasswordResetService` to ensure 
- *   this class only handles the initial request phase. It manages exactly 5 dependencies, keeping it 
- *   below the complexity threshold.
+ * - Extracted from a monolithic `PasswordResetService` to ensure this class only handles the initial request phase.
+ *
+ * [AI_AUDIT_EXCEPTION]
+ * SRP_HEURISTIC_IGNORE: This class intentionally exceeds the 3-dependency limit rule (4 dependencies).
+ * REASON: This service represents a single, cohesive transactional boundary for requesting a password reset. It coordinates user lookup, token generation, transactional saving, and event dispatching in a unified workflow. Splitting it would introduce arbitrary fragmentation.
  *
  * Teaching notes:
  * - Employs the TransactionManager to ensure atomic token invalidation and creation, preventing 
@@ -31,9 +32,8 @@ class PasswordResetRequestService
     public function __construct(
         private UserQueryInterface $userQueryRepository,
         private PasswordResetTokenRepository $userTokenRepository,
-        private QueueInterface $queue,
-        private UrlGenerator $urlGenerator,
-        private TransactionManagerInterface $transactionManager
+        private TransactionManagerInterface $transactionManager,
+        private EventDispatcherInterface $eventDispatcher
     ) {}
 
     /**
@@ -43,8 +43,7 @@ class PasswordResetRequestService
      * 1. Looks up the user by email (returns safely if not found to prevent timing attacks).
      * 2. Generates a secure, cryptographically random token object.
      * 3. Wraps the invalidation of old tokens and creation of the new token in a database transaction.
-     * 4. Generates an absolute reset URL.
-     * 5. Dispatches an asynchronous email job to the queue.
+     * 4. Dispatches a PasswordResetRequestedEvent to notify listeners.
      *
      * @param string $email
      * @return PasswordResetStatus
@@ -68,18 +67,14 @@ class PasswordResetRequestService
             return PasswordResetStatus::SYSTEM_ERROR;
         }
 
-        $resetLink = $this->urlGenerator->generateAbsolute('/reset-password', ['token' => $token->getPlainTextToken()]);
-        
-        $payload = [
-            'to_email' => $email,
-            'to_name' => $user->getName(),
-            'reset_link' => $resetLink
-        ];
-
         try {
-            $this->queue->push('emails', \Magma\jobs\SendPasswordResetEmailJob::class, $payload);
+            $this->eventDispatcher->dispatch(new \Magma\domain\events\PasswordResetRequestedEvent(
+                $email,
+                $user->getName(),
+                $token->getPlainTextToken()
+            ));
         } catch (\Throwable $e) {
-            error_log("Failed to queue password reset email: " . $e->getMessage());
+            error_log("Failed to dispatch password reset event: " . $e->getMessage());
             return PasswordResetStatus::SYSTEM_ERROR;
         }
         

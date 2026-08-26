@@ -29,16 +29,7 @@ class S3StorageService implements StorageInterface
     private array $mockStorage = [];
     private bool $mockMode;
 
-    /** @var array<string, array<string>> */
-    private static array $mimeMap = [
-        'jpg'  => ['image/jpeg', 'image/pjpeg'],
-        'jpeg' => ['image/jpeg', 'image/pjpeg'],
-        'png'  => ['image/png'],
-        'webp' => ['image/webp'],
-        'pdf'  => ['application/pdf'],
-        'gif'  => ['image/gif'],
-        'svg'  => ['image/svg+xml'],
-    ];
+
 
     public function __construct(
         string $bucket,
@@ -144,51 +135,34 @@ class S3StorageService implements StorageInterface
     }
 
     /**
-     * @param array<string, mixed> $fileInfo
+     * @param \Magma\interfaces\UploadedFileInterface $file
      * @param string $directory
      * @param string[]|null $allowedExtensions
      * @return string
      */
     public function storeUploadedFile(
-        array $fileInfo,
+        \Magma\interfaces\UploadedFileInterface $file,
         string $directory = 'uploads',
         ?array $allowedExtensions = null
     ): string {
-        $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp'];
+        $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
         $allowed = array_map('strtolower', $allowed);
 
-        $errorCode = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
-        $errorCode = is_scalar($errorCode) ? (int)$errorCode : UPLOAD_ERR_NO_FILE;
+        $errorCode = $file->getError();
         if ($errorCode !== UPLOAD_ERR_OK) {
             throw new RuntimeException("Cloud upload failed with error code [{$errorCode}].");
         }
 
-        $tmpName = $fileInfo['tmp_name'] ?? '';
-        $tmpName = is_scalar($tmpName) ? (string)$tmpName : '';
-        $size = $fileInfo['size'] ?? 0;
-        $size = is_scalar($size) ? (int)$size : 0;
-        
-        if ($tmpName === '' || !file_exists($tmpName) || $size <= 0) {
-            throw new RuntimeException("Uploaded temporary file is missing or empty.");
+        $size = $file->getSize() ?? 0;
+        if ($size <= 0) {
+            throw new RuntimeException("Uploaded file is missing or empty.");
         }
 
-        $clientName = $fileInfo['name'] ?? '';
-        $clientName = is_scalar($clientName) ? (string)$clientName : '';
+        $clientName = $file->getClientFilename() ?? 'unknown';
         $extension = strtolower(pathinfo($clientName, PATHINFO_EXTENSION));
 
         if ($extension === '' || !in_array($extension, $allowed, true)) {
             throw new RuntimeException("Invalid file extension '.{$extension}'. Allowed: " . implode(', ', $allowed));
-        }
-
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = $finfo !== false ? finfo_file($finfo, $tmpName) : null;
-        if ($finfo !== false) {
-            finfo_close($finfo);
-        }
-
-        $validMimes = self::$mimeMap[$extension] ?? [];
-        if (!is_string($detectedMime) || !in_array($detectedMime, $validMimes, true)) {
-            throw new RuntimeException("Security violation: MIME type '{$detectedMime}' mismatch for '.{$extension}'.");
         }
 
         $token = bin2hex(random_bytes(16));
@@ -197,7 +171,13 @@ class S3StorageService implements StorageInterface
         $cleanDir = trim(str_replace('\\', '/', $directory), '/');
         $key = $cleanDir !== '' ? "{$cleanDir}/{$newFilename}" : $newFilename;
 
+        // Since UploadedFileInterface only gives us moveTo(), we must move it to a temp file first
+        $tmpName = sys_get_temp_dir() . '/' . $newFilename;
+        $file->moveTo($tmpName);
+
         $content = file_get_contents($tmpName);
+        unlink($tmpName);
+        
         if ($content === false) {
             throw new RuntimeException("Failed to read temporary upload payload.");
         }

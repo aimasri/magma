@@ -75,7 +75,7 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      * Updates the role designation for a user.
      *
      * @param int $userId Target user ID.
-     * @param string $role Role identifier ('admin', 'vendor', 'user').
+     * @param string $role Role identifier ('admin', 'tenant', 'user').
      * @return bool True if updated, false otherwise.
      */
     public function updateRole(int $userId, string $role): bool

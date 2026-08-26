@@ -2,14 +2,13 @@
 
 namespace Magma\services;
 
-use Magma\http\Request;
 use Magma\dto\PaginationDTO;
 
 /**
  * Title: Pagination Service
  *
  * Purpose:
- * - Centralizes pagination math and request parsing.
+ * - Centralizes pagination math.
  * 
  * Why / Why this design:
  * - Prevents DRY violations across multiple controllers. By injecting this service,
@@ -23,32 +22,25 @@ use Magma\dto\PaginationDTO;
 class PaginationService
 {
     /**
-     * Parses the request and calculates pagination bounds.
+     * Calculates pagination bounds.
      *
-     * @param Request $request
+     * @param int|null $lastId
+     * @param int|null $reqLimit
      * @param int $defaultLimit
      * @param bool $allowUserOverride
      * @param int $maxLimit
      * @return PaginationDTO
      */
     public function getPagination(
-        Request $request, 
+        ?int $lastId, 
+        ?int $reqLimit,
         int $defaultLimit = 20, 
         bool $allowUserOverride = false, 
         int $maxLimit = 100
     ): PaginationDTO {
-        $lastId = $request->query('last_id');
-        if ($lastId !== null && is_scalar($lastId)) {
-            $lastId = (int)$lastId;
-        } else {
-            $lastId = null;
-        }
-        
-        $reqLimit = $request->query('limit', $defaultLimit);
-        
         // Either strictly use the default, or let the user choose (up to a safe max)
-        $limit = $allowUserOverride 
-            ? min(is_scalar($reqLimit) ? (int)$reqLimit : $defaultLimit, $maxLimit) 
+        $limit = $allowUserOverride && $reqLimit !== null
+            ? min($reqLimit, $maxLimit) 
             : $defaultLimit;
         
         // Ensure minimum boundary

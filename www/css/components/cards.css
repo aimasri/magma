@@ -21,14 +21,15 @@
         padding: var(--space-lg);
         box-shadow: var(--shadow-md);
         transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+        border-left: var(--card-border-left, 1px solid var(--border-subtle));
     }
 
     .card--accent-flame {
-        border-left: 6px solid var(--brand-flame);
+        --card-border-left: 6px solid var(--brand-flame);
     }
 
     .card--accent-info {
-        border-left: 6px solid var(--color-info);
+        --card-border-left: 6px solid var(--color-info);
     }
 
     .card--interactive:hover {

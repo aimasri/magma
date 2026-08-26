@@ -83,7 +83,7 @@ class CteQueryBuilder
             $childSelect = "child.*";
         } else {
             foreach ($columns as $col) {
-                $cleanCol = (string) $col;
+                $cleanCol = str_replace('"', '""', (string) $col);
                 $anchorColumns[] = "anchor.\"{$cleanCol}\"";
                 $childColumns[] = "child.\"{$cleanCol}\"";
             }

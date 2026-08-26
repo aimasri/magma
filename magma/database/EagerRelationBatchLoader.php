@@ -65,29 +65,13 @@ class EagerRelationBatchLoader
             return $parents;
         }
 
-        // Extract distinct parent IDs
-        $parentIds = [];
-        foreach ($parents as $parent) {
-            $id = is_array($parent) ? ($parent[$parentPrimaryKey] ?? null) : ($parent->{$parentPrimaryKey} ?? null);
-            if ($id !== null) {
-                $parentIds[] = (int) $id;
-            }
-        }
-
-        $parentIds = array_values(array_unique($parentIds));
+        $parentIds = self::extractParentIds($parents, $parentPrimaryKey);
         if (empty($parentIds)) {
             return $parents;
         }
 
-        // Build parameterized IN placeholders
-        $placeholders = [];
         $params = [];
-        foreach ($parentIds as $index => $id) {
-            $paramKey = ':parent_' . $index;
-            $placeholders[] = $paramKey;
-            $params[$paramKey] = $id;
-        }
-        $inClause = implode(', ', $placeholders);
+        $inClause = self::buildInClausePlaceholders($parentIds, $params);
 
         // Format column selections
         $selectCols = [];
@@ -99,7 +83,7 @@ class EagerRelationBatchLoader
                 $columns[] = $foreignKey;
             }
             foreach ($columns as $col) {
-                $cleanCol = (string) $col;
+                $cleanCol = str_replace('"', '""', (string) $col);
                 $selectCols[] = "\"{$cleanCol}\"";
             }
             $selectClause = implode(', ', $selectCols);
@@ -128,18 +112,7 @@ class EagerRelationBatchLoader
             $grouped[$parentId][] = $processedRow;
         }
 
-        // Attach to parents
-        foreach ($parents as &$parent) {
-            $id = is_array($parent) ? ($parent[$parentPrimaryKey] ?? null) : ($parent->{$parentPrimaryKey} ?? null);
-            $children = ($id !== null && isset($grouped[$id])) ? $grouped[$id] : [];
-
-            if (is_array($parent)) {
-                $parent[$relationKey] = $children;
-            } elseif (is_object($parent)) {
-                $parent->{$relationKey} = $children;
-            }
-        }
-        unset($parent);
+        self::attachGroupedRelations($parents, $grouped, $parentPrimaryKey, $relationKey);
 
         return $parents;
     }
@@ -185,34 +158,21 @@ class EagerRelationBatchLoader
             return $parents;
         }
 
-        $parentIds = [];
-        foreach ($parents as $parent) {
-            $id = is_array($parent) ? ($parent[$parentPrimaryKey] ?? null) : ($parent->{$parentPrimaryKey} ?? null);
-            if ($id !== null) {
-                $parentIds[] = (int) $id;
-            }
-        }
-
-        $parentIds = array_values(array_unique($parentIds));
+        $parentIds = self::extractParentIds($parents, $parentPrimaryKey);
         if (empty($parentIds)) {
             return $parents;
         }
 
-        $placeholders = [];
         $params = [];
-        foreach ($parentIds as $index => $id) {
-            $paramKey = ':parent_' . $index;
-            $placeholders[] = $paramKey;
-            $params[$paramKey] = $id;
-        }
-        $inClause = implode(', ', $placeholders);
+        $inClause = self::buildInClausePlaceholders($parentIds, $params);
 
         $selectParts = ["pivot.\"{$foreignPivotKey}\" AS __eager_parent_id"];
         if (empty($columns) || (count($columns) === 1 && $columns[0] === '*')) {
             $selectParts[] = "rel.*";
         } else {
             foreach ($columns as $col) {
-                $selectParts[] = "rel.\"{$col}\"";
+                $cleanCol = str_replace('"', '""', (string) $col);
+                $selectParts[] = "rel.\"{$cleanCol}\"";
             }
         }
         $selectClause = implode(', ', $selectParts);
@@ -244,8 +204,61 @@ class EagerRelationBatchLoader
             $grouped[$parentId][] = $processedRow;
         }
 
+        self::attachGroupedRelations($parents, $grouped, $parentPrimaryKey, $relationKey);
+
+        return $parents;
+    }
+
+    /**
+     * Extracts unique parent IDs from a collection.
+     *
+     * @param array<int, mixed> $parents
+     * @param string $pk
+     * @return array<int, int>
+     */
+    private static function extractParentIds(array $parents, string $pk): array
+    {
+        $parentIds = [];
+        foreach ($parents as $parent) {
+            $id = is_array($parent) ? ($parent[$pk] ?? null) : ($parent->{$pk} ?? null);
+            if ($id !== null) {
+                $parentIds[] = (int) $id;
+            }
+        }
+        return array_values(array_unique($parentIds));
+    }
+
+    /**
+     * Builds IN clause placeholders and assigns parameters.
+     *
+     * @param array<int, int> $ids
+     * @param array<string, mixed> $params
+     * @return string
+     */
+    private static function buildInClausePlaceholders(array $ids, array &$params): string
+    {
+        $placeholders = [];
+        foreach ($ids as $index => $id) {
+            $paramKey = ':parent_' . $index;
+            $placeholders[] = $paramKey;
+            $params[$paramKey] = $id;
+        }
+        return implode(', ', $placeholders);
+    }
+
+    /**
+     * Attaches grouped children to their corresponding parent entity.
+     *
+     * @param array<int, mixed> $parents
+     * @param array<int, array<int, mixed>> $grouped
+     * @param string $pk
+     * @param string $relationKey
+     * @return void
+     */
+    private static function attachGroupedRelations(array &$parents, array $grouped, string $pk, string $relationKey): void
+    {
         foreach ($parents as &$parent) {
-            $id = is_array($parent) ? ($parent[$parentPrimaryKey] ?? null) : ($parent->{$parentPrimaryKey} ?? null);
+            $id = is_array($parent) ? ($parent[$pk] ?? null) : ($parent->{$pk} ?? null);
             $children = ($id !== null && isset($grouped[$id])) ? $grouped[$id] : [];
 
             if (is_array($parent)) {
@@ -255,7 +268,5 @@ class EagerRelationBatchLoader
             }
         }
         unset($parent);
-
-        return $parents;
     }
 }

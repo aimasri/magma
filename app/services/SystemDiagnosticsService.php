@@ -19,7 +19,7 @@ use App\providers\SystemInfoProviderInterface;
  * Teaching notes:
  * - Returns a DTO to maintain strict data boundaries.
  */
-class SystemDiagnosticsService
+class SystemDiagnosticsService implements SystemDiagnosticsServiceInterface
 {
     private ConfigInterface $config;
     private SystemInfoProviderInterface $systemInfoProvider;
@@ -39,7 +39,7 @@ class SystemDiagnosticsService
      * 3. Constructs and returns the DTO.
      *
      * Logic behind the logic:
-     * - Transforming byte counts to human-readable megabytes isolates formatting 
+     * - Transforming byte counts to megabytes isolates formatting 
      *   from the presentation layer. Abstracting the environment configuration prevents 
      *   tight coupling to global functions.
      *
@@ -60,9 +60,9 @@ class SystemDiagnosticsService
             phpVersion: $this->systemInfoProvider->getPhpVersion(),
             phpSapi: $this->systemInfoProvider->getPhpSapi(),
             environment: $environment,
-            debug: filter_var($this->config->get(AppConstants::ENV_APP_DEBUG, 'true'), FILTER_VALIDATE_BOOLEAN),
+            debug: filter_var($this->config->get(AppConstants::ENV_APP_DEBUG, AppConstants::ENV_DEFAULT_DEBUG), FILTER_VALIDATE_BOOLEAN),
             dbDriver: $dbDriver,
-            memoryUsage: "{$memoryMb} MB",
+            memoryUsageBytes: $memoryBytes,
             serverOs: $this->systemInfoProvider->getServerOs()
         );
     }

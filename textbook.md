@@ -986,23 +986,17 @@ To prevent "Fat Controllers," we enforce three absolute rules for any Controller
 Let's look at what a perfectly clean Controller looks like when a customer submits an order:
 
 ```php
-namespace magma\controllers;
+namespace app\controllers;
 
 use core\http\Request;
 use core\http\Response;
-use magma\services\OrderService;
+use app\services\OrderService;
 
 class CheckoutController 
 {
-    private OrderService $orderService;
-
-    // 1. Dependency Injection: The Container provides the Service
-    public function __construct(OrderService $orderService) 
-    {
-        $this->orderService = $orderService;
-    }
-
-    public function process(Request $request): Response 
+    // 1. Dual Dependency Injection Strategy: Application controllers use Method Injection!
+    // The Router injects the OrderService exactly when this specific route is hit, keeping the class lightweight.
+    public function process(Request $request, OrderService $orderService): Response 
     {
         // 2. Extract the clean data from the Request object
         $productId = $request->getPostInt('product_id');
@@ -1010,7 +1004,7 @@ class CheckoutController
 
         try {
             // 3. Delegate the actual work to the Service!
-            $success = $this->orderService->placeOrder($productId, $quantity);
+            $success = $orderService->placeOrder($productId, $quantity);
 
             // 4. Return the appropriate Response
             return new Response("Order Placed Successfully!");

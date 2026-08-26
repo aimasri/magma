@@ -22,7 +22,7 @@ readonly class AuthUser
     private string $name;
     private string $role;
     private string $email;
-    private ?int $vendorId;
+    private ?int $tenantId;
 
     /**
      * Constructs a new AuthUser entity.
@@ -31,7 +31,7 @@ readonly class AuthUser
      * 1. Extracts the primary key, defaulting to 0 if missing.
      * 2. Extracts the name and role.
      * 3. Extracts the email.
-     * 4. Extracts the vendor_id if present.
+     * 4. Extracts the tenant_id if present.
      *
      * Logic behind the logic:
      * - By specifically mapping only the necessary fields from the `$data` array, 
@@ -54,21 +54,21 @@ readonly class AuthUser
         $emailVal = $data['email'] ?? '';
         $this->email = is_scalar($emailVal) ? (string)$emailVal : '';
         
-        if (isset($data['vendor_id'])) {
-            $this->vendorId = is_scalar($data['vendor_id']) ? (int)$data['vendor_id'] : null;
+        if (isset($data['tenant_id'])) {
+            $this->tenantId = is_scalar($data['tenant_id']) ? (int)$data['tenant_id'] : null;
         } else {
-            $this->vendorId = null;
+            $this->tenantId = null;
         }
     }
 
-    public function hasVendorId(): bool
+    public function hasTenantId(): bool
     {
-        return $this->vendorId !== null;
+        return $this->tenantId !== null;
     }
 
-    public function getVendorId(): ?int
+    public function getTenantId(): ?int
     {
-        return $this->vendorId;
+        return $this->tenantId;
     }
 
     public function getId(): int
@@ -112,7 +112,7 @@ readonly class AuthUser
             'name' => $this->name,
             'role' => $this->role,
             'email' => $this->email,
-            'vendor_id' => $this->vendorId
+            'tenant_id' => $this->tenantId
         ];
     }
 }

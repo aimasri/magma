@@ -27,6 +27,8 @@ use Magma\dto\PaginationDTO;
  */
 class MultiTenantKeysetQueryBuilder
 {
+    public const DEFAULT_LIMIT = 50;
+
     private string $table = '';
     private string $alias = '';
     /** @var array<int, string> */
@@ -186,7 +188,7 @@ class MultiTenantKeysetQueryBuilder
             $params[$paramVenue] = $this->venueId;
         }
 
-        $limit = 50;
+        $limit = self::DEFAULT_LIMIT;
         if ($this->pagination !== null) {
             $limit = $this->pagination->limit;
             if ($this->pagination->lastId !== null) {
@@ -231,7 +233,7 @@ class MultiTenantKeysetQueryBuilder
         $stmt->execute($built['params']);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $limit = $this->pagination !== null ? $this->pagination->limit : 50;
+        $limit = $this->pagination !== null ? $this->pagination->limit : self::DEFAULT_LIMIT;
         $hasMore = count($rows) > $limit;
 
         if ($hasMore) {

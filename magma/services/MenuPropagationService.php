@@ -36,7 +36,7 @@ class MenuPropagationService
      * Propagates inactive status to all child menus recursively.
      *
      * Execution Flow:
-     * 1. Create a new DeactivateChildMenusCommand with the target menu's ID and vendor ID.
+     * 1. Create a new DeactivateChildMenusCommand with the target menu's ID and tenant ID.
      * 2. Dispatch the command via the command repository to execute the state change.
      *
      * Logic behind the logic:
@@ -52,7 +52,7 @@ class MenuPropagationService
         // The implementation details would involve querying children 
         // and dispatching update commands.
         
-        $command = new DeactivateChildMenusCommand($menu->id, $menu->vendorId);
+        $command = new DeactivateChildMenusCommand($menu->id, $menu->tenantId);
         $this->commandBus->execute($command);
     }
 }

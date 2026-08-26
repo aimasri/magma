@@ -3,14 +3,14 @@
 namespace Magma\repositories;
 
 /**
- * Title: Vendor Data Mapper
+ * Title: Tenant Data Mapper
  *
  * Purpose:
  * - Encapsulate the translation between raw SQL row arrays and domain-ready PHP arrays.
  * - Manage the serialization and deserialization of JSON columns (like `theme_settings`).
  *
  * Why / Why this design:
- * - Extracting data hydration out of `VendorRepository` adheres to the Single 
+ * - Extracting data hydration out of `TenantRepository` adheres to the Single 
  *   Responsibility Principle (SRP). The Repository handles purely persistence 
  *   (SQL queries), while the Mapper handles pure data transformation.
  *
@@ -19,7 +19,7 @@ namespace Magma\repositories;
  *   INSERT and UPDATE operations use the exact same schema allow-list, preventing 
  *   malicious mass-assignment vulnerabilities.
  */
-class VendorMapper
+class TenantMapper
 {
     private const ALLOWED_COLUMNS = [
         'name', 'email', 'tagline', 
@@ -43,32 +43,32 @@ class VendorMapper
      *   mapper, the application controllers and views can blindly treat `theme_settings` 
      *   as a standard nested array without knowing how it was persisted.
      *
-     * @param array<string, mixed> $vendor Raw associative array from PDO.
-     * @return \Magma\dto\VendorDTO The processed vendor array.
+     * @param array<string, mixed> $tenant Raw associative array from PDO.
+     * @return \Magma\dto\TenantDTO The processed tenant array.
      */
-    public function toDomain(array $vendor): \Magma\dto\VendorDTO
+    public function toDomain(array $tenant): \Magma\dto\TenantDTO
     {
         foreach (self::JSON_COLUMNS as $jsonCol) {
-            $val = $vendor[$jsonCol] ?? null;
+            $val = $tenant[$jsonCol] ?? null;
             if (is_string($val) && trim($val) !== '') {
                 $decoded = json_decode($val, true);
-                $vendor[$jsonCol] = is_array($decoded) ? $decoded : [];
+                $tenant[$jsonCol] = is_array($decoded) ? $decoded : [];
             } elseif (!is_array($val)) {
-                $vendor[$jsonCol] = [];
+                $tenant[$jsonCol] = [];
             }
         }
 
-        $id = isset($vendor['id']) && is_scalar($vendor['id']) ? (int) $vendor['id'] : 0;
-        $name = isset($vendor['name']) && is_scalar($vendor['name']) ? (string) $vendor['name'] : '';
-        $tagline = isset($vendor['tagline']) && is_scalar($vendor['tagline']) ? (string) $vendor['tagline'] : null;
-        $email = isset($vendor['email']) && is_scalar($vendor['email']) ? (string) $vendor['email'] : '';
-        $planId = isset($vendor['plan_id']) && is_scalar($vendor['plan_id']) ? (int) $vendor['plan_id'] : 0;
-        $subStatus = isset($vendor['subscription_status']) && is_scalar($vendor['subscription_status']) ? (string) $vendor['subscription_status'] : '';
-        $billingCycle = isset($vendor['billing_cycle_anchor']) && is_scalar($vendor['billing_cycle_anchor']) ? (string) $vendor['billing_cycle_anchor'] : null;
-        $paymentGateway = isset($vendor['payment_gateway_customer_id']) && is_scalar($vendor['payment_gateway_customer_id']) ? (string) $vendor['payment_gateway_customer_id'] : null;
-        $themeSettings = is_array($vendor['theme_settings']) ? $vendor['theme_settings'] : [];
+        $id = isset($tenant['id']) && is_scalar($tenant['id']) ? (int) $tenant['id'] : 0;
+        $name = isset($tenant['name']) && is_scalar($tenant['name']) ? (string) $tenant['name'] : '';
+        $tagline = isset($tenant['tagline']) && is_scalar($tenant['tagline']) ? (string) $tenant['tagline'] : null;
+        $email = isset($tenant['email']) && is_scalar($tenant['email']) ? (string) $tenant['email'] : '';
+        $planId = isset($tenant['plan_id']) && is_scalar($tenant['plan_id']) ? (int) $tenant['plan_id'] : 0;
+        $subStatus = isset($tenant['subscription_status']) && is_scalar($tenant['subscription_status']) ? (string) $tenant['subscription_status'] : '';
+        $billingCycle = isset($tenant['billing_cycle_anchor']) && is_scalar($tenant['billing_cycle_anchor']) ? (string) $tenant['billing_cycle_anchor'] : null;
+        $paymentGateway = isset($tenant['payment_gateway_customer_id']) && is_scalar($tenant['payment_gateway_customer_id']) ? (string) $tenant['payment_gateway_customer_id'] : null;
+        $themeSettings = is_array($tenant['theme_settings']) ? $tenant['theme_settings'] : [];
 
-        return new \Magma\dto\VendorDTO(
+        return new \Magma\dto\TenantDTO(
             id: $id,
             name: $name,
             tagline: $tagline,
@@ -82,7 +82,7 @@ class VendorMapper
     }
 
     /**
-     * Build parameter bindings for vendor INSERT and UPDATE statements.
+     * Build parameter bindings for tenant INSERT and UPDATE statements.
      *
      * Purpose:
      * - DRY helper to extract recognized columns and automatically serialize JSON arrays.

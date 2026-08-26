@@ -65,13 +65,13 @@ abstract class AbstractCommandRepository
     }
 
     /**
-     * Retrieves the active tenant/vendor ID from the security context, or null if unset.
+     * Retrieves the active tenant ID from the security context, or null if unset.
      *
      * @return int|null
      */
     protected function getTenantId(): ?int
     {
-        return ($this->tenantContext !== null && $this->tenantContext->hasVendorId()) ? $this->tenantContext->getVendorId() : null;
+        return ($this->tenantContext !== null && $this->tenantContext->hasTenantId()) ? $this->tenantContext->getTenantId() : null;
     }
 
     /**

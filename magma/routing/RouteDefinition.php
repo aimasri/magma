@@ -128,51 +128,6 @@ class RouteDefinition
     }
 
     /**
-     * Creates a RouteDefinition from a legacy numeric tuple array.
-     * Tuple indices:
-     * 0: method (string)
-     * 1: uri (string)
-     * 2: handler (callable|array<int, string>|string)
-     * 3: constraints / parameters (array<string, string>, optional)
-     * 4: redirectOnFail (string|null, optional)
-     * 5: middleware (array<int, string>, optional)
-     * 6: name (string|null, optional)
-     *
-     * @param array<int, mixed> $tuple
-     * @return self
-     */
-    public static function fromTuple(array $tuple): self
-    {
-        $methodVal = $tuple[0] ?? 'GET';
-        $method = is_scalar($methodVal) || $methodVal instanceof \Stringable ? (string)$methodVal : 'GET';
-        
-        $uriVal = $tuple[1] ?? '/';
-        $uri = is_scalar($uriVal) || $uriVal instanceof \Stringable ? (string)$uriVal : '/';
-        
-        $handler = $tuple[2] ?? [];
-        if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
-            $handler = [];
-        }
-        $parametersRaw = $tuple[3] ?? [];
-        $parameters = is_array($parametersRaw) ? array_filter($parametersRaw, 'is_string') : [];
-        $redirectOnFail = isset($tuple[4]) && is_string($tuple[4]) ? $tuple[4] : null;
-        $middlewareRaw = $tuple[5] ?? [];
-        $middleware = is_array($middlewareRaw) ? array_filter($middlewareRaw, 'is_string') : [];
-        $name = isset($tuple[6]) && is_string($tuple[6]) ? $tuple[6] : null;
-
-        return new self(
-            $method,
-            $uri,
-            $handler,
-            null,
-            $middleware,
-            $name,
-            $parameters,
-            $redirectOnFail
-        );
-    }
-
-    /**
      * Assigns a unique alias name to the route.
      *
      * @param string $name

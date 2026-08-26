@@ -25,7 +25,7 @@ readonly class SystemDiagnosticsDTO implements \JsonSerializable
      * @param string $environment The application environment.
      * @param bool $debug True if debug mode is on.
      * @param string $dbDriver The database driver in use.
-     * @param string $memoryUsage Peak memory usage formatted as a string.
+     * @param int $memoryUsageBytes Peak memory usage in bytes.
      * @param string $serverOs The operating system string.
      */
     public function __construct(
@@ -34,7 +34,7 @@ readonly class SystemDiagnosticsDTO implements \JsonSerializable
         public string $environment,
         public bool $debug,
         public string $dbDriver,
-        public string $memoryUsage,
+        public int $memoryUsageBytes,
         public string $serverOs
     ) {}
 
@@ -51,7 +51,7 @@ readonly class SystemDiagnosticsDTO implements \JsonSerializable
             'environment' => $this->environment,
             'debug'       => $this->debug,
             'dbDriver'    => $this->dbDriver,
-            'memoryUsage' => $this->memoryUsage,
+            'memoryUsageBytes' => $this->memoryUsageBytes,
             'serverOs'    => $this->serverOs,
         ];
     }

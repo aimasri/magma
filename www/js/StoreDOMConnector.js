@@ -23,7 +23,7 @@ export class StoreDOMConnector {
         renderFn(selector ? selector(store.getState()) : store.getState(), element);
 
         const unsubscribe = store.subscribe((state) => {
-            if (!document.body.contains(element)) {
+            if (!element.isConnected) {
                 unsubscribe();
                 return;
             }

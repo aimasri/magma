@@ -19,6 +19,7 @@ The primary purpose of this branch is to introduce and enforce strict quality co
 2. **Maximum Strictness Static Analysis:** Implementation of PHPStan at Level 9 to mathematically prove type safety, forcing explicit array shapes and eliminating ambiguous `mixed` types.
 3. **Automated Testing:** Integration of PHPUnit for both Unit and Integration testing, verifying PSR-4 autoloading and architectural boundaries.
 4. **CI/CD Readiness:** Establishing the baseline configuration needed for automated deployment pipelines.
+5. **Dual Dependency Injection Strategy:** Explicit enforcement of Constructor Injection in the core (`/magma/`) and Method Injection in the domain logic (`/app/` and `/modules/`).
 
 ### Getting Started
 
@@ -29,10 +30,10 @@ To initialize the Lava environment locally:
 composer install
 
 # 2. Run the automated test suite
-vendor/bin/phpunit
+tenant/bin/phpunit
 
 # 3. Run maximum-strictness static analysis
-vendor/bin/phpstan analyse
+tenant/bin/phpstan analyse
 ```
 
 ### The Hardening Phase

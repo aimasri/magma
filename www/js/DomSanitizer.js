@@ -25,6 +25,11 @@ export class DomSanitizer {
             'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE', 'CODE', 'PRE', 'SPAN'
         ]);
 
+        /** @type {Set<string>} Tags to completely remove, including their contents */
+        this.dropTags = new Set(options.dropTags || [
+            'SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT', 'OBJECT', 'EMBED'
+        ]);
+
         /** @type {Set<string>} Allowed URL protocols for hyperlinks */
         this.allowedProtocols = new Set(options.allowedProtocols || [
             'http:', 'https:', 'mailto:', 'tel:'
@@ -70,12 +75,13 @@ export class DomSanitizer {
      * Execution Flow:
      * 1. If TextNode, return cloned text node.
      * 2. If ElementNode:
-     *    a. Check if tag is in allowedTags allowlist.
-     *    b. If forbidden, recursively salvage its allowed child nodes without the wrapper tag.
-     *    c. If allowed, create a clean replacement element.
-     *    d. Filter and sanitize attributes (stripping arbitrary styles, IDs, and on* handlers).
-     *    e. If tag is 'A', validate href protocol and set safe `rel="noopener noreferrer"`.
-     *    f. Recursively sanitize and append child nodes.
+     *    a. Check if tag is in dropTags list. If so, return null to remove it and its contents.
+     *    b. Check if tag is in allowedTags allowlist.
+     *    c. If forbidden, recursively salvage its allowed child nodes without the wrapper tag.
+     *    d. If allowed, create a clean replacement element.
+     *    e. Filter and sanitize attributes (stripping arbitrary styles, IDs, and on* handlers).
+     *    f. If tag is 'A', validate href protocol and set safe `rel="noopener noreferrer"`.
+     *    g. Recursively sanitize and append child nodes.
      * 3. Return cleaned node or DocumentFragment.
      *
      * @param {Node} node
@@ -91,6 +97,11 @@ export class DomSanitizer {
         if (node.nodeType === Node.ELEMENT_NODE) {
             const el = /** @type {HTMLElement} */ (node);
             const tagName = el.tagName.toUpperCase();
+
+            // Tag is explicitly marked to be dropped: remove entirely
+            if (this.dropTags.has(tagName)) {
+                return null;
+            }
 
             // Tag is not in allowlist: Unwrap and preserve children
             if (!this.allowedTags.has(tagName)) {
@@ -204,8 +215,30 @@ export class DomSanitizer {
                 cleanContent = this.escapeHtml(text).replace(/\n/g, '<br>');
             }
 
-            // Insert sanitized content using native execCommand
-            document.execCommand('insertHTML', false, cleanContent);
+            // Insert sanitized content using Selection API
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = cleanContent;
+                
+                const frag = document.createDocumentFragment();
+                let lastNode = null;
+                while (tempDiv.firstChild) {
+                    lastNode = frag.appendChild(tempDiv.firstChild);
+                }
+                
+                range.insertNode(frag);
+                
+                if (lastNode) {
+                    range.setStartAfter(lastNode);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
 
             if (typeof options.onPaste === 'function') {
                 options.onPaste(cleanContent);

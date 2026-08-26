@@ -20,7 +20,7 @@ $phpVersion = $diag->phpVersion;
 $environment = $diag->environment;
 $isDebug = $diag->debug;
 $dbDriver = strtoupper($diag->dbDriver);
-$memoryUsage = $diag->memoryUsage;
+$memoryUsage = round($diag->memoryUsageBytes / \App\constants\AppConstants::MEGABYTE_IN_BYTES, 2) . ' MB';
 $serverOs = $diag->serverOs;
 ?>
 <!DOCTYPE html>
@@ -32,7 +32,7 @@ $serverOs = $diag->serverOs;
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body class="welcome-page">
-    <div class="welcome-container">
+    <div class="welcome-container mx-auto d-flex flex-column gap-6">
         
         <!-- Hero Showcase Banner -->
         <header class="welcome-hero">
@@ -256,7 +256,7 @@ $serverOs = $diag->serverOs;
                     <p class="module-card__desc">Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.</p>
                 </a>
             </div>
-            <div style="margin-top:2rem;text-align:center;">
+            <div class="mt-6 text-center">
                 <a href="/syllabus" class="btn btn--primary">View Full Masterclass Syllabus</a>
             </div>
         </div>

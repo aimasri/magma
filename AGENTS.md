@@ -15,7 +15,7 @@
 - **Open/Closed (OCP):** You MUST NOT modify existing core interfaces or abstract classes to add new features. You MUST implement new functionality via extension or composition.
 - **Liskov Substitution (LSP):** Derived classes MUST NOT throw exceptions that their base class does not explicitly define.
 - **Interface Segregation (ISP):** Interfaces MUST NOT contain methods that implementing classes do not use. You MUST split broad interfaces into targeted, role-specific contracts.
-- **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services. All dependencies MUST be injected via the constructor.
+- **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services. **Dual Dependency Injection Strategy:** Core framework files (`/magma/`) MUST use Constructor Injection to enforce rigid instantiation contracts. Application and module controllers (`/app/` and `/modules/`) MUST use Method Injection to prevent constructor bloat and allow dynamic request-time resolution.
 - **Database (PostgreSQL):** All queries MUST explicitly include the tenant ID in the `WHERE` clause to enforce multi-tenant isolation, unless operating in a strictly defined global administrative context. Utilize append-only ledger patterns for financial or critical transactional data.
 - **Language Standards (PHP/JS):** All PHP and JavaScript code MUST utilize strict typing. Return types and property types are mandatory.
 

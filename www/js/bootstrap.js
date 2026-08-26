@@ -88,8 +88,8 @@ if (document.readyState === 'loading') {
     initMagma();
 }
 
-// Expose Magma namespace globally for browser debugging & non-module scripts
-if (typeof window !== 'undefined') {
+// Expose Magma namespace globally for browser debugging & non-module scripts (Development Only)
+if (typeof window !== 'undefined' && window.process && window.process.env.NODE_ENV === 'development') {
     window.Magma = {
         EventBus,
         eventBus,

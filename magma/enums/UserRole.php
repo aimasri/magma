@@ -11,7 +11,7 @@ namespace Magma\enums;
  * 
  * Why / Why this design:
  * - Centralizing role checks inside an Enum adheres to the DRY principle. Instead of 
- *   scattering `in_array($role, ['vendor_admin', ...])` throughout controllers and middleware, 
+ *   scattering `in_array($role, ['tenant_admin', ...])` throughout controllers and middleware, 
  *   we delegate that knowledge to the domain layer. If roles are added or changed, 
  *   only this enum needs to be updated.
  * 
@@ -20,16 +20,16 @@ namespace Magma\enums;
  */
 enum UserRole: string
 {
-    case VENDOR_ADMIN = 'vendor_admin';
-    case VENDOR_STAFF = 'vendor_staff';
+    case TENANT_ADMIN = 'tenant_admin';
+    case TENANT_STAFF = 'tenant_staff';
 
     /**
-     * Determines if a given role string belongs to a vendor.
+     * Determines if a given role string belongs to a tenant.
      * 
      * @param string|null $role
      * @return bool
      */
-    public static function isVendorRole(?string $role): bool
+    public static function isTenantRole(?string $role): bool
     {
         if ($role === null) {
             return false;
@@ -41,7 +41,7 @@ enum UserRole: string
         }
         
         return match ($enum) {
-            self::VENDOR_ADMIN, self::VENDOR_STAFF => true,
+            self::TENANT_ADMIN, self::TENANT_STAFF => true,
         };
     }
 
@@ -53,7 +53,7 @@ enum UserRole: string
      */
     public static function dashboardPath(?string $role): string
     {
-        if (self::isVendorRole($role)) {
+        if (self::isTenantRole($role)) {
             return '/admin';
         }
         return '/user';

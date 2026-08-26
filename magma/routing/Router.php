@@ -86,17 +86,16 @@ class Router implements RouterInterface
      */
     public function dispatch(RequestInterface $request, array $globalMiddleware = []): Response
     {
+        if ($response = $this->matchStaticRoute($request, $globalMiddleware)) {
+            return $response;
+        }
+
+        if ($response = $this->matchDynamicRoute($request, $globalMiddleware)) {
+            return $response;
+        }
+
         $requestMethod = $request->getMethod();
         $requestPath = $request->getPath();
-
-        if ($response = $this->matchStaticRoute($requestMethod, $requestPath, $request, $globalMiddleware)) {
-            return $response;
-        }
-
-        if ($response = $this->matchDynamicRoute($requestMethod, $requestPath, $request, $globalMiddleware)) {
-            return $response;
-        }
-
         $this->handleMethodNotAllowedExceptions($requestMethod, $requestPath);
 
         throw new RouteNotFoundException("Route not found for path: {$requestPath}", 404);
@@ -105,18 +104,16 @@ class Router implements RouterInterface
     /**
      * Matches exact static routes without regular expression overhead.
      *
-     * @param string $requestMethod
-     * @param string $requestPath
      * @param RequestInterface $request
      * @param array<int, string> $globalMiddleware
      * @return Response|null
      */
     private function matchStaticRoute(
-        string $requestMethod,
-        string $requestPath,
         RequestInterface $request,
         array $globalMiddleware
     ): ?Response {
+        $requestMethod = $request->getMethod();
+        $requestPath = $request->getPath();
         $staticRoutes = $this->collection->getStaticRoutes();
         if (isset($staticRoutes[$requestMethod][$requestPath])) {
             $route = $staticRoutes[$requestMethod][$requestPath];
@@ -131,18 +128,17 @@ class Router implements RouterInterface
     /**
      * Matches parameterized dynamic routes using the compiled mega-regex.
      *
-     * @param string $requestMethod
-     * @param string $requestPath
      * @param RequestInterface $request
      * @param array<int, string> $globalMiddleware
      * @return Response|null
      */
     private function matchDynamicRoute(
-        string $requestMethod,
-        string $requestPath,
         RequestInterface $request,
         array $globalMiddleware
     ): ?Response {
+        $requestMethod = $request->getMethod();
+        $requestPath = $request->getPath();
+
         if (!isset($this->compiledMegaRegexes[$requestMethod])) {
             return null;
         }

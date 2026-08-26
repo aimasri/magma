@@ -41,18 +41,15 @@ interface OutboxJobRepositoryInterface
     /**
      * Records a new job into the transactional outbox table.
      *
-     * @param string $queue Target queue name (e.g. 'emails', 'events', 'inventory').
-     * @param string $handlerClass Fully qualified class name of the Job handler.
-     * @param array<string, mixed> $payload Domain data payload for the job.
-     * @param array<string, mixed> $headers Optional metadata headers (e.g. tenant_id, correlation_id, timestamp).
+     * @param \Magma\dto\OutboxJobDTO $job The structured job data transfer object.
      * @return int The generated outbox job ID.
      */
-    public function record(string $queue, string $handlerClass, array $payload, array $headers = []): int;
+    public function record(\Magma\dto\OutboxJobDTO $job): int;
 
     /**
      * Records multiple jobs into the transactional outbox table in a single batched insert.
      *
-     * @param array<int, array{queue: string, handler: string, payload: array<string, mixed>, headers?: array<string, mixed>}> $jobs Array of associative arrays, each containing 'queue', 'handler', 'payload', and optional 'headers'.
+     * @param array<int, \Magma\dto\OutboxJobDTO> $jobs Array of OutboxJobDTO instances.
      */
     public function recordBulk(array $jobs): void;
 

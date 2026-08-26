@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS plan_features (
     PRIMARY KEY (plan_id, feature_id)
 );
 
--- Section: 3. Multi-Tenancy (Vendors)
+-- Section: 3. Multi-Tenancy (Tenants)
 
-CREATE TABLE IF NOT EXISTS vendors (
+CREATE TABLE IF NOT EXISTS tenants (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     tagline TEXT,
@@ -78,13 +78,13 @@ CREATE TABLE IF NOT EXISTS vendors (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS vendor_addons (
-    vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS tenant_addons (
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     feature_id INTEGER NOT NULL REFERENCES features(id) ON DELETE CASCADE,
     active_from TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     active_until TIMESTAMP,
     prorated_charge_applied BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (vendor_id, feature_id)
+    PRIMARY KEY (tenant_id, feature_id)
 );
 
 -- Section: 4. Global Lookups
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS projection_checkpoints (
 -- Section: Indexes
 
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_vendors_plan_id ON vendors(plan_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_plan_id ON tenants(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_lookup ON user_tokens(type, expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash) WHERE type = 'password_reset';
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
@@ -132,6 +132,6 @@ CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_tenant ON projection_check
 DROP TRIGGER IF EXISTS set_users_updated_at ON users;
 CREATE TRIGGER set_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 
-DROP TRIGGER IF EXISTS set_vendors_updated_at ON vendors;
-CREATE TRIGGER set_vendors_updated_at BEFORE UPDATE ON vendors FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
+DROP TRIGGER IF EXISTS set_tenants_updated_at ON tenants;
+CREATE TRIGGER set_tenants_updated_at BEFORE UPDATE ON tenants FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
 

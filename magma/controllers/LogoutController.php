@@ -25,6 +25,12 @@ use Magma\view\TemplateEngine;
  */
 class LogoutController
 {
+    use \Magma\controllers\traits\AppliesAuthenticationCookiesTrait;
+
+    public function __construct(
+        private readonly AuthenticationService $authService
+    ) {}
+
     /**
      * Executes the logout action.
      * 
@@ -35,30 +41,12 @@ class LogoutController
      * 
      * @return Response
      */
-    public function logout(Request $request, AuthenticationService $authService): Response
+    public function logout(Request $request): Response
     {
         $token = $request->cookie('remember_user');
         $tokenStr = is_string($token) ? $token : null;
-        $result = $authService->logout($tokenStr);
+        $result = $this->authService->logout($tokenStr);
 
         return $this->applyAuthResult($result, new RedirectResponse('/'), $request);
-    }
-
-    /**
-     * Applies authentication result cookies to the HTTP response.
-     * 
-     * @param AuthenticationResult $result
-     * @param Response $response
-     * @return Response
-     */
-    private function applyAuthResult(AuthenticationResult $result, Response $response, Request $request): Response
-    {
-        foreach ($result->getCookiesToSet() as $cookie) {
-            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $request->isSecure(), true);
-        }
-        foreach ($result->getCookiesToClear() as $name) {
-            $response->withCookie($name, '', time() - 3600, "/", "", $request->isSecure(), true);
-        }
-        return $response;
     }
 }

@@ -113,22 +113,8 @@ export class AttributeBindingProcessor {
             const attributesToRemove = [];
             for (let i = 0; i < el.attributes.length; i++) {
                 const attr = el.attributes[i];
-                if (attr.name.startsWith('data-bind-attr-')) {
-                    const targetAttrName = attr.name.replace('data-bind-attr-', '');
-                    const val = this.engine._resolveValue(attr.value, data);
-
-                    if (val === false || val === null || val === undefined) {
-                        el.removeAttribute(targetAttrName);
-                    } else if (val === true) {
-                        el.setAttribute(targetAttrName, '');
-                    } else {
-                        el.setAttribute(targetAttrName, String(val));
-                    }
-                    attributesToRemove.push(attr.name);
-                } else if (attr.name.startsWith('data-bind-class-')) {
-                    const targetClassName = attr.name.replace('data-bind-class-', '');
-                    const isTruthy = Boolean(this.engine._resolveValue(attr.value, data));
-                    el.classList.toggle(targetClassName, isTruthy);
+                if (attr.name.startsWith('data-bind-attr-') || attr.name.startsWith('data-bind-class-')) {
+                    this._processAttribute(el, attr, data);
                     attributesToRemove.push(attr.name);
                 }
             }
@@ -136,6 +122,25 @@ export class AttributeBindingProcessor {
             for (const name of attributesToRemove) {
                 el.removeAttribute(name);
             }
+        }
+    }
+
+    _processAttribute(el, attr, data) {
+        if (attr.name.startsWith('data-bind-attr-')) {
+            const targetAttrName = attr.name.replace('data-bind-attr-', '');
+            const val = this.engine._resolveValue(attr.value, data);
+
+            if (val === false || val === null || val === undefined) {
+                el.removeAttribute(targetAttrName);
+            } else if (val === true) {
+                el.setAttribute(targetAttrName, '');
+            } else {
+                el.setAttribute(targetAttrName, String(val));
+            }
+        } else if (attr.name.startsWith('data-bind-class-')) {
+            const targetClassName = attr.name.replace('data-bind-class-', '');
+            const isTruthy = Boolean(this.engine._resolveValue(attr.value, data));
+            el.classList.toggle(targetClassName, isTruthy);
         }
     }
 }

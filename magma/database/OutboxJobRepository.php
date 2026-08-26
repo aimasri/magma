@@ -130,7 +130,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
      * Inserts a new outbox record within the active transactional boundary.
      *
      * Execution Flow:
-     * 1. JSON-encode payload and metadata headers.
+     * 1. JSON-encode payload and metadata headers from the DTO.
      * 2. Prepare the parameterized INSERT query.
      * 3. Execute statement and return generated sequence ID.
      *
@@ -138,13 +138,10 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
      * - Writing to the outbox inside the same transaction as domain entity persistence guarantees
      *   that events are never lost if the application crashes before pushing to external message queues.
      *
-     * @param string $queue Target queue name.
-     * @param string $handlerClass Fully qualified handler class name.
-     * @param array<string, mixed> $payload Domain payload data.
-     * @param array<string, mixed> $headers Metadata headers.
+     * @param \Magma\dto\OutboxJobDTO $job Target job DTO.
      * @return int The primary key of the inserted outbox record.
      */
-    public function record(string $queue, string $handlerClass, array $payload, array $headers = []): int
+    public function record(\Magma\dto\OutboxJobDTO $job): int
     {
         $pdo = $this->dbManager->getWriteConnection();
 
@@ -152,10 +149,10 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
              . 'VALUES (:queue, :handler, :payload, :headers, 0, NOW()) RETURNING "id"';
 
         $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':queue', trim($queue));
-        $stmt->bindValue(':handler', trim($handlerClass));
-        $stmt->bindValue(':payload', json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $stmt->bindValue(':headers', json_encode($headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $stmt->bindValue(':queue', trim($job->queue));
+        $stmt->bindValue(':handler', trim($job->handlerClass));
+        $stmt->bindValue(':payload', json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $stmt->bindValue(':headers', json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
         $stmt->execute();
 
         $id = $stmt->fetchColumn();
@@ -165,7 +162,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     /**
      * Records multiple jobs into the transactional outbox table in a single batched insert.
      *
-     * @param array<int, array{queue: string, handler: string, payload: array<string, mixed>, headers?: array<string, mixed>}> $jobs
+     * @param array<int, \Magma\dto\OutboxJobDTO> $jobs Array of OutboxJobDTO instances.
      */
     public function recordBulk(array $jobs): void
     {
@@ -174,20 +171,25 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         }
 
         $pdo = $this->dbManager->getWriteConnection();
-        $placeholders = implode(',', array_fill(0, count($jobs), '(?, ?, ?, ?, 0, NOW())'));
-        $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
 
-        $stmt = $pdo->prepare($sql);
-        
-        $i = 1;
-        foreach ($jobs as $job) {
-            $stmt->bindValue($i++, trim($job['queue']));
-            $stmt->bindValue($i++, trim($job['handler']));
-            $stmt->bindValue($i++, json_encode($job['payload'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-            $stmt->bindValue($i++, json_encode($job['headers'] ?? [], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $chunks = array_chunk($jobs, 1000);
+        foreach ($chunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '(?, ?, ?, ?, 0, NOW())'));
+            $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
+
+            $stmt = $pdo->prepare($sql);
+            
+            $i = 1;
+            /** @var \Magma\dto\OutboxJobDTO $job */
+            foreach ($chunk as $job) {
+                $stmt->bindValue($i++, trim($job->queue));
+                $stmt->bindValue($i++, trim($job->handlerClass));
+                $stmt->bindValue($i++, json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                $stmt->bindValue($i++, json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            }
+
+            $stmt->execute();
         }
-
-        $stmt->execute();
     }
 
     /**

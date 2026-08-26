@@ -3,6 +3,7 @@
 namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
+use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
 
 /**
  * Title: Remember Token Repository
@@ -16,7 +17,7 @@ use Magma\models\AbstractCommandRepository;
  * Teaching notes:
  * - The conscious breaking of strict CQRS (reading from a write connection) is a pragmatic industry standard for critical auth flows to avoid race conditions with replica databases.
  */
-class RememberTokenRepository extends AbstractCommandRepository
+class RememberTokenRepository extends AbstractCommandRepository implements RememberTokenRepositoryInterface
 {
 
 

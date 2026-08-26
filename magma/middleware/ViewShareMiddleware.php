@@ -5,13 +5,13 @@ namespace Magma\middleware;
 use Magma\http\Request;
 use Magma\http\Response;
 use Magma\view\TemplateEngine;
-use Magma\interfaces\cqrs\VendorQueryInterface;
+use Magma\interfaces\cqrs\TenantQueryInterface;
 
 /**
  * Title: ViewShareMiddleware — injects global layout variables.
  *
  * Purpose:
- * - Automatically inject `$vendor`, `$tagline`, `$user`, CSRF tokens, and flash 
+ * - Automatically inject `$tenant`, `$tagline`, `$user`, CSRF tokens, and flash 
  *   variables (`errors`, `old` input) into the global template context on every request.
  * 
  * Why / Why this design:
@@ -26,13 +26,13 @@ use Magma\interfaces\cqrs\VendorQueryInterface;
 class ViewShareMiddleware implements MiddlewareInterface
 {
     private TemplateEngine $templateEngine;
-    private VendorQueryInterface $vendorRepository;
+    private TenantQueryInterface $tenantRepository;
     private \Magma\http\Session $session;
 
-    public function __construct(TemplateEngine $templateEngine, VendorQueryInterface $vendorRepository, \Magma\http\Session $session)
+    public function __construct(TemplateEngine $templateEngine, TenantQueryInterface $tenantRepository, \Magma\http\Session $session)
     {
         $this->templateEngine = $templateEngine;
-        $this->vendorRepository = $vendorRepository;
+        $this->tenantRepository = $tenantRepository;
         $this->session = $session;
     }
 
@@ -40,8 +40,8 @@ class ViewShareMiddleware implements MiddlewareInterface
      * Executes the middleware layer.
      * 
      * Execution Flow:
-     * 1. Retrieve the primary vendor from the repository.
-     * 2. Share the vendor array and its tagline globally with the TemplateEngine.
+     * 1. Retrieve the primary tenant from the repository.
+     * 2. Share the tenant array and its tagline globally with the TemplateEngine.
      * 3. Share the current authenticated user session globally.
      * 4. Inject the CSRF token and flash session variables (`errors`, `old`) into the TemplateEngine.
      * 5. Pass the request to the next middleware or controller.
@@ -52,10 +52,10 @@ class ViewShareMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $vendor = $this->vendorRepository->getPrimaryVendor();
+        $tenant = $this->tenantRepository->getPrimaryTenant();
 
-        $this->templateEngine->share('vendor', $vendor);
-        $this->templateEngine->share('tagline', $vendor ? $vendor->tagline : '');
+        $this->templateEngine->share('tenant', $tenant);
+        $this->templateEngine->share('tagline', $tenant ? $tenant->tagline : '');
         $this->templateEngine->share('user', $this->session->get('user'));
 
         // Inject flash data prior to rendering

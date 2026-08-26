@@ -55,7 +55,7 @@ export class EventDelegator {
                         handlers.forEach(fn => fn(event, matchingElement));
                     }
                 });
-            }, { capture: true });
+            });
         }
 
         const registry = this.registries.get(eventType);

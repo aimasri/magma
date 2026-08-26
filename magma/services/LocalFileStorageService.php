@@ -2,7 +2,7 @@
 
 namespace Magma\services;
 
-use Magma\interfaces\StorageInterface;
+use Magma\infrastructure\storage\StorageInterface;
 use RuntimeException;
 
 /**
@@ -139,21 +139,22 @@ class LocalFileStorageService implements StorageInterface
     }
 
     /**
-     * @param array<string, mixed> $fileInfo
+     * @param \Magma\interfaces\UploadedFileInterface $file
+     * @param string $directory
      * @param array<int, string>|null $allowedExtensions
      */
     public function storeUploadedFile(
-        array $fileInfo,
+        \Magma\interfaces\UploadedFileInterface $file,
         string $directory = 'uploads',
         ?array $allowedExtensions = null
     ): string {
         $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
         
-        if (!isset($fileInfo['tmp_name']) || !is_string($fileInfo['tmp_name']) || !is_uploaded_file($fileInfo['tmp_name'])) {
+        if ($file->getError() !== UPLOAD_ERR_OK) {
             throw new RuntimeException("Invalid upload");
         }
         
-        $name = isset($fileInfo['name']) && is_string($fileInfo['name']) ? $fileInfo['name'] : 'unknown';
+        $name = $file->getClientFilename() ?? 'unknown';
         $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         
         if (!in_array($ext, $allowed)) {
@@ -170,9 +171,7 @@ class LocalFileStorageService implements StorageInterface
             mkdir($dir, 0755, true);
         }
         
-        if (!move_uploaded_file($fileInfo['tmp_name'], $fullPath)) {
-            throw new RuntimeException("Failed to move file");
-        }
+        $file->moveTo($fullPath);
         
         return $path;
     }

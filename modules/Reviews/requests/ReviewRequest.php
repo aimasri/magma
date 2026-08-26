@@ -6,6 +6,8 @@ namespace Modules\Reviews\requests;
 use Magma\validation\FormRequest;
 use Modules\Reviews\dto\ReviewDTO;
 
+use Modules\Reviews\constants\ReviewConstants;
+
 /**
  * Title: Review Request
  *
@@ -39,9 +41,9 @@ class ReviewRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'author'  => 'required|min:2',
-            'comment' => 'required|min:5|max:1000',
-            'rating'  => 'required|numeric|min:1|max:5'
+            'author'  => ReviewConstants::RULE_REVIEW_AUTHOR,
+            'comment' => ReviewConstants::RULE_REVIEW_COMMENT,
+            'rating'  => ReviewConstants::RULE_REVIEW_RATING
         ];
     }
 
@@ -63,9 +65,9 @@ class ReviewRequest extends FormRequest
     {
         $data = $this->request->request();
         return new ReviewDTO(
-            author: $data['author'] ?? '',
-            comment: $data['comment'] ?? '',
-            rating: (int)($data['rating'] ?? 5)
+            author: $data['author'],
+            comment: $data['comment'],
+            rating: (int)$data['rating']
         );
     }
 }

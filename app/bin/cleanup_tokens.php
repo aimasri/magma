@@ -17,17 +17,17 @@
  *   off-peak hours. Example: `0 3 * * * /usr/bin/php /path/to/bin/cleanup_tokens.php`
  */
 
-require_once dirname(__DIR__) . '/core/config/bootstrap.php';
+require_once dirname(__DIR__, 2) . '/magma/config/bootstrap.php';
 
-use Magma\repositories\RememberTokenRepository;
-use Magma\repositories\PasswordResetTokenRepository;
+use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
+use Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface;
 
 // Bootstrapping initialized the container as $container
 /** @var \Magma\container\Container $container */
-$rememberRepo = $container->get(RememberTokenRepository::class);
-/** @var RememberTokenRepository $rememberRepo */
-$passwordRepo = $container->get(PasswordResetTokenRepository::class);
-/** @var PasswordResetTokenRepository $passwordRepo */
+$rememberRepo = $container->get(RememberTokenRepositoryInterface::class);
+/** @var RememberTokenRepositoryInterface $rememberRepo */
+$passwordRepo = $container->get(PasswordResetTokenRepositoryInterface::class);
+/** @var PasswordResetTokenRepositoryInterface $passwordRepo */
 
 $deletedCount = $rememberRepo->deleteExpiredTokens();
 $deletedCount += $passwordRepo->deleteExpiredTokens();

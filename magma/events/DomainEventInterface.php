@@ -40,7 +40,7 @@ interface DomainEventInterface extends EventInterface
     public function getOccurredAt(): DateTimeImmutable;
 
     /**
-     * Returns the tenant/vendor ID to which this event belongs, or null for platform-level events.
+     * Returns the tenant ID to which this event belongs, or null for platform-level events.
      *
      * @return int|null
      */

@@ -27,6 +27,8 @@ use Magma\view\TemplateEngine;
  */
 class LoginController
 {
+    use \Magma\controllers\traits\AppliesAuthenticationCookiesTrait;
+
     private AuthenticationService $authService;
     private \Magma\view\HtmlResponseBuilderInterface $html;
     private \Magma\http\SessionInterface $session;
@@ -110,21 +112,5 @@ class LoginController
     private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
     {
         return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole()));
-    }
-
-    /**
-     * Applies cookies from the authentication result to the HTTP response.
-     * 1. Sets new cookies required by the result.
-     * 2. Clears expired or removed cookies.
-     */
-    private function applyAuthResult(AuthenticationResult $result, Response $response, Request $request): Response
-    {
-        foreach ($result->getCookiesToSet() as $cookie) {
-            $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $request->isSecure(), true);
-        }
-        foreach ($result->getCookiesToClear() as $name) {
-            $response->withCookie($name, '', time() - 3600, "/", "", $request->isSecure(), true);
-        }
-        return $response;
     }
 }

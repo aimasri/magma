@@ -6,7 +6,7 @@ namespace App\controllers;
 use Magma\http\RedirectResponse;
 use Magma\security\CsrfManager;
 use Magma\http\Session;
-use App\services\SystemDiagnosticsService;
+use App\services\SystemDiagnosticsServiceInterface;
 
 /**
  * Title: Home Controller
@@ -35,7 +35,7 @@ class HomeController
      * @return \Magma\http\Response
      */
     public function index(
-        SystemDiagnosticsService $diagnosticsService,
+        SystemDiagnosticsServiceInterface $diagnosticsService,
         \Magma\view\HtmlResponseBuilderInterface $html
     ): \Magma\http\Response {
         $diagnostics = $diagnosticsService->getDiagnostics();
@@ -55,7 +55,7 @@ class HomeController
         \Magma\view\HtmlResponseBuilderInterface $html
     ): \Magma\http\Response {
         return $html->render('syllabus', [
-            'title' => 'Architectural Syllabus | Magma Framework'
+            'title' => \App\constants\AppConstants::SYLLABUS_TITLE
         ], null);
     }
 }

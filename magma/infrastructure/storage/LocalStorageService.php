@@ -25,16 +25,7 @@ class LocalStorageService implements StorageInterface
     private string $basePath;
     private string $publicBaseUrl;
 
-    /** @var array<string, array<string>> Mapping of allowed extensions to valid MIME types */
-    private static array $mimeMap = [
-        'jpg'  => ['image/jpeg', 'image/pjpeg'],
-        'jpeg' => ['image/jpeg', 'image/pjpeg'],
-        'png'  => ['image/png'],
-        'webp' => ['image/webp'],
-        'pdf'  => ['application/pdf'],
-        'gif'  => ['image/gif'],
-        'svg'  => ['image/svg+xml'],
-    ];
+
 
     public function __construct(string $basePath, string $publicBaseUrl = '/storage')
     {
@@ -107,80 +98,38 @@ class LocalStorageService implements StorageInterface
     }
 
     /**
-     * Validates and securely stores an uploaded file ($_FILES payload).
-     *
-     * Execution Flow:
-     * 1. Validates standard PHP upload error codes (`$fileInfo['error'] === UPLOAD_ERR_OK`).
-     * 2. Checks file size is greater than 0 and file exists on disk.
-     * 3. Extracts original extension and normalizes to lowercase.
-     * 4. Verifies extension against strict allowlist (default: `['jpg', 'jpeg', 'png', 'webp']`).
-     * 5. Uses native PHP `finfo` (libmagic) to inspect binary header signatures for actual MIME type.
-     * 6. Validates that the detected binary MIME matches the permitted MIME types for the extension.
-     * 7. Generates a randomized cryptographic 32-character hex token filename (`bin2hex(random_bytes(16))`).
-     * 8. Safely moves the uploaded file into the target directory.
-     * 9. Returns the clean relative path.
-     *
-     * Logic behind the logic:
-     * - Dual-layer validation (extension check + binary libmagic signature inspection) prevents attackers from bypassing extension checks by uploading `.php` files disguised with image headers or `.jpg` files containing PHP code.
-     *
-     * @param array<string, mixed> $fileInfo Standard PHP file array (tmp_name, name, size, error)
+     * @param \Magma\interfaces\UploadedFileInterface $file Strongly typed uploaded file object
      * @param string $directory Destination folder (e.g., 'recipes/photos')
      * @param string[]|null $allowedExtensions Allowed extensions allowlist
      * @return string Relative stored path (e.g. 'recipes/photos/a1b2c3d4e5f6...webp')
      * @throws RuntimeException
      */
     public function storeUploadedFile(
-        array $fileInfo,
+        \Magma\interfaces\UploadedFileInterface $file,
         string $directory = 'uploads',
         ?array $allowedExtensions = null
     ): string {
-        $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp'];
+        $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
         $allowed = array_map('strtolower', $allowed);
 
-        $errorCode = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
-        $errorCode = is_scalar($errorCode) ? (int)$errorCode : UPLOAD_ERR_NO_FILE;
+        $errorCode = $file->getError();
         
         if ($errorCode !== UPLOAD_ERR_OK) {
             throw new RuntimeException("File upload failed with error code [{$errorCode}].");
         }
 
-        $tmpName = $fileInfo['tmp_name'] ?? '';
-        $tmpName = is_scalar($tmpName) ? (string)$tmpName : '';
+        $size = $file->getSize() ?? 0;
         
-        $size = $fileInfo['size'] ?? 0;
-        $size = is_scalar($size) ? (int)$size : 0;
-        
-        if ($tmpName === '' || !file_exists($tmpName) || $size <= 0) {
-            throw new RuntimeException("Uploaded temporary file is missing or empty.");
+        if ($size <= 0) {
+            throw new RuntimeException("Uploaded file is empty.");
         }
 
         // Extract client extension
-        $clientName = $fileInfo['name'] ?? '';
-        $clientName = is_scalar($clientName) ? (string)$clientName : '';
+        $clientName = $file->getClientFilename() ?? 'unknown';
         $extension = strtolower(pathinfo($clientName, PATHINFO_EXTENSION));
 
         if ($extension === '' || !in_array($extension, $allowed, true)) {
             throw new RuntimeException("Invalid file extension '.{$extension}'. Allowed: " . implode(', ', $allowed));
-        }
-
-        // Inspect binary MIME with finfo
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        if ($finfo === false) {
-            throw new RuntimeException("Failed to initialize fileinfo buffer.");
-        }
-
-        $detectedMime = finfo_file($finfo, $tmpName);
-        finfo_close($finfo);
-
-        if (!is_string($detectedMime)) {
-            throw new RuntimeException("Unable to inspect file binary MIME signature.");
-        }
-
-        $validMimesForExt = self::$mimeMap[$extension] ?? [];
-        if (!in_array($detectedMime, $validMimesForExt, true)) {
-            throw new RuntimeException(
-                "Security violation: Detected binary MIME type '{$detectedMime}' does not match extension '.{$extension}'."
-            );
         }
 
         // Generate randomized cryptographic filename
@@ -198,15 +147,7 @@ class LocalStorageService implements StorageInterface
             }
         }
 
-        if (is_uploaded_file($tmpName)) {
-            if (!move_uploaded_file($tmpName, $fullDestination)) {
-                throw new RuntimeException("Failed to move uploaded file to [{$fullDestination}].");
-            }
-        } else {
-            if (!copy($tmpName, $fullDestination)) {
-                throw new RuntimeException("Failed to copy temporary file to [{$fullDestination}].");
-            }
-        }
+        $file->moveTo($fullDestination);
 
         return $relativeDestination;
     }

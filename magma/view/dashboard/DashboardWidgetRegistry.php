@@ -22,7 +22,7 @@ use Magma\interfaces\dashboard\DashboardWidgetInterface;
  *   it is caught, logged, and gracefully omitted, preventing a total dashboard 500 error.
  *
  * Teaching notes:
- * - Inject this registry into the controller, call `renderAll($vendorId)`, and pass the resulting array directly to the View layer.
+ * - Inject this registry into the controller, call `renderAll($tenantId)`, and pass the resulting array directly to the View layer.
  */
 class DashboardWidgetRegistry
 {
@@ -77,10 +77,10 @@ class DashboardWidgetRegistry
      * 4. Collects the resulting datasets into a master associative array sorted by widget order.
      * 5. Traps and logs individual widget exceptions so other widgets render unimpeded.
      *
-     * @param int $vendorId The tenant context.
+     * @param int $tenantId The tenant context.
      * @return array<string, array<string, mixed>> Associative array of [widgetIdentifier => widgetData].
      */
-    public function renderAll(int $vendorId): array
+    public function renderAll(int $tenantId): array
     {
         $rendered = [];
 
@@ -91,7 +91,7 @@ class DashboardWidgetRegistry
                     continue;
                 }
 
-                $data = $widget->render($vendorId);
+                $data = $widget->render($tenantId);
                 $rendered[$widget->getIdentifier()] = [
                     'identifier' => $widget->getIdentifier(),
                     'title' => $widget->getTitle(),

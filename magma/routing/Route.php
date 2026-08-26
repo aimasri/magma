@@ -20,9 +20,8 @@ namespace Magma\routing;
  * Teaching notes:
  * - In enterprise architectures, value objects represent domain concepts defined by their attributes rather than a persistent identity.
  * - Notice the use of `readonly` properties: once constructed by the RouteCompiler or RouteCollection, a Route's state cannot be corrupted.
- * @implements \ArrayAccess<int|string, mixed>
  */
-class Route implements \ArrayAccess, \JsonSerializable
+class Route implements \JsonSerializable
 {
     public readonly string $method;
     public readonly string $uri;
@@ -112,55 +111,6 @@ class Route implements \ArrayAccess, \JsonSerializable
             parameters: array_filter($parameters, 'is_string'),
             redirectOnFail: is_string($state['redirectOnFail'] ?? null) ? $state['redirectOnFail'] : null,
             compiledRegex: is_string($state['compiledRegex'] ?? null) ? $state['compiledRegex'] : null
-        );
-    }
-
-    /**
-     * Converts a legacy numeric tuple array into a strongly-typed Route object.
-     *
-     * Tuple Layout:
-     * [0 => method, 1 => uri, 2 => handler, 3 => constraints, 4 => redirectOnFail, 5 => middleware, 6 => name/regex]
-     *
-     * @param array<int, mixed> $tuple
-     * @return self
-     */
-    public static function fromTuple(array $tuple): self
-    {
-        $methodVal = $tuple[0] ?? 'GET';
-        $method = is_scalar($methodVal) || $methodVal instanceof \Stringable ? (string)$methodVal : 'GET';
-        
-        $uriVal = $tuple[1] ?? '/';
-        $uri = is_scalar($uriVal) || $uriVal instanceof \Stringable ? (string)$uriVal : '/';
-        
-        $handler = $tuple[2] ?? [];
-        if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
-            $handler = [];
-        }
-        $constraints = is_array($tuple[3] ?? null) ? array_filter($tuple[3], 'is_string') : [];
-        $redirectOnFail = isset($tuple[4]) && is_string($tuple[4]) ? $tuple[4] : null;
-        $middleware = is_array($tuple[5] ?? null) ? array_filter($tuple[5], 'is_string') : [];
-        $nameOrRegex = isset($tuple[6]) && (is_scalar($tuple[6]) || $tuple[6] instanceof \Stringable) ? (string)$tuple[6] : null;
-
-        $name = null;
-        $compiledRegex = null;
-        if ($nameOrRegex !== null) {
-            if (str_starts_with($nameOrRegex, '#') || str_starts_with($nameOrRegex, '/')) {
-                $compiledRegex = $nameOrRegex;
-            } else {
-                $name = $nameOrRegex;
-            }
-        }
-
-        return new self(
-            method: $method,
-            uri: $uri,
-            handler: $handler,
-            action: null,
-            middleware: $middleware,
-            name: $name,
-            parameters: $constraints,
-            redirectOnFail: $redirectOnFail,
-            compiledRegex: $compiledRegex
         );
     }
 
@@ -257,24 +207,6 @@ class Route implements \ArrayAccess, \JsonSerializable
     public function getCompiledRegex(): ?string
     {
         return $this->compiledRegex;
-    }
-
-    /**
-     * Exports route state as a legacy numeric tuple array for backward compatibility.
-     *
-     * @return array<int, mixed>
-     */
-    public function toTuple(): array
-    {
-        return [
-            0 => $this->method,
-            1 => $this->uri,
-            2 => $this->handler,
-            3 => $this->parameters,
-            4 => $this->redirectOnFail,
-            5 => $this->middleware,
-            6 => $this->compiledRegex ?? $this->name,
-        ];
     }
 
     /**

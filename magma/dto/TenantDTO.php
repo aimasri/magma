@@ -3,17 +3,17 @@
 namespace Magma\dto;
 
 /**
- * Title: Vendor Data Transfer Object
+ * Title: Tenant Data Transfer Object
  * Purpose:
- * - Encapsulates vendor data into a strictly typed, immutable structure.
- * - Transports vendor information across application boundaries (e.g., Repository to Controller).
+ * - Encapsulates tenant data into a strictly typed, immutable structure.
+ * - Transports tenant information across application boundaries (e.g., Repository to Controller).
  * Why/Why this design:
  * - Utilizing readonly properties ensures the data cannot be tampered with after instantiation, promoting safe, predictable state management.
  * - Decouples the presentation and domain layers from the specific database schema or ORM implementation.
  * Teaching notes:
  * - Immutable DTOs represent an industry best practice for preventing side effects in complex applications where data is passed through multiple services.
  */
-class VendorDTO
+class TenantDTO
 {
     public function __construct(
         public readonly int $id,

@@ -14,7 +14,7 @@ use Magma\services\AuthenticationService;
  * Title: Multi-Tenant Security & Context Binding Middleware
  *
  * Purpose:
- * - Implicitly extracts and binds the active tenant/vendor identifier to the global `TenantContext` and `Request` attributes.
+ * - Implicitly extracts and binds the active tenant identifier to the global `TenantContext` and `Request` attributes.
  * - Enforces zero-trust tenant data isolation at the HTTP pipeline boundary.
  *
  * Why / Why this design:
@@ -46,7 +46,7 @@ class TenantSecurityMiddleware implements MiddlewareInterface
      * Execution Flow:
      * 1. Attempts resolution via custom `TenantContextProviderInterface` or `TenantContext::resolveFromRequest()`.
      * 2. If unresolved, inspects authenticated user domain entity via `AuthenticationService`.
-     * 3. If a valid tenant/vendor ID is located, sets `$tenantContext->setTenantId($tenantId)`.
+     * 3. If a valid tenant ID is located, sets `$tenantContext->setTenantId($tenantId)`.
      * 4. If venue ID is present, sets `$tenantContext->setVenueId($venueId)`.
      * 5. Attaches `'tenant_id'` and `'venue_id'` to Request attributes.
      * 6. Passes execution to `$next($request)`.
@@ -78,8 +78,8 @@ class TenantSecurityMiddleware implements MiddlewareInterface
             if ($user !== null) {
                 if (method_exists($user, 'getTenantId') && $user->getTenantId() !== null) {
                     $this->tenantContext->setTenantId((int)$user->getTenantId());
-                } elseif (method_exists($user, 'getVendorId') && $user->hasVendorId()) {
-                    $this->tenantContext->setTenantId((int)$user->getVendorId());
+                } elseif (method_exists($user, 'getTenantId') && $user->hasTenantId()) {
+                    $this->tenantContext->setTenantId((int)$user->getTenantId());
                 }
 
                 if (method_exists($user, 'getVenueId') && $user->getVenueId() !== null) {

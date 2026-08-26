@@ -19,13 +19,17 @@ use Magma\view\TemplateEngine;
  */
 class PolicyController
 {
+    public function __construct(
+        private readonly \Magma\view\HtmlResponseBuilderInterface $html
+    ) {}
+
     /**
      * Displays the Privacy & Cookie Policy.
-     * Merges current vendor metadata into the template for dynamic branding.
+     * Merges current tenant metadata into the template for dynamic branding.
      */
-    public function index(\Magma\view\HtmlResponseBuilderInterface $html): Response
+    public function index(): Response
     {
-        return $html->render('policy', [
+        return $this->html->render('policy', [
             'title'   => 'Privacy & Cookie Policy'
         ]);
     }

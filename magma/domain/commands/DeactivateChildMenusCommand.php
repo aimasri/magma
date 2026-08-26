@@ -18,13 +18,13 @@ namespace Magma\domain\commands;
 class DeactivateChildMenusCommand
 {
     public readonly int $parentId;
-    public readonly int $vendorId;
+    public readonly int $tenantId;
     public readonly string $action;
 
-    public function __construct(int $parentId, int $vendorId)
+    public function __construct(int $parentId, int $tenantId)
     {
         $this->parentId = $parentId;
-        $this->vendorId = $vendorId;
+        $this->tenantId = $tenantId;
         $this->action = 'deactivate_children';
     }
 }

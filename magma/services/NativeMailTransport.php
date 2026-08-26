@@ -60,7 +60,7 @@ class NativeMailTransport implements MailTransportInterface
             }
 
             return $success;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log("Email to {$toEmail} failed: {$e->getMessage()}");
             return false;
         }

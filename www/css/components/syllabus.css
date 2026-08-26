@@ -166,7 +166,7 @@
         border: 1px solid var(--border-subtle);
         border-radius: var(--radius-lg);
         padding: var(--space-xl);
-        margin-top: 0 !important;
+        margin-top: 0;
     }
     
     /* Accordion Summary defaults for Desktop */
@@ -273,13 +273,13 @@
         box-shadow: 0 0 0 1px var(--brand-flame), 0 10px 25px rgba(0,0,0,0.3);
     }
     
-    .chapter-title {
-        margin-top: 0 !important;
-        padding-bottom: var(--space-md) !important;
+    .syllabus-content .chapter-title {
+        margin-top: 0;
+        padding-bottom: var(--space-md);
     }
     
     .syllabus-content > .chapter-module:first-of-type {
-        margin-top: 0 !important;
+        margin-top: 0;
     }
     
     /* Hide the raw TOC if it exists in the markdown since we have a sidebar */

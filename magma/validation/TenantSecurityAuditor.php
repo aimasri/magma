@@ -11,7 +11,7 @@ use PDO;
  *
  * Purpose:
  * - Performs static analysis and PostgreSQL database schema auditing to verify multi-tenant data isolation.
- * - Audits database tables for mandatory `tenant_id` / `vendor_id` foreign keys and composite performance indexes.
+ * - Audits database tables for mandatory `tenant_id` foreign keys and composite performance indexes.
  * - Scans codebase controller and repository layers to prohibit raw superglobals (`$_POST`, `$_GET`) and enforce typed DTO/FormRequest boundaries.
  *
  * Why / Why this design:
@@ -29,7 +29,6 @@ class TenantSecurityAuditor
     private array $exemptTables = [
         'migrations',
         'schema_migrations',
-        'vendors',
         'tenants',
         'users',
         'roles',
@@ -72,7 +71,7 @@ class TenantSecurityAuditor
      * Execution Flow:
      * 1. If PDO connection is available, queries `information_schema.tables`.
      * 2. For each non-exempt table:
-     *    a. Checks for `tenant_id` or `vendor_id` column presence.
+     *    a. Checks for `tenant_id` column presence.
      *    b. Verifies `NOT NULL` constraint on tenant column.
      *    c. Checks for index coverage on tenant column in `pg_indexes`.
      * 3. Aggregates results into passed, warnings, and violations.
@@ -124,13 +123,13 @@ class TenantSecurityAuditor
 
                 $tablesAudited++;
 
-                // 1. Check for tenant_id / vendor_id column
+                // 1. Check for tenant_id column
                 $colStmt = $db->prepare("
                     SELECT column_name, is_nullable, data_type 
                     FROM information_schema.columns 
                     WHERE table_schema = 'public' 
                       AND table_name = :table 
-                      AND column_name IN ('tenant_id', 'vendor_id')
+                      AND column_name = 'tenant_id'
                 ");
                 if ($colStmt === false) {
                     continue;
@@ -145,7 +144,7 @@ class TenantSecurityAuditor
                     $violations[] = [
                         'table' => $table,
                         'type' => 'MISSING_TENANT_KEY',
-                        'message' => "Table '{$table}' lacks a 'tenant_id' or 'vendor_id' column.",
+                        'message' => "Table '{$table}' lacks a 'tenant_id' column.",
                     ];
                     continue;
                 }

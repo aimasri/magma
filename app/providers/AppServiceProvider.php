@@ -26,5 +26,10 @@ class AppServiceProvider implements ServiceProviderInterface
         $container->set(SystemInfoProviderInterface::class, function () {
             return new SystemInfoProvider();
         });
+
+        $container->bind(
+            \App\services\SystemDiagnosticsServiceInterface::class,
+            \App\services\SystemDiagnosticsService::class
+        );
     }
 }

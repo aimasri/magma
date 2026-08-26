@@ -26,7 +26,8 @@ interface ReviewSubmissionServiceInterface
      * Submits a new review for processing.
      *
      * @param ReviewDTO $dto The validated review data transfer object.
+     * @param int $tenantId
      * @return bool True on successful submission, false otherwise.
      */
-    public function submit(ReviewDTO $dto): bool;
+    public function submit(ReviewDTO $dto, int $tenantId): bool;
 }

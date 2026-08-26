@@ -26,12 +26,10 @@ use Modules\Reviews\dto\ReviewDTO;
  */
 class ReviewSubmissionService implements ReviewSubmissionServiceInterface
 {
-    private SiteReviewCommandInterface $siteReviewRepository;
-
-    public function __construct(SiteReviewCommandInterface $siteReviewRepository)
-    {
-        $this->siteReviewRepository = $siteReviewRepository;
-    }
+    public function __construct(
+        private readonly SiteReviewCommandInterface $siteReviewRepository,
+        private readonly \Modules\Reviews\interfaces\ReviewFactoryInterface $reviewFactory
+    ) {}
 
     /**
      * Submits a new review to the database.
@@ -49,9 +47,9 @@ class ReviewSubmissionService implements ReviewSubmissionServiceInterface
      * @param ReviewDTO $dto Validated review DTO containing author, comment, and rating.
      * @return bool True if successful, false otherwise.
      */
-    public function submit(ReviewDTO $dto): bool
+    public function submit(ReviewDTO $dto, int $tenantId): bool
     {
-        $review = new Review($dto->author, $dto->comment, $dto->rating);
+        $review = $this->reviewFactory->create($tenantId, $dto->author, $dto->comment, $dto->rating);
         return $this->siteReviewRepository->addReview($review);
     }
 }

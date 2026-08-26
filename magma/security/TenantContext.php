@@ -10,16 +10,15 @@ use Magma\http\RequestInterface;
  * Title: Multi-Tenant Security & Query Scoping Context
  *
  * Purpose:
- * - Securely maintains the active multi-tenant boundary (`tenant_id` / `vendor_id` and optional `venue_id`) for the current execution lifecycle.
+ * - Securely maintains the active multi-tenant boundary (`tenant_id` and optional `venue_id`) for the current execution lifecycle.
  * - Coordinates with `TenantContextProviderInterface` for pluggable tenant resolution.
  * - Injected into CQRS repositories, query builders, and domain services to guarantee strict tenant isolation in SQL queries.
  *
  * Why / Why this design:
  * - Zero-Trust Data Boundary: Centralizing tenant identification prevents developers from relying on manual controller inputs or missing `WHERE tenant_id = ?` query clauses.
- * - Backward Compatibility Facade: Supports both modern `getTenantId()` and legacy `getVendorId()` calls seamlessly.
  *
  * Teaching notes:
- * - This singleton context is initialized once per HTTP request via `TenantSecurityMiddleware` or `TenantContextMiddleware`.
+ * - This singleton context is initialized once per HTTP request via `TenantSecurityMiddleware`.
  */
 class TenantContext
 {
@@ -69,36 +68,6 @@ class TenantContext
         return $this->tenantId !== null;
     }
 
-    /**
-     * Alias for setTenantId() to maintain backward compatibility.
-     *
-     * @param int $vendorId
-     * @return void
-     */
-    public function setVendorId(int $vendorId): void
-    {
-        $this->setTenantId($vendorId);
-    }
-
-    /**
-     * Alias for getTenantId() to maintain backward compatibility.
-     *
-     * @return int
-     */
-    public function getVendorId(): int
-    {
-        return $this->getTenantId();
-    }
-
-    /**
-     * Alias for hasTenantId() to maintain backward compatibility.
-     *
-     * @return bool
-     */
-    public function hasVendorId(): bool
-    {
-        return $this->hasTenantId();
-    }
 
     /**
      * Sets the optional venue or sub-organization identifier.

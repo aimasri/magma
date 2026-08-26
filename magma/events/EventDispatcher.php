@@ -126,9 +126,9 @@ class EventDispatcher implements EventDispatcherInterface
         $instance = is_object($listener) ? $listener : $this->container->get((string) $listener);
         assert(is_object($instance));
 
-        if (!method_exists($instance, 'handle')) {
+        if (!$instance instanceof EventListenerInterface) {
             $className = is_object($listener) ? get_class($listener) : (string) $listener;
-            throw new RuntimeException("Listener [{$className}] must implement a 'handle' method.");
+            throw new RuntimeException("Listener [{$className}] must implement EventListenerInterface.");
         }
 
         $arg = $this->resolveListenerArgument($instance, $event);

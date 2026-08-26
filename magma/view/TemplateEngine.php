@@ -42,7 +42,7 @@ class TemplateEngine
     /** @var array<string, mixed> Shared data accessible across partials and layouts. */
     private array $viewData = [];
 
-    /** @var array<string, mixed> Global data injected by middleware (e.g., vendor theme, auth user). */
+    /** @var array<string, mixed> Global data injected by middleware (e.g., tenant theme, auth user). */
     private array $sharedData = [];
 
     /** @var array<string, string> Cache for resolved layout paths. */

@@ -3,6 +3,7 @@
 namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
+use Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface;
 
 /**
  * Title: Password Reset Token Repository
@@ -16,7 +17,7 @@ use Magma\models\AbstractCommandRepository;
  * Teaching notes:
  * - Security-critical tables like `user_tokens` often require synchronous write-read guarantees, justifying the bypass of typical read-replica routing.
  */
-class PasswordResetTokenRepository extends AbstractCommandRepository
+class PasswordResetTokenRepository extends AbstractCommandRepository implements PasswordResetTokenRepositoryInterface
 {
 
 

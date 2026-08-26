@@ -23,6 +23,8 @@ use Modules\Reviews\domain\Review;
  */
 class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteReviewQueryInterface
 {
+    public const TABLE_NAME = 'site_reviews';
+
     /**
      * Fetches a paginated list of approved reviews from the database.
      *
@@ -36,20 +38,17 @@ class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteR
      * - Using generators (`yield`) drastically reduces memory consumption for large result sets.
      * - Keyset pagination (`id < :last_id`) offers consistent performance regardless of dataset size, avoiding the offset penalty.
      *
+     * @param int $tenantId The tenant ID.
      * @param int $limit Maximum number of records to return.
      * @param int|null $lastId The ID of the last seen record for cursor pagination.
      * @return iterable Generator yielding ReviewDTO objects.
      */
-    public function getApprovedReviews(int $limit = 20, ?int $lastId = null): iterable
+    public function getApprovedReviews(int $tenantId, int $limit = SiteReviewQueryInterface::DEFAULT_LIMIT, ?int $lastId = null): iterable
     {
-        $tenantId = $this->getTenantId();
-        if ($tenantId === null) {
-            throw new \RuntimeException('Tenant context is required for querying site reviews.');
-        }
 
         $pagination = new \Magma\dto\PaginationDTO(limit: $limit, lastId: $lastId);
         
-        $sql = "SELECT id, comment, author, rating FROM site_reviews WHERE status = :status AND tenant_id = :tenant_id";
+        $sql = "SELECT id, comment, author, rating FROM \"" . self::TABLE_NAME . "\" WHERE status = :status AND tenant_id = :tenant_id";
         $params = [
             ':status' => Review::STATUS_APPROVED,
             ':tenant_id' => $tenantId

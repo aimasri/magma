@@ -8,7 +8,7 @@ use Magma\view\TemplateEngine;
 use Magma\http\Request;
 use Magma\validation\Validator;
 
-use Magma\repositories\VendorRepositoryInterface;
+use Magma\repositories\TenantRepositoryInterface;
 use Magma\repositories\UserRepositoryInterface;
 
 use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
@@ -25,9 +25,9 @@ use Magma\controllers\HomeController;
 use Magma\controllers\LoginController;
 use Magma\controllers\RegisterController;
 use Magma\controllers\LogoutController;
-use Magma\controllers\PasswordResetController;
+
 use Magma\controllers\PolicyController;
-use admin\controllers\VendorAdminController;
+use admin\controllers\TenantAdminController;
 use user\controllers\UserDashboardController;
 
 /**
@@ -70,7 +70,7 @@ class HttpServiceProvider implements ServiceProviderInterface
         $container->set(ViewShareMiddleware::class, function ($c) {
             return new ViewShareMiddleware(
                 $c->get(TemplateEngine::class),
-                $c->get(\Magma\interfaces\cqrs\VendorQueryInterface::class),
+                $c->get(\Magma\interfaces\cqrs\TenantQueryInterface::class),
                 $c->get(\Magma\http\Session::class)
             );
         });
@@ -85,16 +85,17 @@ class HttpServiceProvider implements ServiceProviderInterface
         // Controllers
         // ------------------------------------------------------------------
         $container->set(HomeController::class, function ($c) {
-            return new HomeController();
+            return new HomeController(
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
+                $c->get(\Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface::class),
+                $c->get(\Magma\services\PaginationService::class),
+                $c->get(\Magma\http\SessionInterface::class),
+                $c->get(\Magma\security\TenantContext::class)
+            );
         });
 
         $container->set(\Modules\Reviews\controllers\ReviewController::class, function ($c) {
-            $service = $c->get(\Modules\Reviews\interfaces\ReviewSubmissionServiceInterface::class);
-            assert($service instanceof \Modules\Reviews\interfaces\ReviewSubmissionServiceInterface);
-            $session = $c->get(\Magma\http\SessionInterface::class);
-            assert($session instanceof \Magma\http\SessionInterface);
-            
-            return new \Modules\Reviews\controllers\ReviewController($service, $session);
+            return new \Modules\Reviews\controllers\ReviewController();
         });
 
         $container->set(LoginController::class, function ($c) {
@@ -124,21 +125,37 @@ class HttpServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(LogoutController::class, function ($c) {
-            return new LogoutController();
+            return new LogoutController(
+                $c->get(AuthenticationService::class)
+            );
         });
 
-        $container->set(PasswordResetController::class, function ($c) {
-            return new PasswordResetController();
+        $container->set(\Magma\controllers\PasswordResetRequestController::class, function ($c) {
+            return new \Magma\controllers\PasswordResetRequestController(
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
+                $c->get(\Magma\http\SessionInterface::class),
+                $c->get(\Magma\services\PasswordResetRequestService::class)
+            );
+        });
+
+        $container->set(\Magma\controllers\PasswordResetCompletionController::class, function ($c) {
+            return new \Magma\controllers\PasswordResetCompletionController(
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class),
+                $c->get(\Magma\http\SessionInterface::class),
+                $c->get(\Magma\services\PasswordResetCompletionService::class)
+            );
         });
 
         $container->set(PolicyController::class, function ($c) {
-            return new PolicyController();
+            return new PolicyController(
+                $c->get(\Magma\view\HtmlResponseBuilderInterface::class)
+            );
         });
 
         // @phpstan-ignore-next-line
-        $container->set(VendorAdminController::class, function ($c) {
+        $container->set(TenantAdminController::class, function ($c) {
             // @phpstan-ignore-next-line
-            return new VendorAdminController();
+            return new TenantAdminController();
         });
 
         // @phpstan-ignore-next-line

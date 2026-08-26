@@ -31,7 +31,7 @@ class GuestMiddleware implements MiddlewareInterface
      * Execution Flow:
      * 1. Extracts the user state from the current session.
      * 2. If a user is found, their 'role' is evaluated.
-     * 3. Vendors are redirected to the '/admin' dashboard, while standard users go to '/user'.
+     * 3. Tenants are redirected to the '/admin' dashboard, while standard users go to '/user'.
      * 4. If no user is found, the guest is allowed to proceed to the requested route.
      * 
      * Logic behind the logic:
@@ -45,7 +45,7 @@ class GuestMiddleware implements MiddlewareInterface
     {
         $user = $this->session->get('user');
         if (is_array($user)) {
-            if (isset($user['role']) && $user['role'] === 'vendor') {
+            if (isset($user['role']) && $user['role'] === 'tenant') {
                 return new RedirectResponse('/admin');
             }
             return new RedirectResponse('/user');

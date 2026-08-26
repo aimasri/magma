@@ -33,6 +33,9 @@ class EventServiceProvider implements ServiceProviderInterface
         \Magma\domain\events\UserRegisteredEvent::class => [
             \Magma\listeners\SendWelcomeEmailListener::class,
         ],
+        \Magma\domain\events\PasswordResetRequestedEvent::class => [
+            \Magma\listeners\SendPasswordResetEmailListener::class,
+        ],
     ];
 
     /**

@@ -1,6 +1,7 @@
 'use strict';
 
 import { templateEngine } from './TemplateEngine.js';
+import { domSanitizer } from './DomSanitizer.js';
 
 /**
  * Title: Magma Combobox View & Renderer
@@ -54,7 +55,7 @@ export class ComboboxDefaultRenderer {
         if (typeof customRenderer === 'function') {
             itemEl = document.createElement('div');
             itemEl.className = 'magma-combobox-item';
-            itemEl.innerHTML = customRenderer(item);
+            itemEl.innerHTML = domSanitizer.sanitizeHtml(customRenderer(item));
         } else {
             const tpl = this._resolveItemTemplate();
             const itemData = this._formatItemData(item);
@@ -71,41 +72,18 @@ export class ComboboxDefaultRenderer {
         let tpl = this.itemTemplateId ? document.querySelector(this.itemTemplateId) : null;
         if (!tpl && !this._defaultItemTemplate) {
             this._defaultItemTemplate = document.createElement('template');
-            
-            const wrapper = document.createElement('div');
-            wrapper.className = 'magma-combobox-item';
-            wrapper.setAttribute('role', 'option');
-            
-            const row1 = document.createElement('div');
-            row1.className = 'magma-combobox__item-row-primary';
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'magma-combobox__item-title';
-            titleSpan.setAttribute('data-bind-text', 'title');
-            const badgeSpan = document.createElement('span');
-            badgeSpan.className = 'magma-combobox__item-badge';
-            badgeSpan.setAttribute('data-bind-text', 'badge');
-            badgeSpan.setAttribute('data-if', 'badge');
-            row1.appendChild(titleSpan);
-            row1.appendChild(badgeSpan);
-            
-            const row2 = document.createElement('div');
-            row2.className = 'magma-combobox__item-row-secondary';
-            row2.setAttribute('data-if', 'hasSecondary');
-            const specsSpan = document.createElement('span');
-            specsSpan.className = 'magma-combobox__item-specs';
-            specsSpan.setAttribute('data-bind-text', 'specs');
-            specsSpan.setAttribute('data-if', 'specs');
-            const priceSpan = document.createElement('span');
-            priceSpan.className = 'magma-combobox__item-price';
-            priceSpan.setAttribute('data-bind-text', 'price | currency');
-            priceSpan.setAttribute('data-if', 'price');
-            row2.appendChild(specsSpan);
-            row2.appendChild(priceSpan);
-            
-            wrapper.appendChild(row1);
-            wrapper.appendChild(row2);
-            
-            this._defaultItemTemplate.content.appendChild(wrapper);
+            this._defaultItemTemplate.innerHTML = `
+                <div class="magma-combobox-item" role="option">
+                    <div class="magma-combobox__item-row-primary">
+                        <span class="magma-combobox__item-title" data-bind-text="title"></span>
+                        <span class="magma-combobox__item-badge" data-bind-text="badge" data-if="badge"></span>
+                    </div>
+                    <div class="magma-combobox__item-row-secondary" data-if="hasSecondary">
+                        <span class="magma-combobox__item-specs" data-bind-text="specs" data-if="specs"></span>
+                        <span class="magma-combobox__item-price" data-bind-text="price | currency" data-if="price"></span>
+                    </div>
+                </div>
+            `;
         }
         return tpl || this._defaultItemTemplate;
     }
@@ -142,38 +120,19 @@ export class ComboboxDefaultRenderer {
     renderSelectedCard(item, selectedCardElement, cardFormatter = null) {
         selectedCardElement.innerHTML = '';
         if (typeof cardFormatter === 'function') {
-            selectedCardElement.innerHTML = cardFormatter(item);
+            selectedCardElement.innerHTML = domSanitizer.sanitizeHtml(cardFormatter(item));
         } else {
             let tpl = this.selectedTemplateId ? document.querySelector(this.selectedTemplateId) : null;
             if (!tpl && !this._defaultSelectedTemplate) {
                 this._defaultSelectedTemplate = document.createElement('template');
-                
-                const row1 = document.createElement('div');
-                row1.className = 'magma-combobox__selected-card-row1';
-                const title = document.createElement('strong');
-                title.className = 'magma-combobox__selected-card-title';
-                title.setAttribute('data-bind-text', 'title');
-                const badge = document.createElement('span');
-                badge.className = 'magma-combobox__selected-card-badge';
-                badge.setAttribute('data-bind-text', 'badge');
-                badge.setAttribute('data-if', 'badge');
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'magma-combobox__selected-card-clear-btn';
-                btn.title = 'Change selection';
-                btn.setAttribute('aria-label', 'Clear selection');
-                btn.textContent = '×';
-                row1.appendChild(title);
-                row1.appendChild(badge);
-                row1.appendChild(btn);
-                
-                const row2 = document.createElement('div');
-                row2.className = 'magma-combobox__selected-card-row2';
-                row2.setAttribute('data-bind-text', 'secondaryText');
-                row2.setAttribute('data-if', 'secondaryText');
-                
-                this._defaultSelectedTemplate.content.appendChild(row1);
-                this._defaultSelectedTemplate.content.appendChild(row2);
+                this._defaultSelectedTemplate.innerHTML = `
+                    <div class="magma-combobox__selected-card-row1">
+                        <strong class="magma-combobox__selected-card-title" data-bind-text="title"></strong>
+                        <span class="magma-combobox__selected-card-badge" data-bind-text="badge" data-if="badge"></span>
+                        <button type="button" class="magma-combobox__selected-card-clear-btn" title="Change selection" aria-label="Clear selection">×</button>
+                    </div>
+                    <div class="magma-combobox__selected-card-row2" data-bind-text="secondaryText" data-if="secondaryText"></div>
+                `;
             }
             
             tpl = tpl || this._defaultSelectedTemplate;

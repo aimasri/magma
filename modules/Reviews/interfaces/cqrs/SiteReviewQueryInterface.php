@@ -19,12 +19,15 @@ namespace Modules\Reviews\interfaces\cqrs;
  */
 interface SiteReviewQueryInterface
 {
+    public const DEFAULT_LIMIT = 20;
+
     /**
      * Retrieves a paginated list of approved reviews.
      *
+     * @param int $tenantId
      * @param int $limit The maximum number of reviews to retrieve.
      * @param int|null $lastId The ID of the last review seen, used for cursor-based pagination.
      * @return iterable A collection of approved ReviewDTOs.
      */
-    public function getApprovedReviews(int $limit = 20, ?int $lastId = null): iterable;
+    public function getApprovedReviews(int $tenantId, int $limit = self::DEFAULT_LIMIT, ?int $lastId = null): iterable;
 }

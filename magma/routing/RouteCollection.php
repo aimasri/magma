@@ -33,7 +33,7 @@ class RouteCollection
     /**
      * Initializes the RouteCollection registry.
      *
-     * @param array<int, Route|RouteDefinition|array<int, mixed>> $rawRoutes Array of Route, RouteDefinition, or legacy tuple arrays
+     * @param array<int, Route|RouteDefinition> $rawRoutes Array of Route or RouteDefinition objects
      */
     public function __construct(array $rawRoutes = [])
     {
@@ -54,15 +54,14 @@ class RouteCollection
      * Logic behind the logic:
      * - Partitioning at registration time eliminates per-request classification costs, maximizing HTTP throughput.
      *
-     * @param Route|RouteDefinition|array<int, mixed> $routeItem
+     * @param Route|RouteDefinition $routeItem
      * @return self
      */
-    public function add(Route|RouteDefinition|array $routeItem): self
+    public function add(Route|RouteDefinition $routeItem): self
     {
         $route = match (true) {
             $routeItem instanceof Route => $routeItem,
             $routeItem instanceof RouteDefinition => $routeItem->toRoute(),
-            is_array($routeItem) => Route::fromTuple($routeItem),
         };
 
         $method = $route->getMethod();
