@@ -28,8 +28,8 @@ class NumericRule
      *
      * @param string $field The name of the field under validation.
      * @param mixed $value The value to validate.
-     * @param array $params Additional parameters (unused here).
-     * @param array $data The full dataset being validated.
+     * @param array<int, string> $params Additional parameters (unused here).
+     * @param array<string, mixed> $data The full dataset being validated.
      * @return string|null The error message, or null if valid.
      */
     public function __invoke(string $field, mixed $value, array $params, array $data): ?string

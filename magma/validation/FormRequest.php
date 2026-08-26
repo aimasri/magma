@@ -41,6 +41,8 @@ abstract class FormRequest implements ValidatableRequestInterface
     /**
      * Defines the validation rules for this specific request.
      * Must return an array mapping field names to rule strings.
+     * 
+     * @return array<string, string>
      */
     abstract public function rules(): array;
     
@@ -58,14 +60,19 @@ abstract class FormRequest implements ValidatableRequestInterface
      */
     public function validate(): bool
     {
-        $this->validator->validateOrFail($this->request->request(), $this->rules());
+        $requestData = $this->request->request();
+        if (!is_array($requestData)) {
+            $requestData = [];
+        }
+        
+        $this->validator->validateOrFail($requestData, $this->rules());
         return true;
     }
 
     /**
      * Retrieves the validation errors if validation has previously failed.
      *
-     * @return array An array of error messages.
+     * @return array<string, string> An array of error messages.
      */
     public function getErrors(): array
     {

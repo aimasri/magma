@@ -18,6 +18,11 @@ use Magma\http\RequestInterface;
 interface ValidatableRequestInterface
 {
     public function validate(): bool;
+    
+    /**
+     * @return array<string, string>
+     */
     public function getErrors(): array;
+    
     public function getRequest(): RequestInterface;
 }

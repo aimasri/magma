@@ -29,8 +29,13 @@ use Magma\validation\rules\ConfirmedRule;
  */
 class Validator
 {
+    /** @var array<string, string> */
     protected array $errors = [];
+    
+    /** @var array<string, mixed> */
     protected array $data = []; // Store data for rules that need full context
+    
+    /** @var array<string, callable> */
     private array $rules = [];
 
     /**
@@ -62,7 +67,7 @@ class Validator
      * Parses a rule string into its name and parameters.
      * 
      * @param string $ruleString e.g. "min:8"
-     * @return array [string $ruleName, array $params]
+     * @return array{0: string, 1: array<int, string>} [string $ruleName, array $params]
      */
     private function parseRule(string $ruleString): array
     {
@@ -90,6 +95,9 @@ class Validator
      * Logic behind the logic:
      * - Breaking on the first failure per field prevents redundant error messages.
      * - Throwing a LogicException on an unrecognized rule prevents silent security bypasses.
+     * 
+     * @param array<string, mixed> $data
+     * @param array<string, string> $rules
      */
     public function validate(array $data, array $rules): bool
     {
@@ -131,6 +139,9 @@ class Validator
 
     /**
      * Executes validation and throws a ValidationException if it fails.
+     * 
+     * @param array<string, mixed> $data
+     * @param array<string, string> $rules
      */
     public function validateOrFail(array $data, array $rules): void
     {
@@ -142,7 +153,7 @@ class Validator
     /**
      * Retrieves the array of collected validation errors.
      * 
-     * @return array Map of field names to their respective error messages.
+     * @return array<string, string> Map of field names to their respective error messages.
      */
     public function getErrors(): array
     {

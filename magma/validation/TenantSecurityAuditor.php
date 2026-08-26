@@ -47,7 +47,7 @@ class TenantSecurityAuditor
     /**
      * Executes the complete multi-tenant security and boundary audit.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function runFullAudit(): array
     {
@@ -78,7 +78,7 @@ class TenantSecurityAuditor
      * 3. Aggregates results into passed, warnings, and violations.
      *
      * @param PDO|null $pdo
-     * @return array
+     * @return array{skipped: bool, message?: string, tables_audited: int, violations: array<int, array<string, string>>, warnings: array<int, array<string, string>>, passed: array<int, array<string, string>>}
      */
     public function auditDatabaseSchema(?PDO $pdo = null): array
     {
@@ -109,6 +109,12 @@ class TenantSecurityAuditor
                   AND table_type = 'BASE TABLE'
                 ORDER BY table_name ASC
             ");
+            
+            if ($stmt === false) {
+                throw new \RuntimeException('Failed to execute query for fetching tables.');
+            }
+            
+            /** @var array<int, string> $tables */
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             foreach ($tables as $table) {
@@ -126,10 +132,16 @@ class TenantSecurityAuditor
                       AND table_name = :table 
                       AND column_name IN ('tenant_id', 'vendor_id')
                 ");
+                if ($colStmt === false) {
+                    continue;
+                }
+                
                 $colStmt->execute(['table' => $table]);
+                
+                /** @var array<string, mixed>|false $tenantCol */
                 $tenantCol = $colStmt->fetch(PDO::FETCH_ASSOC);
 
-                if (!$tenantCol) {
+                if ($tenantCol === false) {
                     $violations[] = [
                         'table' => $table,
                         'type' => 'MISSING_TENANT_KEY',
@@ -138,6 +150,7 @@ class TenantSecurityAuditor
                     continue;
                 }
 
+                /** @var string $colName */
                 $colName = $tenantCol['column_name'];
 
                 if ($tenantCol['is_nullable'] === 'YES') {
@@ -204,7 +217,7 @@ class TenantSecurityAuditor
      * 3. Flags controllers or repositories bypassing the HTTP Request / FormRequest abstraction.
      *
      * @param string|null $directory
-     * @return array
+     * @return array{files_audited: int, violations: array<int, array<string, string>>, warnings: array<int, array<string, string>>}
      */
     public function auditCodebaseBoundaries(?string $directory = null): array
     {
@@ -250,7 +263,7 @@ class TenantSecurityAuditor
                 $warnings[] = [
                     'file' => $relativePath,
                     'type' => 'RAW_SESSION_ACCESS',
-                    'message' => "Direct '$_SESSION' usage detected in controller. Inject 'SessionInterface' instead.",
+                    'message' => "Direct '\$_SESSION' usage detected in controller. Inject 'SessionInterface' instead.",
                 ];
             }
         }
@@ -262,6 +275,10 @@ class TenantSecurityAuditor
         ];
     }
 
+    /**
+     * @param string $dir
+     * @param array<int, string> $results
+     */
     private function collectPhpFiles(string $dir, array &$results): void
     {
         $items = scandir($dir);

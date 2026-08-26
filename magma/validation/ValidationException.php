@@ -20,12 +20,15 @@ namespace Magma\validation;
  */
 class ValidationException extends \Exception
 {
+    /**
+     * @var array<string, string>
+     */
     private array $errors;
 
     /**
      * Initializes the exception with an array of structured error messages.
      *
-     * @param array $errors Map of field names to their respective validation error messages.
+     * @param array<string, string> $errors Map of field names to their respective validation error messages.
      */
     public function __construct(array $errors)
     {
@@ -36,7 +39,7 @@ class ValidationException extends \Exception
     /**
      * Retrieves the associative array of validation errors.
      *
-     * @return array Map of errors.
+     * @return array<string, string> Map of errors.
      */
     public function getErrors(): array
     {
