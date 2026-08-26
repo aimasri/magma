@@ -1497,7 +1497,7 @@ In default PHP, when a fatal error occurs (like trying to connect to a database 
 
 Both of these are unacceptable in a professional application. 
 
-In the Magma Framework framework, we enforce a global **Exception Handler**.
+In the Magma Framework framework, we enforce a global **Exception Handler** and absolute **Exception Boundaries** at the infrastructure level. For example, our base `AbstractQueryRepository` and `AbstractCommandRepository` explicitly catch `PDOException` natively at the execution layer, translating them into `DatabaseException`. This mathematically guarantees raw database credentials or SQL syntax errors never bleed into the domain or HTTP application layers, even before the global error handler catches them.
 
 #### The Theory: Catching Everything
 Instead of sprinkling `try/catch` blocks randomly throughout every single file, we register a global listener at the very start of the application lifecycle (inside `bootstrap.php`).
@@ -1797,6 +1797,11 @@ Meanwhile, a separate PHP process running continuously in the background (the Wo
 
 #### Analyzing the Principles
 This ensures the web tier remains lightning fast and completely isolated from the performance bottlenecks of third-party APIs or heavy background calculations.
+
+#### Self-Healing and Tenant Safety
+To guarantee that these background workers never crash your infrastructure, Magma implements **Self-Healing Workers**. The `QueueWorkerDaemon` wraps its Redis polling in a `try/catch` block. If the Redis server drops offline, the daemon doesn't fatally crash; it simply logs a critical alert to the PSR-3 `NativeLogger`, sleeps for 5 seconds, and cleanly retries. 
+
+Additionally, because background workers run continuously within a single PHP process, they share the exact same Dependency Injection `Container`. This presents a massive data-leakage risk in multi-tenant SaaS architectures if "Singleton" state bleeds from Job A into Job B. To prevent this, Magma explicitly calls `$container->flushInstances()` at the beginning of *every single loop iteration*, ensuring every job executes in a completely pristine environment.
 
 ---
 

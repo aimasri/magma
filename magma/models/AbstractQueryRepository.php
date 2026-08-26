@@ -198,8 +198,12 @@ abstract class AbstractQueryRepository
      */
     private function executeQuery(string $sql, array $params = []): PDOStatement
     {
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        try {
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database query failed.", 0, $e);
+        }
     }
 }

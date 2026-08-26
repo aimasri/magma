@@ -68,9 +68,13 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
              . '    FOR UPDATE SKIP LOCKED'
              . ') RETURNING "id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox fetch failed.", 0, $e);
+        }
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (!$rows) {
@@ -122,8 +126,12 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         $placeholders = implode(',', array_fill(0, count($sanitizedIds), '?'));
         $sql = "DELETE FROM \"outbox_jobs\" WHERE \"id\" IN ({$placeholders})";
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($sanitizedIds);
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($sanitizedIds);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox delete batch failed.", 0, $e);
+        }
     }
 
     /**
@@ -148,12 +156,16 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") '
              . 'VALUES (:queue, :handler, :payload, :headers, 0, NOW()) RETURNING "id"';
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':queue', trim($job->queue));
-        $stmt->bindValue(':handler', trim($job->handlerClass));
-        $stmt->bindValue(':payload', json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $stmt->bindValue(':headers', json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $stmt->execute();
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':queue', trim($job->queue));
+            $stmt->bindValue(':handler', trim($job->handlerClass));
+            $stmt->bindValue(':payload', json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            $stmt->bindValue(':headers', json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox record failed.", 0, $e);
+        }
 
         $id = $stmt->fetchColumn();
         return (int) $id;
@@ -188,7 +200,11 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
                 $stmt->bindValue($i++, json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             }
 
-            $stmt->execute();
+            try {
+                $stmt->execute();
+            } catch (\PDOException $e) {
+                throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox bulk record failed.", 0, $e);
+            }
         }
     }
 
@@ -217,9 +233,13 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
              . '    "last_error" = :error '
              . 'WHERE "id" = :id';
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox status update failed.", 0, $e);
+        }
     }
 }

@@ -37,6 +37,8 @@ class RedisCache implements CacheInterface
      */
     private Redis $redis;
 
+    private \Magma\logging\LoggerInterface $logger;
+
     /**
      * Cache key namespace prefix.
      */
@@ -51,12 +53,14 @@ class RedisCache implements CacheInterface
      * Initializes the Redis Cache driver.
      *
      * @param Redis $redis Configured Redis connection.
+     * @param \Magma\logging\LoggerInterface $logger System logger.
      * @param string $prefix Namespace key prefix (default 'magma:cache:').
      * @param int $defaultTtl Default TTL in seconds (default 3600).
      */
-    public function __construct(Redis $redis, string $prefix = 'magma:cache:', int $defaultTtl = 3600)
+    public function __construct(Redis $redis, \Magma\logging\LoggerInterface $logger, string $prefix = 'magma:cache:', int $defaultTtl = 3600)
     {
         $this->redis = $redis;
+        $this->logger = $logger;
         $this->prefix = $prefix;
         $this->defaultTtl = $defaultTtl;
     }
@@ -101,7 +105,8 @@ class RedisCache implements CacheInterface
             }
 
             return $unserialized;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->error('Redis Cache get failure', ['exception' => $e->getMessage(), 'key' => $key]);
             $this->delete($key);
             return $default;
         }
@@ -135,7 +140,8 @@ class RedisCache implements CacheInterface
 
         try {
             return (bool) $this->redis->setex($prefixedKey, $seconds, $serialized);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->error('Redis Cache set failure', ['exception' => $e->getMessage(), 'key' => $key]);
             return false;
         }
     }
@@ -153,7 +159,8 @@ class RedisCache implements CacheInterface
 
         try {
             return (bool) $this->redis->set($prefixedKey, $serialized, ['nx', 'ex' => $seconds]);
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->error('Redis Cache add failure', ['exception' => $e->getMessage(), 'key' => $key]);
             return false;
         }
     }
@@ -169,7 +176,8 @@ class RedisCache implements CacheInterface
         try {
             $this->redis->del($this->prefixKey($key));
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->error('Redis Cache delete failure', ['exception' => $e->getMessage(), 'key' => $key]);
             return false;
         }
     }
@@ -193,7 +201,8 @@ class RedisCache implements CacheInterface
                 $this->redis->del($keys);
             }
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->warning('Redis Cache clear failed', ['exception' => $e->getMessage()]);
             return false;
         }
     }
@@ -252,7 +261,8 @@ class RedisCache implements CacheInterface
         try {
             $this->redis->del($prefixedKeys);
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->warning('Redis Cache deleteMultiple failed', ['exception' => $e->getMessage()]);
             return false;
         }
     }
@@ -267,7 +277,8 @@ class RedisCache implements CacheInterface
     {
         try {
             return (bool) $this->redis->exists($this->prefixKey($key));
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            $this->logger->warning('Redis Cache has failed', ['exception' => $e->getMessage(), 'key' => $key]);
             return false;
         }
     }

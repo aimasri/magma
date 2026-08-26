@@ -294,8 +294,22 @@ class Container
     }
 
     /**
-     * Resolves dependencies for constructor injection.
+     * Flushes all cached singleton instances.
      * 
+     * Purpose:
+     * - Primarily used by background workers to ensure a clean state between job iterations,
+     *   preventing tenant data leakage (e.g., TenantContext).
+     *
+     * @return void
+     */
+    public function flushInstances(): void
+    {
+        $this->instances = [];
+    }
+
+    /**
+     * Resolves the dependencies for a class constructor using reflection.
+     *
      * @param \ReflectionParameter[] $parameters
      * @param string $class
      * @param array<int|string, mixed> $args

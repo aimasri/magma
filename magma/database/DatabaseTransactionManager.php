@@ -74,15 +74,18 @@ class DatabaseTransactionManager implements TransactionManagerInterface
      */
     public function transactional(callable $callback): mixed
     {
-        $this->begin();
-
         try {
+            $this->begin();
             $result = $callback();
             $this->commit();
 
             return $result;
         } catch (Throwable $e) {
-            $this->rollBack();
+            try {
+                $this->rollBack();
+            } catch (Throwable $rollbackError) {
+                error_log("Rollback failed: " . $rollbackError->getMessage());
+            }
 
             throw $e;
         }

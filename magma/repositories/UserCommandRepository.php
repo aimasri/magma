@@ -54,7 +54,7 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
             if ($code === '23000' || $code === '23505') {
                 throw new DuplicateResourceException('This email is already registered.', 0, $e);
             }
-            throw $e;
+            throw new \Magma\infrastructure\exceptions\DatabaseException('A database error occurred during user registration.', 0, $e);
         }
     }
 

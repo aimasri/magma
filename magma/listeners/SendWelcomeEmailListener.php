@@ -3,7 +3,6 @@
 namespace Magma\listeners;
 
 use Magma\domain\events\UserRegisteredEvent;
-use Magma\queue\QueueInterface;
 use Magma\jobs\SendWelcomeEmailJob;
 
 /**
@@ -19,28 +18,34 @@ use Magma\jobs\SendWelcomeEmailJob;
  *   email queues or mailers anymore.
  *
  * Teaching notes:
- * - Notice how the listener depends on the `QueueInterface`. Even though it's reacting
+ * - Notice how the listener depends on the `OutboxJobRepositoryInterface`. Even though it's reacting
  *   to an event, it still pushes the actual email sending to a background job to keep
- *   the HTTP response fast for the user.
+ *   the HTTP response fast for the user. By writing to the Outbox, we guarantee at-least-once delivery.
  */
 class SendWelcomeEmailListener
 {
-    private QueueInterface $queue;
+    private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
 
-    public function __construct(QueueInterface $queue)
+    public function __construct(\Magma\database\OutboxJobRepositoryInterface $outboxJobRepository)
     {
-        $this->queue = $queue;
+        $this->outboxJobRepository = $outboxJobRepository;
     }
 
     public function handle(UserRegisteredEvent $event): void
     {
         try {
-            $this->queue->push('emails', SendWelcomeEmailJob::class, [
-                'to_email' => $event->registration->getEmail(),
-                'to_name'  => $event->registration->getName()
-            ]);
+            $jobDto = new \Magma\dto\OutboxJobDTO(
+                'emails',
+                SendWelcomeEmailJob::class,
+                [
+                    'to_email' => $event->registration->getEmail(),
+                    'to_name'  => $event->registration->getName()
+                ]
+            );
+            
+            $this->outboxJobRepository->record($jobDto);
         } catch (\Throwable $e) {
-            error_log("Failed to push welcome email to queue: " . $e->getMessage());
+            error_log("Failed to record welcome email in outbox: " . $e->getMessage());
         }
     }
 }

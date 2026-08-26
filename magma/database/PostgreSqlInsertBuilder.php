@@ -99,8 +99,12 @@ class PostgreSqlInsertBuilder
     {
         $built = self::build($table, $data, $primaryKey);
         
-        $stmt = $pdo->prepare($built['sql']);
-        $stmt->execute($built['params']);
+        try {
+            $stmt = $pdo->prepare($built['sql']);
+            $stmt->execute($built['params']);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database insert failed.", 0, $e);
+        }
 
         $id = $stmt->fetchColumn(0);
         if ($id === false || $id === null) {

@@ -12,24 +12,41 @@ class QueueWorkerDaemon
 {
     private Container $container;
     private QueueInterface $queue;
+    private \Magma\logging\LoggerInterface $logger;
 
     private bool $running = true;
 
-    public function __construct(Container $container, QueueInterface $queue)
+    public function __construct(Container $container, QueueInterface $queue, \Magma\logging\LoggerInterface $logger)
     {
         $this->container = $container;
         $this->queue = $queue;
+        $this->logger = $logger;
     }
 
     public function run(string $queueName = 'emails'): void
     {
-        echo "Worker started. Listening for jobs on '{$queueName}' queue...\n";
+        $this->logger->info("Worker started. Listening for jobs on '{$queueName}' queue...");
 
         while ($this->running) {
-            $jobString = $this->queue->pop($queueName, 0);
+            // Flush DI container state to prevent tenant data leakage across jobs
+            $this->container->flushInstances();
+
+            try {
+                $jobString = $this->queue->pop($queueName, 0);
+            } catch (\Throwable $e) {
+                $this->logger->critical("Queue pop failed (e.g. Redis offline). Sleeping for 5s.", ['exception' => $e->getMessage()]);
+                sleep(5);
+                continue;
+            }
 
             if ($jobString) {
                 $this->processJob($jobString);
+            }
+
+            // Prevent OOM in long-running processes (128MB threshold)
+            if (memory_get_usage() > 134217728) {
+                $this->logger->warning("Memory limit exceeded (128MB). Exiting daemon safely.");
+                exit(0);
             }
         }
     }
@@ -39,14 +56,14 @@ class QueueWorkerDaemon
         $job = json_decode($jobString, true);
 
         if (!is_array($job)) {
-            echo "Invalid job payload format.\n";
+            $this->logger->warning("Invalid job payload format.");
             return;
         }
 
         $handlerClass = $job[\Magma\queue\JobInterface::HANDLER_KEY] ?? null;
 
         if (is_string($handlerClass) && class_exists($handlerClass)) {
-            echo "Received job: " . $handlerClass . "\n";
+            $this->logger->info("Received job: " . $handlerClass);
             try {
                 set_time_limit(120);
 
@@ -62,9 +79,9 @@ class QueueWorkerDaemon
                 }
 
                 $handler->handle($payload);
-                echo "Successfully processed job.\n";
+                $this->logger->info("Successfully processed job.");
             } catch (Throwable $e) {
-                echo "Failed to process job: " . $e->getMessage() . "\n";
+                $this->logger->error("Failed to process job.", ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
                 $job['error'] = $e->getMessage();
                 $job['failed_at'] = date('c');
                 $this->queue->push('failed_jobs', $handlerClass, $job);
@@ -78,7 +95,7 @@ class QueueWorkerDaemon
                 set_time_limit(0);
             }
         } else {
-            echo "Invalid job payload or handler does not exist.\n";
+            $this->logger->warning("Invalid job payload or handler does not exist.");
         }
     }
 }

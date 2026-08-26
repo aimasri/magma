@@ -52,18 +52,18 @@ class RegistrationService
         
         $result = $this->transactionManager->transactional(function () use ($registration) {
             try {
-                return $this->userCommandRepository->create($registration);
+                $userId = $this->userCommandRepository->create($registration);
+                
+                if ($userId) {
+                    $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $userId));
+                }
+                
+                return $userId;
             } catch (\Magma\domain\exceptions\DuplicateResourceException $e) {
                 throw new ValidationException(['email' => 'This email is already registered.']);
             }
         });
         
-        $userId = is_scalar($result) ? (int) $result : 0;
-
-        if ($userId) {
-            $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $userId));
-        }
-        
-        return $userId;
+        return is_scalar($result) ? (int) $result : 0;
     }
 }

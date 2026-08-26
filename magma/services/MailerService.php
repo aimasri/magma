@@ -51,9 +51,10 @@ class MailerService
      *
      * @param string $toEmail The recipient email address.
      * @param MailableInterface $mailable The mailable object to send.
-     * @return bool True if accepted for delivery, false otherwise.
+     * @return void
+     * @throws \Magma\infrastructure\exceptions\InfrastructureException If the transport fails to deliver.
      */
-    public function sendMailable(string $toEmail, MailableInterface $mailable): bool
+    public function sendMailable(string $toEmail, MailableInterface $mailable): void
     {
         $subject = $mailable->getSubject();
         $body = $this->templateEngine->render(
@@ -62,7 +63,7 @@ class MailerService
             null
         );
 
-        return $this->send($toEmail, $subject, $body);
+        $this->send($toEmail, $subject, $body);
     }
 
     /**
@@ -81,9 +82,10 @@ class MailerService
      * @param string $toEmail The recipient email address.
      * @param string $subject The email subject line.
      * @param string $body    The compiled HTML body.
-     * @return bool True if accepted for delivery, false otherwise.
+     * @return void
+     * @throws \Magma\infrastructure\exceptions\InfrastructureException If the transport fails to deliver.
      */
-    private function send(string $toEmail, string $subject, string $body): bool
+    private function send(string $toEmail, string $subject, string $body): void
     {
         $headers = [
             'From' => "{$this->config['from_name']} <{$this->config['from_email']}>",
@@ -92,6 +94,8 @@ class MailerService
             'Content-Type' => 'text/html; charset=UTF-8'
         ];
 
-        return $this->transport->send($toEmail, $subject, $body, $headers);
+        if (!$this->transport->send($toEmail, $subject, $body, $headers)) {
+            throw new \Magma\infrastructure\exceptions\InfrastructureException("Mailer transport failed to accept the email for {$toEmail}.");
+        }
     }
 }

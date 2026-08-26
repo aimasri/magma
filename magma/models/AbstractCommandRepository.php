@@ -130,8 +130,12 @@ abstract class AbstractCommandRepository
         $sql = "UPDATE \"{$table}\" SET {$setSql} WHERE {$where}";
 
         $mergedParams = array_merge($params, $whereParams);
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute($mergedParams);
+        try {
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($mergedParams);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database update failed.", 0, $e);
+        }
 
         return $stmt->rowCount();
     }
@@ -152,8 +156,12 @@ abstract class AbstractCommandRepository
     protected function executeDelete(string $table, string $where, array $whereParams = []): int
     {
         $sql = "DELETE FROM \"{$table}\" WHERE {$where}";
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute($whereParams);
+        try {
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($whereParams);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database delete failed.", 0, $e);
+        }
 
         return $stmt->rowCount();
     }
@@ -167,8 +175,12 @@ abstract class AbstractCommandRepository
      */
     protected function execute(string $sql, array $params = []): int
     {
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute($params);
+        try {
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database execute failed.", 0, $e);
+        }
         return $stmt->rowCount();
     }
 }
