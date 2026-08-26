@@ -35,7 +35,7 @@ interface JobInterface
      *   data deserialization and validation down to the concrete job implementation classes, 
      *   thus decoupling the queue worker from job-specific logic.
      *
-     * @param array $payload The JSON-decoded payload from the queue.
+     * @param array<string, mixed> $payload The JSON-decoded payload from the queue.
      */
     public function handle(array $payload): void;
 }

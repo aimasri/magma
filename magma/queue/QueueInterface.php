@@ -31,7 +31,7 @@ interface QueueInterface
      *
      * @param string $queue
      * @param string $handlerClass
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     public function push(string $queue, string $handlerClass, array $payload): void;
 
@@ -59,7 +59,7 @@ interface QueueInterface
      *
      * @param string $queue
      * @param string $handlerClass
-     * @param array[] $payloads
+     * @param array<int, array<string, mixed>> $payloads
      */
     public function pushBatch(string $queue, string $handlerClass, array $payloads): void;
 }

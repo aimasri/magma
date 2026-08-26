@@ -52,7 +52,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
      * - Re-throwing the exception after `onFailure()` ensures that the queue driver (RedisQueue/SQS)
      *   knows the job failed and can route it to a dead-letter / failed_jobs queue.
      *
-     * @param array $payload The JSON-decoded queue payload.
+     * @param array<string, mixed> $payload The JSON-decoded queue payload.
      * @throws Throwable
      */
     public function handle(array $payload): void
@@ -74,7 +74,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Binds the tenant context from the incoming payload.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     protected function bindTenantContext(array $payload): void
     {
@@ -91,7 +91,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Validates that the payload contains required fields before executing domain services.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      * @throws InvalidArgumentException
      */
     protected function validatePayload(array $payload): void
@@ -117,7 +117,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Hook executed before domain logic runs.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     protected function beforeHandle(array $payload): void
     {
@@ -127,7 +127,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Hook executed after domain logic successfully finishes.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     protected function afterHandle(array $payload): void
     {
@@ -137,7 +137,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Hook executed when an exception occurs during job handling.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      * @param Throwable $e
      */
     protected function onFailure(array $payload, Throwable $e): void
@@ -148,7 +148,7 @@ abstract class AbstractDomainWorkerJob implements JobInterface
     /**
      * Executes the domain business logic by invoking injected Domain Services.
      *
-     * @param array $payload
+     * @param array<string, mixed> $payload
      */
     abstract protected function execute(array $payload): void;
 }

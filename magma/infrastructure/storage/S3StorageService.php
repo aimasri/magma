@@ -23,15 +23,13 @@ use RuntimeException;
 class S3StorageService implements StorageInterface
 {
     private string $bucket;
-    private string $region;
-    private string $key;
-    private string $secret;
     private string $endpoint;
     private string $publicBaseUrl;
     /** @var array<string, string> In-memory simulated storage for tests */
     private array $mockStorage = [];
     private bool $mockMode;
 
+    /** @var array<string, array<string>> */
     private static array $mimeMap = [
         'jpg'  => ['image/jpeg', 'image/pjpeg'],
         'jpeg' => ['image/jpeg', 'image/pjpeg'],
@@ -52,9 +50,6 @@ class S3StorageService implements StorageInterface
         bool $mockMode = false
     ) {
         $this->bucket = $bucket;
-        $this->region = $region;
-        $this->key = $key;
-        $this->secret = $secret;
         $this->endpoint = $endpoint ?? "https://{$bucket}.s3.{$region}.amazonaws.com";
         $this->publicBaseUrl = $publicBaseUrl ?? rtrim($this->endpoint, '/');
         $this->mockMode = $mockMode || empty($key) || empty($secret);
@@ -63,17 +58,20 @@ class S3StorageService implements StorageInterface
     public function put(string $path, mixed $contents): bool
     {
         $normalizedKey = ltrim(str_replace('\\', '/', $path), '/');
-        $stringContent = is_resource($contents) ? stream_get_contents($contents) : (string)$contents;
+        $stringContent = is_resource($contents) ? stream_get_contents($contents) : (is_scalar($contents) ? (string)$contents : '');
+        if ($stringContent === false) {
+            $stringContent = '';
+        }
 
         if ($this->mockMode) {
-            $this->mockStorage[$normalizedKey] = (string)$stringContent;
+            $this->mockStorage[$normalizedKey] = $stringContent;
             return true;
         }
 
         // Live S3 HTTP REST PUT implementation
         $url = $this->endpoint . '/' . $normalizedKey;
         $headers = [
-            'Content-Type: ' . ($this->detectMimeFromContent((string)$stringContent) ?? 'application/octet-stream'),
+            'Content-Type: ' . ($this->detectMimeFromContent($stringContent) ?? 'application/octet-stream'),
         ];
 
         $ch = curl_init($url);
@@ -145,6 +143,12 @@ class S3StorageService implements StorageInterface
         return $status >= 200 && $status < 300;
     }
 
+    /**
+     * @param array<string, mixed> $fileInfo
+     * @param string $directory
+     * @param string[]|null $allowedExtensions
+     * @return string
+     */
     public function storeUploadedFile(
         array $fileInfo,
         string $directory = 'uploads',
@@ -154,16 +158,22 @@ class S3StorageService implements StorageInterface
         $allowed = array_map('strtolower', $allowed);
 
         $errorCode = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
+        $errorCode = is_scalar($errorCode) ? (int)$errorCode : UPLOAD_ERR_NO_FILE;
         if ($errorCode !== UPLOAD_ERR_OK) {
             throw new RuntimeException("Cloud upload failed with error code [{$errorCode}].");
         }
 
         $tmpName = $fileInfo['tmp_name'] ?? '';
-        if ($tmpName === '' || !file_exists($tmpName) || (int)($fileInfo['size'] ?? 0) <= 0) {
+        $tmpName = is_scalar($tmpName) ? (string)$tmpName : '';
+        $size = $fileInfo['size'] ?? 0;
+        $size = is_scalar($size) ? (int)$size : 0;
+        
+        if ($tmpName === '' || !file_exists($tmpName) || $size <= 0) {
             throw new RuntimeException("Uploaded temporary file is missing or empty.");
         }
 
-        $clientName = (string)($fileInfo['name'] ?? '');
+        $clientName = $fileInfo['name'] ?? '';
+        $clientName = is_scalar($clientName) ? (string)$clientName : '';
         $extension = strtolower(pathinfo($clientName, PATHINFO_EXTENSION));
 
         if ($extension === '' || !in_array($extension, $allowed, true)) {

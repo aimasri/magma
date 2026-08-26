@@ -56,9 +56,9 @@ interface StorageInterface
     /**
      * Validates and securely stores an uploaded file ($_FILES item).
      *
-     * @param array $fileInfo Standard PHP file array (tmp_name, name, size, error, type)
+     * @param array<string, mixed> $fileInfo Standard PHP file array (tmp_name, name, size, error, type)
      * @param string $directory Destination folder or key prefix (e.g., 'recipes/photos')
-     * @param array|null $allowedExtensions Array of lowercase extensions (default: ['jpg', 'jpeg', 'png', 'webp'])
+     * @param string[]|null $allowedExtensions Array of lowercase extensions (default: ['jpg', 'jpeg', 'png', 'webp'])
      * @return string Stored relative file path
      * @throws \RuntimeException On upload failure, MIME mismatch, or security violation
      */

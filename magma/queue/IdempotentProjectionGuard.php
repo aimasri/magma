@@ -81,7 +81,7 @@ class IdempotentProjectionGuard
      * @param string $projectionName The target projection identifier.
      * @param string $eventId The domain event ID.
      * @param int|null $tenantId Optional tenant context ID.
-     * @param array $metadata Optional audit metadata.
+     * @param array<string, mixed> $metadata Optional audit metadata.
      * @return bool True if a new checkpoint was inserted; false if it already existed.
      */
     public function markProcessed(string $projectionName, string $eventId, ?int $tenantId = null, array $metadata = []): bool
@@ -124,7 +124,7 @@ class IdempotentProjectionGuard
      * @param string $eventId The unique domain event ID.
      * @param callable $action The projection mutation callback to execute.
      * @param int|null $tenantId Optional tenant context ID.
-     * @param array $metadata Optional audit metadata.
+     * @param array<string, mixed> $metadata Optional audit metadata.
      * @return mixed The callback execution result, or null if skipped due to idempotency.
      * @throws Throwable If the projection callback throws an unhandled exception.
      */

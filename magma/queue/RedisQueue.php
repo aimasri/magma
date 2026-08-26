@@ -40,6 +40,8 @@ class RedisQueue implements QueueInterface
      * Logic behind the logic:
      * - `RPUSH` is an O(1) operation. It allows the web server to instantly offload the job 
      *   and immediately return an HTTP response to the user.
+     * 
+     * @param array<string, mixed> $payload
      */
     public function push(string $queue, string $handlerClass, array $payload): void
     {
@@ -74,7 +76,7 @@ class RedisQueue implements QueueInterface
         
         // blpop returns an array: [0 => list_name, 1 => payload] or empty array on timeout/failure
         if (is_array($result) && isset($result[1])) {
-            return $result[1];
+            return (string) $result[1];
         }
 
         return null;
@@ -86,6 +88,8 @@ class RedisQueue implements QueueInterface
      * Execution Flow:
      * 1. Prepend the queue name with the environment prefix.
      * 2. Execute `RPUSH` with variadic unpacking to append all payloads atomically.
+     * 
+     * @param array<int, array<string, mixed>> $payloads
      */
     public function pushBatch(string $queue, string $handlerClass, array $payloads): void
     {

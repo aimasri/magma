@@ -123,9 +123,9 @@ class LocalStorageService implements StorageInterface
      * Logic behind the logic:
      * - Dual-layer validation (extension check + binary libmagic signature inspection) prevents attackers from bypassing extension checks by uploading `.php` files disguised with image headers or `.jpg` files containing PHP code.
      *
-     * @param array $fileInfo Standard PHP file array (tmp_name, name, size, error)
+     * @param array<string, mixed> $fileInfo Standard PHP file array (tmp_name, name, size, error)
      * @param string $directory Destination folder (e.g., 'recipes/photos')
-     * @param array|null $allowedExtensions Allowed extensions allowlist
+     * @param string[]|null $allowedExtensions Allowed extensions allowlist
      * @return string Relative stored path (e.g. 'recipes/photos/a1b2c3d4e5f6...webp')
      * @throws RuntimeException
      */
@@ -138,17 +138,25 @@ class LocalStorageService implements StorageInterface
         $allowed = array_map('strtolower', $allowed);
 
         $errorCode = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
+        $errorCode = is_scalar($errorCode) ? (int)$errorCode : UPLOAD_ERR_NO_FILE;
+        
         if ($errorCode !== UPLOAD_ERR_OK) {
             throw new RuntimeException("File upload failed with error code [{$errorCode}].");
         }
 
         $tmpName = $fileInfo['tmp_name'] ?? '';
-        if ($tmpName === '' || !file_exists($tmpName) || (int)($fileInfo['size'] ?? 0) <= 0) {
+        $tmpName = is_scalar($tmpName) ? (string)$tmpName : '';
+        
+        $size = $fileInfo['size'] ?? 0;
+        $size = is_scalar($size) ? (int)$size : 0;
+        
+        if ($tmpName === '' || !file_exists($tmpName) || $size <= 0) {
             throw new RuntimeException("Uploaded temporary file is missing or empty.");
         }
 
         // Extract client extension
-        $clientName = (string)($fileInfo['name'] ?? '');
+        $clientName = $fileInfo['name'] ?? '';
+        $clientName = is_scalar($clientName) ? (string)$clientName : '';
         $extension = strtolower(pathinfo($clientName, PATHINFO_EXTENSION));
 
         if ($extension === '' || !in_array($extension, $allowed, true)) {
