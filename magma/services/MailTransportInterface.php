@@ -25,7 +25,7 @@ interface MailTransportInterface
      * @param string $toEmail
      * @param string $subject
      * @param string $body
-     * @param array $headers
+     * @param array<string, string> $headers
      * @return bool True if successful, false otherwise.
      */
     public function send(string $toEmail, string $subject, string $body, array $headers = []): bool;

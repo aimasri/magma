@@ -24,7 +24,10 @@ namespace Magma\services;
 class AuthenticationResult
 {
     private ?\Magma\domain\AuthUser $user;
+    /** @var array<int, array{name: string, value: string, expiry: int}> */
     private array $cookiesToSet = [];
+    
+    /** @var array<int, string> */
     private array $cookiesToClear = [];
 
     public function __construct(?\Magma\domain\AuthUser $user = null)
@@ -64,11 +67,17 @@ class AuthenticationResult
         return $this;
     }
 
+    /**
+     * @return array<int, array{name: string, value: string, expiry: int}>
+     */
     public function getCookiesToSet(): array
     {
         return $this->cookiesToSet;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function getCookiesToClear(): array
     {
         return $this->cookiesToClear;

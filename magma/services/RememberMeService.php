@@ -44,10 +44,12 @@ class RememberMeService
         [$selector, $validator] = explode(':', $token);
         $tokenRecord = $this->userTokenRepository->findValidRememberToken($selector);
 
-        $expectedHash = $tokenRecord ? $tokenRecord['hashed_validator'] : hash('sha256', 'dummy_validator_to_prevent_timing_attacks');
+        $expectedHash = $tokenRecord && isset($tokenRecord['hashed_validator']) && is_string($tokenRecord['hashed_validator']) 
+            ? $tokenRecord['hashed_validator'] 
+            : hash('sha256', 'dummy_validator_to_prevent_timing_attacks');
 
         if (hash_equals($expectedHash, hash('sha256', $validator))) {
-            return $tokenRecord ? (int) $tokenRecord['user_id'] : null;
+            return $tokenRecord && isset($tokenRecord['user_id']) && is_scalar($tokenRecord['user_id']) ? (int) $tokenRecord['user_id'] : null;
         }
 
         return null;
@@ -100,6 +102,10 @@ class RememberMeService
      * Logic behind the logic:
      * - This encapsulates the token rotation lifecycle entirely within the domain service, 
      *   preventing the Controller from needing to orchestrate multiple domain actions.
+     * 
+     * @param string $oldToken
+     * @param int $userId
+     * @return array{token: string, expiry: int}
      */
     public function rotateToken(string $oldToken, int $userId): array
     {

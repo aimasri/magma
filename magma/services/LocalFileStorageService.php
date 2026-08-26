@@ -137,4 +137,70 @@ class LocalFileStorageService implements StorageInterface
         }
         return false;
     }
+
+    /**
+     * @param array<string, mixed> $fileInfo
+     * @param array<int, string>|null $allowedExtensions
+     */
+    public function storeUploadedFile(
+        array $fileInfo,
+        string $directory = 'uploads',
+        ?array $allowedExtensions = null
+    ): string {
+        $allowed = $allowedExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+        
+        if (!isset($fileInfo['tmp_name']) || !is_string($fileInfo['tmp_name']) || !is_uploaded_file($fileInfo['tmp_name'])) {
+            throw new RuntimeException("Invalid upload");
+        }
+        
+        $name = isset($fileInfo['name']) && is_string($fileInfo['name']) ? $fileInfo['name'] : 'unknown';
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        
+        if (!in_array($ext, $allowed)) {
+            throw new RuntimeException("Extension not allowed");
+        }
+        
+        $filename = uniqid() . '.' . $ext;
+        $path = $directory . '/' . $filename;
+        
+        $fullPath = $this->getFullPath($path);
+        $dir = dirname($fullPath);
+        
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        if (!move_uploaded_file($fileInfo['tmp_name'], $fullPath)) {
+            throw new RuntimeException("Failed to move file");
+        }
+        
+        return $path;
+    }
+
+    public function url(string $path): string
+    {
+        return '/storage/' . ltrim($path, '/');
+    }
+
+    public function mimeType(string $path): ?string
+    {
+        if ($this->exists($path)) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mime = finfo_file($finfo, $this->getFullPath($path));
+                finfo_close($finfo);
+                return is_string($mime) ? $mime : null;
+            }
+        }
+        return null;
+    }
+
+    public function size(string $path): ?int
+    {
+        if ($this->exists($path)) {
+            $size = filesize($this->getFullPath($path));
+            return is_int($size) ? $size : null;
+        }
+        return null;
+    }
 }

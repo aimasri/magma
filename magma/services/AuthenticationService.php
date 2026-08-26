@@ -157,7 +157,7 @@ class AuthenticationService
     public function getAuthenticatedUser(): ?\Magma\domain\AuthUser
     {
         $userData = $this->session->get('user');
-        if ($userData) {
+        if (is_array($userData)) {
             return new \Magma\domain\AuthUser($userData);
         }
         return null;

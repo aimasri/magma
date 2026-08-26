@@ -26,12 +26,13 @@ class MailerService
 {
     private TemplateEngine $templateEngine;
     private MailTransportInterface $transport;
+    /** @var array<string, string> */
     private array $config;
 
     /**
      * @param TemplateEngine $templateEngine Used to compile HTML templates.
      * @param MailTransportInterface $transport Used to send emails.
-     * @param array $config Must contain 'from_email' and 'from_name'.
+     * @param array<string, string> $config Must contain 'from_email' and 'from_name'.
      */
     public function __construct(TemplateEngine $templateEngine, MailTransportInterface $transport, array $config)
     {

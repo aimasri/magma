@@ -20,10 +20,11 @@ namespace Magma\services;
  */
 class TimezoneResolverService
 {
+    /** @var array<string, string> */
     private array $timezoneMap;
 
     /**
-     * @param array $timezoneMap Optional map of location keywords to timezone strings.
+     * @param array<string, string> $timezoneMap Optional map of location keywords to timezone strings.
      */
     public function __construct(array $timezoneMap = [])
     {

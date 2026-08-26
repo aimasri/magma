@@ -34,7 +34,7 @@ class NativeMailTransport implements MailTransportInterface
      * @param string $toEmail
      * @param string $subject
      * @param string $body
-     * @param array $headers
+     * @param array<string, string> $headers
      * @return bool
      */
     public function send(string $toEmail, string $subject, string $body, array $headers = []): bool

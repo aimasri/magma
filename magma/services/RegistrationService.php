@@ -50,13 +50,15 @@ class RegistrationService
     {
         $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $dto->password);
         
-        $userId = $this->transactionManager->transactional(function () use ($registration) {
+        $result = $this->transactionManager->transactional(function () use ($registration) {
             try {
                 return $this->userCommandRepository->create($registration);
             } catch (\Magma\domain\exceptions\DuplicateResourceException $e) {
                 throw new ValidationException(['email' => 'This email is already registered.']);
             }
         });
+        
+        $userId = is_scalar($result) ? (int) $result : 0;
 
         if ($userId) {
             $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $userId));

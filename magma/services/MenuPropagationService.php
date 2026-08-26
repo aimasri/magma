@@ -3,7 +3,7 @@
 namespace Magma\services;
 
 use Magma\dto\MenuDTO;
-use Magma\interfaces\cqrs\CommandInterface;
+use Magma\interfaces\cqrs\CommandBusInterface;
 use Magma\domain\commands\DeactivateChildMenusCommand;
 
 /**
@@ -25,11 +25,11 @@ use Magma\domain\commands\DeactivateChildMenusCommand;
  */
 class MenuPropagationService
 {
-    private CommandInterface $menuCommandRepo;
+    private CommandBusInterface $commandBus;
 
-    public function __construct(CommandInterface $menuCommandRepo)
+    public function __construct(CommandBusInterface $commandBus)
     {
-        $this->menuCommandRepo = $menuCommandRepo;
+        $this->commandBus = $commandBus;
     }
 
     /**
@@ -53,6 +53,6 @@ class MenuPropagationService
         // and dispatching update commands.
         
         $command = new DeactivateChildMenusCommand($menu->id, $menu->vendorId);
-        $this->menuCommandRepo->execute($command);
+        $this->commandBus->execute($command);
     }
 }

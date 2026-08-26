@@ -47,7 +47,7 @@ class ImageProcessingService
      * Logic behind the logic:
      * - In-memory output buffering (`ob_start()`) avoids creating intermediate temporary files on disk.
      *
-     * @param string|array $sourceFile File path or standard $_FILES item
+     * @param string|array<string, mixed> $sourceFile File path or standard $_FILES item
      * @param string $destinationDir Directory or key prefix in storage
      * @param int $targetWidth Target width in pixels
      * @param int $targetHeight Target height in pixels
@@ -89,10 +89,6 @@ class ImageProcessingService
     {
         $srcWidth = imagesx($srcImage);
         $srcHeight = imagesy($srcImage);
-
-        if ($srcWidth <= 0 || $srcHeight <= 0) {
-            throw new RuntimeException("Invalid image dimensions detected.");
-        }
 
         $srcAspect = $srcWidth / $srcHeight;
         $targetAspect = $targetWidth / $targetHeight;
@@ -163,7 +159,7 @@ class ImageProcessingService
     /**
      * Resizes and center-crops an image into a 1:1 square thumbnail.
      *
-     * @param string|array $sourceFile
+     * @param string|array<string, mixed> $sourceFile
      * @param int $size Width and height in pixels
      * @param int $quality Compression quality
      * @param string $destinationDir
@@ -181,7 +177,7 @@ class ImageProcessingService
     /**
      * Converts an image to optimized WebP format without resizing dimensions.
      *
-     * @param string|array $sourceFile
+     * @param string|array<string, mixed> $sourceFile
      * @param int $quality Compression quality
      * @param string $destinationDir
      * @return string Stored relative path
@@ -213,14 +209,14 @@ class ImageProcessingService
     /**
      * Resolves raw binary image payload from file path, $_FILES array, or storage key.
      *
-     * @param string|array $sourceFile
+     * @param string|array<string, mixed> $sourceFile
      * @return string
      * @throws RuntimeException
      */
     private function resolveSourceData(string|array $sourceFile): string
     {
         if (is_array($sourceFile)) {
-            $tmpPath = $sourceFile['tmp_name'] ?? '';
+            $tmpPath = isset($sourceFile['tmp_name']) && is_string($sourceFile['tmp_name']) ? $sourceFile['tmp_name'] : '';
             if ($tmpPath === '' || !file_exists($tmpPath)) {
                 throw new RuntimeException("Uploaded temporary file does not exist.");
             }

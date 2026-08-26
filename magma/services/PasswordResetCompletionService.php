@@ -71,18 +71,25 @@ class PasswordResetCompletionService
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
         
         try {
-            return $this->transactionManager->transactional(function () use ($hashed, $resetToken) {
+            $result = $this->transactionManager->transactional(function () use ($hashed, $resetToken) {
                 $record = $this->userTokenRepository->findValidPasswordResetToken($resetToken->getHashedToken());
 
                 if (!$record) {
                     return PasswordResetStatus::INVALID_TOKEN;
                 }
+                
+                $userId = isset($record['user_id']) && is_scalar($record['user_id']) ? (int) $record['user_id'] : 0;
+                if ($userId === 0) {
+                    return PasswordResetStatus::INVALID_TOKEN;
+                }
 
-                $this->userCommandRepository->updatePassword($record['user_id'], $hashed);
+                $this->userCommandRepository->updatePassword($userId, $hashed);
                 $this->userTokenRepository->deletePasswordResetToken($resetToken->getHashedToken());
-                $this->rememberTokenRepository->deleteAllRememberTokensForUser($record['user_id']);
+                $this->rememberTokenRepository->deleteAllRememberTokensForUser($userId);
                 return PasswordResetStatus::SUCCESS;
             });
+            
+            return $result instanceof PasswordResetStatus ? $result : PasswordResetStatus::SYSTEM_ERROR;
         } catch (\Exception $e) {
             error_log("Failed to complete password reset: " . $e->getMessage());
             return PasswordResetStatus::SYSTEM_ERROR;

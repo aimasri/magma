@@ -38,13 +38,17 @@ class PaginationService
         int $maxLimit = 100
     ): PaginationDTO {
         $lastId = $request->query('last_id');
-        if ($lastId !== null) {
+        if ($lastId !== null && is_scalar($lastId)) {
             $lastId = (int)$lastId;
+        } else {
+            $lastId = null;
         }
+        
+        $reqLimit = $request->query('limit', $defaultLimit);
         
         // Either strictly use the default, or let the user choose (up to a safe max)
         $limit = $allowUserOverride 
-            ? min((int)$request->query('limit', $defaultLimit), $maxLimit) 
+            ? min(is_scalar($reqLimit) ? (int)$reqLimit : $defaultLimit, $maxLimit) 
             : $defaultLimit;
         
         // Ensure minimum boundary
