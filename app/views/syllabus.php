@@ -1718,7 +1718,7 @@ In default PHP, when a fatal error occurs (like trying to connect to a database 
 Both of these are unacceptable in a professional application.
 </p>
 <p>
-In the Magma Framework framework, we enforce a global <strong>Exception Handler</strong>.
+In the Magma Framework framework, we enforce a global <strong>Exception Handler</strong> and absolute <strong>Exception Boundaries</strong> at the infrastructure level. For example, our base <code>AbstractQueryRepository</code> and <code>AbstractCommandRepository</code> explicitly catch <code>PDOException</code> natively at the execution layer, translating them into <code>DatabaseException</code>. This mathematically guarantees raw database credentials or SQL syntax errors never bleed into the domain or HTTP application layers, even before the global error handler catches them.
 </p>
 <h4>The Theory: Catching Everything</h4>
 <p>
@@ -2049,6 +2049,13 @@ Meanwhile, a separate PHP process running continuously in the background (the Wo
 <h4>Analyzing the Principles</h4>
 <p>
 This ensures the web tier remains lightning fast and completely isolated from the performance bottlenecks of third-party APIs or heavy background calculations.
+</p>
+<h4>Self-Healing and Tenant Safety</h4>
+<p>
+To guarantee that these background workers never crash your infrastructure, Magma implements <strong>Self-Healing Workers</strong>. The <code>QueueWorkerDaemon</code> wraps its Redis polling in a <code>try/catch</code> block. If the Redis server drops offline, the daemon doesn't fatally crash; it simply logs a critical alert to the PSR-3 <code>NativeLogger</code>, sleeps for 5 seconds, and cleanly retries.
+</p>
+<p>
+Additionally, because background workers run continuously within a single PHP process, they share the exact same Dependency Injection <code>Container</code>. This presents a massive data-leakage risk in multi-tenant SaaS architectures if "Singleton" state bleeds from Job A into Job B. To prevent this, Magma explicitly calls <code>$container-&gt;flushInstances()</code> at the beginning of *every single loop iteration*, ensuring every job executes in a completely pristine environment.
 </p>
 <hr>
 <h3>Chapter 12.2: The Transactional Outbox Pattern</h3>
