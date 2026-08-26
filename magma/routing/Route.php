@@ -20,16 +20,19 @@ namespace Magma\routing;
  * Teaching notes:
  * - In enterprise architectures, value objects represent domain concepts defined by their attributes rather than a persistent identity.
  * - Notice the use of `readonly` properties: once constructed by the RouteCompiler or RouteCollection, a Route's state cannot be corrupted.
+ * @implements \ArrayAccess<int|string, mixed>
  */
 class Route implements \ArrayAccess, \JsonSerializable
 {
     public readonly string $method;
     public readonly string $uri;
-    /** @var array|callable|string */
+    /** @var array<int, string>|callable|string */
     public readonly mixed $handler;
     public readonly ?string $action;
+    /** @var array<int, string> */
     public readonly array $middleware;
     public readonly ?string $name;
+    /** @var array<string, string> */
     public readonly array $parameters;
     public readonly ?string $redirectOnFail;
     public readonly ?string $compiledRegex;
@@ -39,11 +42,11 @@ class Route implements \ArrayAccess, \JsonSerializable
      *
      * @param string $method HTTP Method (GET, POST, etc.)
      * @param string $uri The URI pattern (e.g., '/items/{id}')
-     * @param array|callable|string $handler Controller callback or handler
+     * @param array<int, string>|callable|string $handler Controller callback or handler
      * @param ?string $action Controller method name if applicable
-     * @param array $middleware Stack of middleware class names
+     * @param array<int, string> $middleware Stack of middleware class names
      * @param ?string $name Unique route identifier name
-     * @param array $parameters Associative array of regex parameter constraints
+     * @param array<string, string> $parameters Associative array of regex parameter constraints
      * @param ?string $redirectOnFail Redirection path on constraint mismatch
      * @param ?string $compiledRegex Pre-compiled PCRE regular expression pattern
      */
@@ -86,21 +89,29 @@ class Route implements \ArrayAccess, \JsonSerializable
      * Logic behind the logic:
      * - `var_export` calls `__set_state` when reading compiled PHP files, enabling O(1) OPcache execution.
      *
-     * @param array $state
+     * @param array<string, mixed> $state
      * @return self
      */
     public static function __set_state(array $state): self
     {
+        $middleware = is_array($state['middleware'] ?? null) ? $state['middleware'] : [];
+        $parameters = is_array($state['parameters'] ?? null) ? $state['parameters'] : (is_array($state['constraints'] ?? null) ? $state['constraints'] : []);
+
+        $handler = $state['handler'] ?? [];
+        if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
+            $handler = [];
+        }
+
         return new self(
-            method: $state['method'] ?? 'GET',
-            uri: $state['uri'] ?? '/',
-            handler: $state['handler'] ?? [],
-            action: $state['action'] ?? null,
-            middleware: $state['middleware'] ?? [],
-            name: $state['name'] ?? null,
-            parameters: $state['parameters'] ?? ($state['constraints'] ?? []),
-            redirectOnFail: $state['redirectOnFail'] ?? null,
-            compiledRegex: $state['compiledRegex'] ?? null
+            method: is_string($state['method'] ?? null) ? $state['method'] : 'GET',
+            uri: is_string($state['uri'] ?? null) ? $state['uri'] : '/',
+            handler: $handler,
+            action: is_string($state['action'] ?? null) ? $state['action'] : null,
+            middleware: array_filter($middleware, 'is_string'),
+            name: is_string($state['name'] ?? null) ? $state['name'] : null,
+            parameters: array_filter($parameters, 'is_string'),
+            redirectOnFail: is_string($state['redirectOnFail'] ?? null) ? $state['redirectOnFail'] : null,
+            compiledRegex: is_string($state['compiledRegex'] ?? null) ? $state['compiledRegex'] : null
         );
     }
 
@@ -110,18 +121,25 @@ class Route implements \ArrayAccess, \JsonSerializable
      * Tuple Layout:
      * [0 => method, 1 => uri, 2 => handler, 3 => constraints, 4 => redirectOnFail, 5 => middleware, 6 => name/regex]
      *
-     * @param array $tuple
+     * @param array<int, mixed> $tuple
      * @return self
      */
     public static function fromTuple(array $tuple): self
     {
-        $method = (string)($tuple[0] ?? 'GET');
-        $uri = (string)($tuple[1] ?? '/');
+        $methodVal = $tuple[0] ?? 'GET';
+        $method = is_scalar($methodVal) || $methodVal instanceof \Stringable ? (string)$methodVal : 'GET';
+        
+        $uriVal = $tuple[1] ?? '/';
+        $uri = is_scalar($uriVal) || $uriVal instanceof \Stringable ? (string)$uriVal : '/';
+        
         $handler = $tuple[2] ?? [];
-        $constraints = (array)($tuple[3] ?? []);
+        if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
+            $handler = [];
+        }
+        $constraints = is_array($tuple[3] ?? null) ? array_filter($tuple[3], 'is_string') : [];
         $redirectOnFail = isset($tuple[4]) && is_string($tuple[4]) ? $tuple[4] : null;
-        $middleware = (array)($tuple[5] ?? []);
-        $nameOrRegex = isset($tuple[6]) ? (string)$tuple[6] : null;
+        $middleware = is_array($tuple[5] ?? null) ? array_filter($tuple[5], 'is_string') : [];
+        $nameOrRegex = isset($tuple[6]) && (is_scalar($tuple[6]) || $tuple[6] instanceof \Stringable) ? (string)$tuple[6] : null;
 
         $name = null;
         $compiledRegex = null;
@@ -197,6 +215,7 @@ class Route implements \ArrayAccess, \JsonSerializable
         return $this->uri;
     }
 
+    /** @return array<int, string>|callable|string */
     public function getHandler(): mixed
     {
         return $this->handler;
@@ -207,6 +226,7 @@ class Route implements \ArrayAccess, \JsonSerializable
         return $this->action;
     }
 
+    /** @return array<int, string> */
     public function getMiddleware(): array
     {
         return $this->middleware;
@@ -217,11 +237,13 @@ class Route implements \ArrayAccess, \JsonSerializable
         return $this->name;
     }
 
+    /** @return array<string, string> */
     public function getParameters(): array
     {
         return $this->parameters;
     }
 
+    /** @return array<string, string> */
     public function getConstraints(): array
     {
         return $this->parameters;
@@ -240,7 +262,7 @@ class Route implements \ArrayAccess, \JsonSerializable
     /**
      * Exports route state as a legacy numeric tuple array for backward compatibility.
      *
-     * @return array
+     * @return array<int, mixed>
      */
     public function toTuple(): array
     {
@@ -258,7 +280,7 @@ class Route implements \ArrayAccess, \JsonSerializable
     /**
      * JSON serialization support.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function jsonSerialize(): array
     {

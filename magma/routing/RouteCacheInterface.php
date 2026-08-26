@@ -21,7 +21,7 @@ interface RouteCacheInterface
     /**
      * Store the compiled routes in the cache.
      *
-     * @param array $regexes
+     * @param array{regexes: array<string, string>, methodNotAllowed: array<string, mixed>} $regexes
      * @return void
      */
     public function set(array $regexes): void;
@@ -29,7 +29,7 @@ interface RouteCacheInterface
     /**
      * Retrieve the compiled routes from the cache.
      *
-     * @return array|null
+     * @return array{regexes: array<string, string>, methodNotAllowed: array<string, mixed>}|null
      */
     public function get(): ?array;
 }

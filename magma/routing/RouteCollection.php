@@ -33,7 +33,7 @@ class RouteCollection
     /**
      * Initializes the RouteCollection registry.
      *
-     * @param array $rawRoutes Array of Route, RouteDefinition, or legacy tuple arrays
+     * @param array<int, Route|RouteDefinition|array<int, mixed>> $rawRoutes Array of Route, RouteDefinition, or legacy tuple arrays
      */
     public function __construct(array $rawRoutes = [])
     {
@@ -54,7 +54,7 @@ class RouteCollection
      * Logic behind the logic:
      * - Partitioning at registration time eliminates per-request classification costs, maximizing HTTP throughput.
      *
-     * @param Route|RouteDefinition|array $routeItem
+     * @param Route|RouteDefinition|array<int, mixed> $routeItem
      * @return self
      */
     public function add(Route|RouteDefinition|array $routeItem): self

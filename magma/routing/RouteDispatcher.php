@@ -32,7 +32,6 @@ class RouteDispatcher
 {
     private Container $container;
     private MiddlewareResolver $middlewareResolver;
-    private static array $reflectionCache = [];
 
     public function __construct(Container $container, MiddlewareResolver $middlewareResolver)
     {
@@ -53,12 +52,11 @@ class RouteDispatcher
      * Logic behind the logic:
      * - Treating the controller execution as the innermost destination closure allows uniform middleware composition.
      *
-     * @param array|callable|Route $handler
-     * @param array $params
-     * @param array $middlewareList
+     * @param array<int, string>|callable|string|Route $handler
+     * @param array<string, string> $params
+     * @param array<int, string> $middlewareList
      * @param RequestInterface $request
-     * @param array $globalMiddleware
-     * @param Router|null $router
+     * @param array<int, string> $globalMiddleware
      * @return Response
      */
     public function dispatch(
@@ -76,8 +74,18 @@ class RouteDispatcher
             $resolver = new RouteParameterResolver($this->container);
 
             if (is_array($handler)) {
-                [$controllerClass, $action] = $handler;
+                $controllerClass = $handler[0] ?? null;
+                $action = $handler[1] ?? null;
+
+                if (!is_string($controllerClass) || !is_string($action)) {
+                    throw new \InvalidArgumentException('Invalid array handler: must be [string, string].');
+                }
+
                 $controller = $this->container->get($controllerClass);
+
+                if (!is_object($controller)) {
+                    throw new \InvalidArgumentException(sprintf('Controller "%s" must be an object.', $controllerClass));
+                }
 
                 $args = $resolver->resolveDependencies(new \ReflectionMethod($controller, $action), $params, $request);
                 $result = $controller->$action(...$args);
@@ -105,11 +113,18 @@ class RouteDispatcher
         $resolvedMiddleware = $this->middlewareResolver->resolveAll($mergedMiddleware);
 
         try {
+            /** @var Pipeline $pipeline */
             $pipeline = $this->container->has(Pipeline::class) ? $this->container->get(Pipeline::class) : new Pipeline();
-            return $pipeline
+            $response = $pipeline
                 ->send($request)
                 ->through($resolvedMiddleware)
                 ->then($coreHandler);
+                
+            if (!$response instanceof Response) {
+                throw new \RuntimeException('Pipeline must return a valid Response instance.');
+            }
+            
+            return $response;
         } catch (HttpResponseException $e) {
             return $e->getResponse();
         }

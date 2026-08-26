@@ -22,22 +22,24 @@ class RouteDefinition
 {
     private string $method;
     private string $uri;
-    /** @var array|callable|string */
+    /** @var array<int, string>|callable|string */
     private mixed $handler;
     private ?string $action = null;
+    /** @var array<int, string> */
     private array $middleware = [];
     private ?string $name = null;
+    /** @var array<string, string> */
     private array $parameters = [];
     private ?string $redirectOnFail = null;
 
     /**
      * @param string $method HTTP method (GET, POST, PUT, DELETE, PATCH, etc.)
      * @param string $uri The URL path pattern (e.g., '/users/{id}')
-     * @param array|callable|string $handler Controller action tuple, closure, or invocable class
+     * @param array<int, string>|callable|string $handler Controller action tuple, closure, or invocable class
      * @param ?string $action Specific controller method name if separated
-     * @param array $middleware Array of middleware class-strings or instances
+     * @param array<int, string> $middleware Array of middleware class-strings or instances
      * @param ?string $name Unique route identifier for reverse URL generation
-     * @param array $parameters Associative array of parameter constraints (e.g. ['id' => '\d+'])
+     * @param array<string, string> $parameters Associative array of parameter constraints (e.g. ['id' => '\d+'])
      * @param ?string $redirectOnFail Fallback redirection URI on constraint failure
      */
     public function __construct(
@@ -69,7 +71,7 @@ class RouteDefinition
      * Static factory to create a GET route definition.
      *
      * @param string $uri
-     * @param array|callable|string $handler
+     * @param array<int, string>|callable|string $handler
      * @return self
      */
     public static function get(string $uri, mixed $handler): self
@@ -81,7 +83,7 @@ class RouteDefinition
      * Static factory to create a POST route definition.
      *
      * @param string $uri
-     * @param array|callable|string $handler
+     * @param array<int, string>|callable|string $handler
      * @return self
      */
     public static function post(string $uri, mixed $handler): self
@@ -93,7 +95,7 @@ class RouteDefinition
      * Static factory to create a PUT route definition.
      *
      * @param string $uri
-     * @param array|callable|string $handler
+     * @param array<int, string>|callable|string $handler
      * @return self
      */
     public static function put(string $uri, mixed $handler): self
@@ -105,7 +107,7 @@ class RouteDefinition
      * Static factory to create a DELETE route definition.
      *
      * @param string $uri
-     * @param array|callable|string $handler
+     * @param array<int, string>|callable|string $handler
      * @return self
      */
     public static function delete(string $uri, mixed $handler): self
@@ -117,7 +119,7 @@ class RouteDefinition
      * Static factory to create a PATCH route definition.
      *
      * @param string $uri
-     * @param array|callable|string $handler
+     * @param array<int, string>|callable|string $handler
      * @return self
      */
     public static function patch(string $uri, mixed $handler): self
@@ -130,23 +132,32 @@ class RouteDefinition
      * Tuple indices:
      * 0: method (string)
      * 1: uri (string)
-     * 2: handler (callable|array|string)
-     * 3: constraints / parameters (array, optional)
+     * 2: handler (callable|array<int, string>|string)
+     * 3: constraints / parameters (array<string, string>, optional)
      * 4: redirectOnFail (string|null, optional)
-     * 5: middleware (array, optional)
+     * 5: middleware (array<int, string>, optional)
      * 6: name (string|null, optional)
      *
-     * @param array $tuple
+     * @param array<int, mixed> $tuple
      * @return self
      */
     public static function fromTuple(array $tuple): self
     {
-        $method = (string)($tuple[0] ?? 'GET');
-        $uri = (string)($tuple[1] ?? '/');
+        $methodVal = $tuple[0] ?? 'GET';
+        $method = is_scalar($methodVal) || $methodVal instanceof \Stringable ? (string)$methodVal : 'GET';
+        
+        $uriVal = $tuple[1] ?? '/';
+        $uri = is_scalar($uriVal) || $uriVal instanceof \Stringable ? (string)$uriVal : '/';
+        
         $handler = $tuple[2] ?? [];
-        $parameters = (array)($tuple[3] ?? []);
+        if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
+            $handler = [];
+        }
+        $parametersRaw = $tuple[3] ?? [];
+        $parameters = is_array($parametersRaw) ? array_filter($parametersRaw, 'is_string') : [];
         $redirectOnFail = isset($tuple[4]) && is_string($tuple[4]) ? $tuple[4] : null;
-        $middleware = (array)($tuple[5] ?? []);
+        $middlewareRaw = $tuple[5] ?? [];
+        $middleware = is_array($middlewareRaw) ? array_filter($middlewareRaw, 'is_string') : [];
         $name = isset($tuple[6]) && is_string($tuple[6]) ? $tuple[6] : null;
 
         return new self(
@@ -176,7 +187,7 @@ class RouteDefinition
     /**
      * Appends one or multiple middleware classes to the route pipeline.
      *
-     * @param array|string $middleware
+     * @param array<int, string>|string $middleware
      * @return $this
      */
     public function middleware(array|string $middleware): self
@@ -192,7 +203,7 @@ class RouteDefinition
     /**
      * Defines regex constraints for dynamic URI parameters.
      *
-     * @param array|string $param Parameter name or associative array of param => regex
+     * @param array<string, string>|string $param Parameter name or associative array of param => regex
      * @param ?string $regex Regex pattern if first argument is a string
      * @return $this
      */
@@ -200,7 +211,7 @@ class RouteDefinition
     {
         if (is_array($param)) {
             $this->parameters = array_merge($this->parameters, $param);
-        } elseif ($regex !== null) {
+        } elseif ($regex !== null && is_string($param)) {
             $this->parameters[$param] = $regex;
         }
         return $this;
@@ -247,6 +258,7 @@ class RouteDefinition
         return $this->uri;
     }
 
+    /** @return array<int, string>|callable|string */
     public function getHandler(): mixed
     {
         return $this->handler;
@@ -257,6 +269,7 @@ class RouteDefinition
         return $this->action;
     }
 
+    /** @return array<int, string> */
     public function getMiddleware(): array
     {
         return $this->middleware;
@@ -267,6 +280,7 @@ class RouteDefinition
         return $this->name;
     }
 
+    /** @return array<string, string> */
     public function getParameters(): array
     {
         return $this->parameters;

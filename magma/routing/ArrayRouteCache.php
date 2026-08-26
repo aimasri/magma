@@ -18,13 +18,20 @@ namespace Magma\routing;
  */
 class ArrayRouteCache implements RouteCacheInterface
 {
+    /** @var array{regexes: array<string, string>, methodNotAllowed: array<string, mixed>}|array{} */
     private static array $cache = [];
 
+    /**
+     * @param array{regexes: array<string, string>, methodNotAllowed: array<string, mixed>} $regexes
+     */
     public function set(array $regexes): void
     {
         self::$cache = $regexes;
     }
 
+    /**
+     * @return array{regexes: array<string, string>, methodNotAllowed: array<string, mixed>}|null
+     */
     public function get(): ?array
     {
         return !empty(self::$cache) ? self::$cache : null;

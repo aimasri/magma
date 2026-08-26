@@ -21,6 +21,7 @@ use Magma\validation\Validator;
 class RouteParameterResolver
 {
     private ?Container $container;
+    /** @var array<string, array<int, array{name: string, class: ?string, isBuiltin: bool, hasDefault: bool, default: mixed, allowsNull: bool}>> */
     private static array $reflectionCache = [];
 
     public function __construct(?Container $container = null)
@@ -28,6 +29,12 @@ class RouteParameterResolver
         $this->container = $container;
     }
 
+    /**
+     * @param \ReflectionFunctionAbstract $ref
+     * @param array<string, string> $params
+     * @param RequestInterface $request
+     * @return array<int, mixed>
+     */
     public function resolveDependencies(\ReflectionFunctionAbstract $ref, array $params, RequestInterface $request): array
     {
         $isMethod = $ref instanceof \ReflectionMethod;
@@ -48,18 +55,32 @@ class RouteParameterResolver
             $className = $meta['class'];
 
             if ($className !== null && is_subclass_of($className, ValidatableRequestInterface::class)) {
+                if ($this->container === null) {
+                    throw new \RuntimeException("Container is required to resolve ValidatableRequestInterface dependencies.");
+                }
+                
                 $validatableRequest = $this->container->get($className);
+                if (!$validatableRequest instanceof ValidatableRequestInterface) {
+                    throw new \RuntimeException(sprintf("Resolved class '%s' does not implement ValidatableRequestInterface.", $className));
+                }
+                
                 try {
                     $validatableRequest->validate();
                 } catch (\Magma\validation\ValidationException $e) {
                     $expectsJson = $request->expectsJson() || $request->isJsonExpected();
                     if (!$expectsJson && $this->container->has(\Magma\http\SessionInterface::class)) {
                         $session = $this->container->get(\Magma\http\SessionInterface::class);
-                        $session->set('errors', $e->getErrors());
-                        $session->set('old', $request->request());
+                        if ($session instanceof \Magma\http\SessionInterface) {
+                            $session->set('errors', $e->getErrors());
+                            
+                            $requestData = $request->request();
+                            if (is_array($requestData)) {
+                                $session->set('old', $requestData);
+                            }
+                        }
                         
-                        $referer = $request->getServer('HTTP_REFERER') ?? '/';
-                        $redirect = new \Magma\http\RedirectResponse($referer);
+                        $referer = $request->server('HTTP_REFERER');
+                        $redirect = new \Magma\http\RedirectResponse(is_string($referer) ? $referer : '/');
                         throw new \Magma\http\HttpResponseException($redirect);
                     }
                     throw $e;
@@ -97,6 +118,10 @@ class RouteParameterResolver
         return $args;
     }
 
+    /**
+     * @param \ReflectionFunctionAbstract $ref
+     * @return array<int, array{name: string, class: ?string, isBuiltin: bool, hasDefault: bool, default: mixed, allowsNull: bool}>
+     */
     private function buildReflectionMeta(\ReflectionFunctionAbstract $ref): array
     {
         $meta = [];

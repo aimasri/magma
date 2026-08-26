@@ -34,25 +34,26 @@ class Router implements RouterInterface
     private RouteCollection $collection;
     private RouteDispatcher $dispatcher;
     private RouteCacheInterface $cache;
-    private ?Container $container;
+    /** @var array<string, string> */
     private array $compiledMegaRegexes;
+    /** @var array{static: array<string, array<int, string>>, dynamic_regex?: string, dynamic_map?: array<int, array<int, string>>} */
     private array $methodNotAllowedIndex;
 
     public function __construct(
         RouteCollection $collection,
         RouteDispatcher $dispatcher,
-        RouteCacheInterface $cache,
-        ?Container $container = null
+        RouteCacheInterface $cache
     ) {
         $this->collection = $collection;
         $this->dispatcher = $dispatcher;
         $this->cache = $cache;
-        $this->container = $container;
 
         $cached = $this->cache->get();
-        if ($cached !== null && is_array($cached) && isset($cached['regexes'], $cached['methodNotAllowed'])) {
+        if ($cached !== null) {
             $this->compiledMegaRegexes = $cached['regexes'];
-            $this->methodNotAllowedIndex = $cached['methodNotAllowed'];
+            /** @var array{static: array<string, array<int, string>>, dynamic_regex?: string, dynamic_map?: array<int, array<int, string>>} $methodNotAllowed */
+            $methodNotAllowed = $cached['methodNotAllowed'];
+            $this->methodNotAllowedIndex = $methodNotAllowed;
         } else {
             $this->compiledMegaRegexes = RouteCompiler::compileMegaRegexes($this->collection->getDynamicRoutes());
             $this->methodNotAllowedIndex = RouteCompiler::compileMethodNotAllowedIndex($this->collection->getStaticRoutes(), $this->collection->getDynamicRoutes());
@@ -78,7 +79,7 @@ class Router implements RouterInterface
      * - Fast static path lookups bypass regex parsing entirely. MethodNotAllowed scans are deferred to the failure path to keep the happy path optimal.
      *
      * @param RequestInterface $request
-     * @param array $globalMiddleware
+     * @param array<int, string> $globalMiddleware
      * @return Response
      * @throws RouteNotFoundException
      * @throws MethodNotAllowedException
@@ -107,7 +108,7 @@ class Router implements RouterInterface
      * @param string $requestMethod
      * @param string $requestPath
      * @param RequestInterface $request
-     * @param array $globalMiddleware
+     * @param array<int, string> $globalMiddleware
      * @return Response|null
      */
     private function matchStaticRoute(
@@ -119,8 +120,8 @@ class Router implements RouterInterface
         $staticRoutes = $this->collection->getStaticRoutes();
         if (isset($staticRoutes[$requestMethod][$requestPath])) {
             $route = $staticRoutes[$requestMethod][$requestPath];
-            $handler = $route instanceof Route ? $route->getHandler() : $route[2];
-            $routeMiddleware = $route instanceof Route ? $route->getMiddleware() : ($route[5] ?? []);
+            $handler = $route->getHandler();
+            $routeMiddleware = $route->getMiddleware();
             
             return $this->dispatcher->dispatch($handler, [], $routeMiddleware, $request, $globalMiddleware);
         }
@@ -133,7 +134,7 @@ class Router implements RouterInterface
      * @param string $requestMethod
      * @param string $requestPath
      * @param RequestInterface $request
-     * @param array $globalMiddleware
+     * @param array<int, string> $globalMiddleware
      * @return Response|null
      */
     private function matchDynamicRoute(
@@ -161,10 +162,10 @@ class Router implements RouterInterface
                 return null;
             }
 
-            $handler = $route instanceof Route ? $route->getHandler() : $route[2];
-            $constraints = $route instanceof Route ? $route->getConstraints() : ($route[3] ?? []);
-            $redirectOnFail = $route instanceof Route ? $route->getRedirectOnFail() : ($route[4] ?? null);
-            $routeMiddleware = $route instanceof Route ? $route->getMiddleware() : ($route[5] ?? []);
+            $handler = $route->getHandler();
+            $constraints = $route->getConstraints();
+            $redirectOnFail = $route->getRedirectOnFail();
+            $routeMiddleware = $route->getMiddleware();
 
             $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
             unset($params['MARK']);
@@ -204,6 +205,11 @@ class Router implements RouterInterface
         }
     }
 
+    /**
+     * @param array<string, string> $params
+     * @param array<string, string> $constraints
+     * @return bool
+     */
     private function parametersSatisfyConstraints(array $params, array $constraints): bool
     {
         foreach ($constraints as $name => $regex) {
@@ -214,6 +220,11 @@ class Router implements RouterInterface
         return true;
     }
 
+    /**
+     * @param string $path
+     * @param array<string, string> $constraints
+     * @return string
+     */
     public static function compilePattern(string $path, array $constraints = []): string
     {
         return RouteCompiler::compilePattern($path, $constraints);

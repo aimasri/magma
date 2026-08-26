@@ -84,8 +84,12 @@ class UrlGenerator
             if (!array_key_exists($paramName, $params)) {
                 throw new \InvalidArgumentException("Missing required parameter '{$paramName}' for named route '{$name}'.");
             }
+            $val = $params[$paramName];
+            if (!is_scalar($val) && !$val instanceof \Stringable) {
+                throw new \InvalidArgumentException("Parameter '{$paramName}' must be a scalar or Stringable.");
+            }
             $usedParams[$paramName] = true;
-            return rawurlencode((string)$params[$paramName]);
+            return rawurlencode((string)$val);
         }, $uri);
 
         // Append remaining parameters as query string
@@ -111,7 +115,7 @@ class UrlGenerator
      * 4. Append encoded query parameters if provided.
      *
      * @param string $path The relative path (e.g., '/reset-password')
-     * @param array $queryParams Optional query parameters to append
+     * @param array<string, mixed> $queryParams Optional query parameters to append
      * @return string The fully qualified URL
      */
     public function generateAbsolute(string $path, array $queryParams = []): string
