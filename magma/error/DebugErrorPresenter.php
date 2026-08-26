@@ -105,7 +105,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
      * Formats the exception stack trace into structured frames with code previews.
      *
      * @param Throwable $e
-     * @return array<int, array{file: string, line: int, call: string, snippet: array, args: array}>
+     * @return array<int, array{index: int, file: string, line: int, call: string, snippet: array<int, array{line: int, code: string, isTarget: bool}>, args: array<int|string, string>}>
      */
     private function formatTraceFrames(Throwable $e): array
     {
@@ -117,7 +117,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             $line = $frame['line'] ?? 0;
             $class = $frame['class'] ?? '';
             $type = $frame['type'] ?? '';
-            $function = $frame['function'] ?? '';
+            $function = $frame['function']; // function key always exists
             $call = $class ? "{$class}{$type}{$function}()" : "{$function}()";
 
             $args = [];
@@ -213,7 +213,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
     /**
      * Assembles the complete HTML and CSS debug template.
      *
-     * @param array<string, mixed> $data
+     * @param array{statusCode: int, exceptionClass: string, message: string, file: string, line: int, codeSnippet: array<int, array{line: int, code: string, isTarget: bool}>, frames: array<int, array{index: int, file: string, line: int, call: string, snippet: array<int, array{line: int, code: string, isTarget: bool}>, args: array<int|string, string>}>, requestData: array<string, mixed>, environmentData: array<string, string>} $data
      * @return string
      */
     private function renderHtml(array $data): string
@@ -505,6 +505,9 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 HTML;
     }
 
+    /**
+     * @param array<int, array{line: int, code: string, isTarget: bool}> $snippet
+     */
     private function renderSnippetRows(array $snippet): string
     {
         if (empty($snippet)) {
@@ -526,6 +529,9 @@ HTML;
         return $html;
     }
 
+    /**
+     * @param array<int, array{index: int, file: string, line: int, call: string, snippet: array<int, array{line: int, code: string, isTarget: bool}>, args: array<int|string, string>}> $frames
+     */
     private function renderFramesList(array $frames): string
     {
         if (empty($frames)) {
@@ -538,7 +544,7 @@ HTML;
             $file = htmlspecialchars((string)$frame['file'], ENT_QUOTES, 'UTF-8');
             $line = (int)$frame['line'];
             $call = htmlspecialchars((string)$frame['call'], ENT_QUOTES, 'UTF-8');
-            $snippetHtml = $this->renderSnippetRows($frame['snippet'] ?? []);
+            $snippetHtml = $this->renderSnippetRows($frame['snippet']);
 
             $argsHtml = '';
             if (!empty($frame['args'])) {
@@ -566,15 +572,19 @@ HTML;
         return $html;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function renderPropertiesTable(array $data): string
     {
         $html = '<table class="props-table">';
         foreach ($data as $key => $val) {
             $label = htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8');
             if (is_array($val)) {
-                $content = '<pre style="white-space: pre-wrap; font-size: 0.8rem; color: #cbd5e1;">' . htmlspecialchars(json_encode($val, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8') . '</pre>';
+                $json = json_encode($val, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                $content = '<pre style="white-space: pre-wrap; font-size: 0.8rem; color: #cbd5e1;">' . htmlspecialchars(is_string($json) ? $json : '', ENT_QUOTES, 'UTF-8') . '</pre>';
             } else {
-                $content = htmlspecialchars((string)$val, ENT_QUOTES, 'UTF-8');
+                $content = htmlspecialchars(is_scalar($val) ? (string)$val : gettype($val), ENT_QUOTES, 'UTF-8');
             }
             $html .= "<tr><th>{$label}</th><td>{$content}</td></tr>";
         }

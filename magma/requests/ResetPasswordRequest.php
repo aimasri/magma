@@ -32,7 +32,7 @@ class ResetPasswordRequest extends FormRequest
      * Logic behind the logic:
      * Enforcing a minimum length of 8 characters defends against brute-force attacks, while the 'confirmed' rule prevents user typos leading to a locked account state.
      *
-     * @return array
+     * @return array<string, string>
      */
     public function rules(): array
     {

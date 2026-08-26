@@ -30,10 +30,14 @@ class LoginRequest extends FormRequest
     public function toDTO(): \Magma\dto\LoginDTO
     {
         $data = $this->request->request();
+        $email = is_array($data) && isset($data['email']) && is_string($data['email']) ? $data['email'] : '';
+        $password = is_array($data) && isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
+        $rememberMe = is_array($data) && !empty($data['remember_me']);
+
         return new \Magma\dto\LoginDTO(
-            email: trim($data['email'] ?? ''),
-            password: $data['password'] ?? '',
-            rememberMe: !empty($data['remember_me'])
+            email: trim($email),
+            password: $password,
+            rememberMe: $rememberMe
         );
     }
 }

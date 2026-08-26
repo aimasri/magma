@@ -35,7 +35,7 @@ class JsonErrorPresenter implements \Magma\interfaces\JsonErrorPresenterInterfac
      * @param string $message User-safe error description
      * @param \Throwable|null $throwable Underlying exception for debugging
      * @param bool $debug Whether to expose debugging stack traces
-     * @param array|null $errors Granular validation or field errors
+     * @param array<string, mixed>|null $errors Granular validation or field errors
      * @return Response
      */
     public function present(
@@ -109,7 +109,7 @@ class JsonErrorPresenter implements \Magma\interfaces\JsonErrorPresenterInterfac
     /**
      * Formats a 422 Unprocessable Entity (Validation Error) JSON response.
      *
-     * @param array $errors
+     * @param array<string, mixed> $errors
      * @param string $message
      * @return Response
      */

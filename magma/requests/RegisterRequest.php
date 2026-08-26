@@ -31,7 +31,7 @@ class RegisterRequest extends FormRequest
      * Logic behind the logic:
      * The 'confirmed' rule prevents user lockouts immediately after registration by verifying intent. The email rule delegates complex RFC 822 compliance checks to the underlying validation engine.
      *
-     * @return array
+     * @return array<string, string>
      */
     public function rules(): array
     {
@@ -45,10 +45,14 @@ class RegisterRequest extends FormRequest
     public function toDTO(): \Magma\dto\RegistrationDTO
     {
         $data = $this->request->request();
+        $name = is_array($data) && isset($data['name']) && is_string($data['name']) ? $data['name'] : '';
+        $email = is_array($data) && isset($data['email']) && is_string($data['email']) ? $data['email'] : '';
+        $password = is_array($data) && isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
+
         return new \Magma\dto\RegistrationDTO(
-            name: $data['name'] ?? '',
-            email: $data['email'] ?? '',
-            password: $data['password'] ?? ''
+            name: $name,
+            email: $email,
+            password: $password
         );
     }
 }
