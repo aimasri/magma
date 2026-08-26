@@ -37,6 +37,9 @@ class VendorQueryRepository extends AbstractQueryRepository implements VendorQue
     }
 
 
+    /**
+     * @return iterable<int, VendorDTO>
+     */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable
     {
         $sql = "SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM vendors";
@@ -55,8 +58,10 @@ class VendorQueryRepository extends AbstractQueryRepository implements VendorQue
         }
         $stmt->execute();
 
-        while ($row = $stmt->fetch()) {
-            yield $this->mapper->toDomain($row);
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            if (is_array($row)) {
+                yield $this->mapper->toDomain($row);
+            }
         }
     }
 
@@ -64,8 +69,8 @@ class VendorQueryRepository extends AbstractQueryRepository implements VendorQue
     {
         $stmt = $this->getDb()->prepare("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM vendors WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        $vendor = $stmt->fetch() ?: null;
-        return $vendor ? $this->mapper->toDomain($vendor) : null;
+        $vendor = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        return is_array($vendor) ? $this->mapper->toDomain($vendor) : null;
     }
 
     public function getPrimaryVendor(): ?VendorDTO

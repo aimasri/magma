@@ -26,6 +26,9 @@ class RememberTokenRepository extends AbstractCommandRepository
         $stmt->execute([$userId, $selector, $hashedValidator, $expiresAt]);
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findValidRememberToken(string $selector): ?array
     {
         // Even though this is a find method, we keep it here for simplicity of SRP over CQRS strictness, 
@@ -37,7 +40,8 @@ class RememberTokenRepository extends AbstractCommandRepository
             WHERE selector = ? AND type = 'remember_me' AND expires_at > NOW()
         ");
         $stmt->execute([$selector]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($result) ? $result : null;
     }
 
     public function deleteRememberToken(string $selector): void

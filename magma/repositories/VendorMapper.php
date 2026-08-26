@@ -43,8 +43,8 @@ class VendorMapper
      *   mapper, the application controllers and views can blindly treat `theme_settings` 
      *   as a standard nested array without knowing how it was persisted.
      *
-     * @param array $vendor Raw associative array from PDO.
-     * @return array The processed vendor array.
+     * @param array<string, mixed> $vendor Raw associative array from PDO.
+     * @return \Magma\dto\VendorDTO The processed vendor array.
      */
     public function toDomain(array $vendor): \Magma\dto\VendorDTO
     {
@@ -58,16 +58,26 @@ class VendorMapper
             }
         }
 
+        $id = isset($vendor['id']) && is_scalar($vendor['id']) ? (int) $vendor['id'] : 0;
+        $name = isset($vendor['name']) && is_scalar($vendor['name']) ? (string) $vendor['name'] : '';
+        $tagline = isset($vendor['tagline']) && is_scalar($vendor['tagline']) ? (string) $vendor['tagline'] : null;
+        $email = isset($vendor['email']) && is_scalar($vendor['email']) ? (string) $vendor['email'] : '';
+        $planId = isset($vendor['plan_id']) && is_scalar($vendor['plan_id']) ? (int) $vendor['plan_id'] : 0;
+        $subStatus = isset($vendor['subscription_status']) && is_scalar($vendor['subscription_status']) ? (string) $vendor['subscription_status'] : '';
+        $billingCycle = isset($vendor['billing_cycle_anchor']) && is_scalar($vendor['billing_cycle_anchor']) ? (string) $vendor['billing_cycle_anchor'] : null;
+        $paymentGateway = isset($vendor['payment_gateway_customer_id']) && is_scalar($vendor['payment_gateway_customer_id']) ? (string) $vendor['payment_gateway_customer_id'] : null;
+        $themeSettings = is_array($vendor['theme_settings']) ? $vendor['theme_settings'] : [];
+
         return new \Magma\dto\VendorDTO(
-            id: (int) ($vendor['id'] ?? 0),
-            name: $vendor['name'] ?? '',
-            tagline: $vendor['tagline'] ?? null,
-            email: $vendor['email'] ?? '',
-            plan_id: (int) ($vendor['plan_id'] ?? 0),
-            subscription_status: $vendor['subscription_status'] ?? '',
-            billing_cycle_anchor: $vendor['billing_cycle_anchor'] ?? null,
-            payment_gateway_customer_id: $vendor['payment_gateway_customer_id'] ?? null,
-            theme_settings: $vendor['theme_settings']
+            id: $id,
+            name: $name,
+            tagline: $tagline,
+            email: $email,
+            plan_id: $planId,
+            subscription_status: $subStatus,
+            billing_cycle_anchor: $billingCycle,
+            payment_gateway_customer_id: $paymentGateway,
+            theme_settings: $themeSettings
         );
     }
 
@@ -88,8 +98,8 @@ class VendorMapper
      *   against malicious mass-assignment, ensuring internal fields (like `id`) cannot be 
      *   injected from an HTTP POST request.
      *
-     * @param array $data Raw input array.
-     * @return array Associative array of sanitized field bindings.
+     * @param array<string, mixed> $data Raw input array.
+     * @return array<string, mixed> Associative array of sanitized field bindings.
      */
     public function toDatabase(array $data): array
     {

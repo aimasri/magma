@@ -26,6 +26,9 @@ class PasswordResetTokenRepository extends AbstractCommandRepository
         $stmt->execute([$userId, $token->getHashedToken(), $token->getExpiresAt()]);
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findValidPasswordResetToken(string $tokenHash): ?array
     {
         $stmt = $this->getDb()->prepare("
@@ -33,7 +36,8 @@ class PasswordResetTokenRepository extends AbstractCommandRepository
             WHERE token_hash = ? AND type = 'password_reset' AND expires_at > NOW()
         ");
         $stmt->execute([$tokenHash]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($result) ? $result : null;
     }
 
     public function deleteAllPasswordResetTokensForUser(int $userId): void

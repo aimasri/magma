@@ -24,14 +24,18 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         $stmt->execute([$email]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        return $row ? new AuthUser($row) : null;
+        return is_array($row) ? new AuthUser($row) : null;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findForAuth(string $email): ?array
     {
         $stmt = $this->getDb()->prepare("SELECT id, name, email, role, password FROM users WHERE email = ?");
         $stmt->execute([$email]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($result) ? $result : null;
     }
 
     public function findById(int $id): ?AuthUser
@@ -40,6 +44,6 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         $stmt->execute([$id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         
-        return $row ? new AuthUser($row) : null;
+        return is_array($row) ? new AuthUser($row) : null;
     }
 }

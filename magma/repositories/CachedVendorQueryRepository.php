@@ -40,6 +40,9 @@ class CachedVendorQueryRepository implements VendorQueryInterface
         $this->primaryVendorId = $primaryVendorId;
     }
 
+    /**
+     * @return iterable<int, VendorDTO>
+     */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable
     {
         return $this->repository->getAll($limit, $lastId);

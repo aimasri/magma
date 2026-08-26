@@ -34,6 +34,9 @@ class VendorCommandRepository extends AbstractCommandRepository implements Vendo
 
 
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): bool
     {
         $bindings = $this->mapper->toDatabase($data);
@@ -55,6 +58,9 @@ class VendorCommandRepository extends AbstractCommandRepository implements Vendo
         return $stmt->execute($bindings);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(int $id, array $data): bool
     {
         $bindings = $this->mapper->toDatabase($data);

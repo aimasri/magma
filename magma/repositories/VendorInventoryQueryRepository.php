@@ -20,6 +20,7 @@ class VendorInventoryQueryRepository extends AbstractQueryRepository
 {
     /**
      * Fetch unique vendor IDs.
+     * @return array<int, int>
      */
     public function getVendorIdsFromTransactions(): array
     {
