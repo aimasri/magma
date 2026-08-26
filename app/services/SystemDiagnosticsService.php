@@ -50,12 +50,18 @@ class SystemDiagnosticsService
         $memoryBytes = $this->systemInfoProvider->getPeakMemoryUsage();
         $memoryMb = round($memoryBytes / AppConstants::MEGABYTE_IN_BYTES, 2);
 
+        $env = $this->config->get(AppConstants::ENV_APP_ENV, AppConstants::ENV_DEFAULT_DEVELOPMENT);
+        $environment = is_scalar($env) ? (string) $env : AppConstants::ENV_DEFAULT_DEVELOPMENT;
+        
+        $db = $this->config->get(AppConstants::ENV_DB_DRIVER, AppConstants::DB_DEFAULT_PGSQL);
+        $dbDriver = is_scalar($db) ? (string) $db : AppConstants::DB_DEFAULT_PGSQL;
+
         return new SystemDiagnosticsDTO(
             phpVersion: $this->systemInfoProvider->getPhpVersion(),
             phpSapi: $this->systemInfoProvider->getPhpSapi(),
-            environment: $this->config->get(AppConstants::ENV_APP_ENV, AppConstants::ENV_DEFAULT_DEVELOPMENT),
+            environment: $environment,
             debug: filter_var($this->config->get(AppConstants::ENV_APP_DEBUG, 'true'), FILTER_VALIDATE_BOOLEAN),
-            dbDriver: $this->config->get(AppConstants::ENV_DB_DRIVER, AppConstants::DB_DEFAULT_PGSQL),
+            dbDriver: $dbDriver,
             memoryUsage: "{$memoryMb} MB",
             serverOs: $this->systemInfoProvider->getServerOs()
         );

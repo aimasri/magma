@@ -41,7 +41,7 @@ readonly class SystemDiagnosticsDTO implements \JsonSerializable
     /**
      * Serializes the DTO into an associative array for JSON encoding.
      * 
-     * @return array Associative array of DTO properties.
+     * @return array<string, mixed> Associative array of DTO properties.
      */
     public function jsonSerialize(): array
     {

@@ -11,10 +11,7 @@
  * - Adheres strictly to AGENTS.md directives: you will see zero static inline styles (`style="..."`), standard sentence casing, and SOLID modular stylesheets (`/www/css/app.css` -> `/www/css/components/`).
  * - A stellar example of decoupling logic from the presentation layer. Great job adhering to clean architecture principles!
  *
- * @var array $data Encapsulated view data payload.
- * @var string $data['title'] The dynamic page title.
- * @var \App\dto\SystemDiagnosticsDTO $data['diagnostics'] The data transfer object containing runtime diagnostic metrics.
- * @var \Magma\view\TemplateEngine $data['engine'] The decoupled template engine instance.
+ * @var array{title?: string, diagnostics: \App\dto\SystemDiagnosticsDTO, engine: \Magma\view\TemplateEngine} $data Encapsulated view data payload.
  */
 
 $pageTitle = $data['title'] ?? 'Magma Framework Core';
