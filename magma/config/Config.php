@@ -21,6 +21,7 @@ namespace Magma\config;
  */
 class Config
 {
+    /** @var array<string, mixed> */
     private static array $env = [];
 
     /**
@@ -87,6 +88,32 @@ class Config
     }
 
     /**
+     * Retrieves a configuration value as a string safely.
+     *
+     * @param string $key
+     * @param string $default
+     * @return string
+     */
+    public static function getString(string $key, string $default = ''): string
+    {
+        $val = self::get($key, $default);
+        return is_scalar($val) ? (string)$val : $default;
+    }
+
+    /**
+     * Retrieves a configuration value as an integer safely.
+     *
+     * @param string $key
+     * @param int $default
+     * @return int
+     */
+    public static function getInt(string $key, int $default = 0): int
+    {
+        $val = self::get($key, $default);
+        return is_scalar($val) ? (int)$val : $default;
+    }
+
+    /**
      * Get a strictly required configuration value.
      * Throws an exception if the key is missing or empty.
      *
@@ -110,7 +137,7 @@ class Config
         if ($value === null || $value === '') {
             throw new \RuntimeException("Missing required configuration key: {$key}");
         }
-        return (string) $value;
+        return is_scalar($value) ? (string) $value : '';
     }
 
     /**
@@ -137,9 +164,9 @@ class Config
     public static function getDatabaseSettings(): array
     {
         return [
-            'driver'   => self::get('DB_DRIVER', 'pgsql'),
-            'host'     => self::get('DB_HOST', 'localhost'),
-            'port'     => self::get('DB_PORT', '5432'),
+            'driver'   => self::getString('DB_DRIVER', 'pgsql'),
+            'host'     => self::getString('DB_HOST', 'localhost'),
+            'port'     => self::getString('DB_PORT', '5432'),
             'dbname'   => self::getRequired('DB_NAME'),
             'user'     => self::getRequired('DB_USER'),
             'password' => self::getRequired('DB_PASSWORD'),
@@ -163,17 +190,17 @@ class Config
      *   same application codebase to run locally (with a single database container) 
      *   and in production (with a master and read replicas) without throwing errors.
      *
-     * @return array Associative array of connection settings.
+     * @return array<string, mixed> Associative array of connection settings.
      */
     public static function getReplicaDatabaseSettings(): array
     {
         return [
-            'driver'   => self::get('DB_DRIVER', 'pgsql'),
-            'host'     => self::get('DB_REPLICA_HOST', self::get('DB_HOST', 'localhost')),
-            'port'     => self::get('DB_REPLICA_PORT', self::get('DB_PORT', '5432')),
-            'dbname'   => self::get('DB_REPLICA_NAME', self::getRequired('DB_NAME')),
-            'user'     => self::get('DB_REPLICA_USER', self::getRequired('DB_USER')),
-            'password' => self::get('DB_REPLICA_PASSWORD', self::getRequired('DB_PASSWORD')),
+            'driver'   => self::getString('DB_DRIVER', 'pgsql'),
+            'host'     => self::getString('DB_REPLICA_HOST', self::getString('DB_HOST', 'localhost')),
+            'port'     => self::getString('DB_REPLICA_PORT', self::getString('DB_PORT', '5432')),
+            'dbname'   => self::getString('DB_REPLICA_NAME', self::getRequired('DB_NAME')),
+            'user'     => self::getString('DB_REPLICA_USER', self::getRequired('DB_USER')),
+            'password' => self::getString('DB_REPLICA_PASSWORD', self::getRequired('DB_PASSWORD')),
         ];
     }
 
@@ -203,12 +230,12 @@ class Config
     {
         return [
             'host'        => self::getRequired('MAIL_HOST'),
-            'port'        => (int) self::get('MAIL_PORT', 2525),
+            'port'        => self::getInt('MAIL_PORT', 2525),
             'username'    => self::getRequired('MAIL_USERNAME'),
             'password'    => self::getRequired('MAIL_PASSWORD'),
-            'encryption'  => self::get('MAIL_ENCRYPTION', 'tls'),
+            'encryption'  => self::getString('MAIL_ENCRYPTION', 'tls'),
             'from_email'  => self::getRequired('MAIL_FROM_ADDRESS'),
-            'from_name'   => self::get('MAIL_FROM_NAME', 'Magma Framework'),
+            'from_name'   => self::getString('MAIL_FROM_NAME', 'Magma Framework'),
         ];
     }
 }

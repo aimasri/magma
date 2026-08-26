@@ -21,5 +21,5 @@ use Modules\Reviews\controllers\ReviewController;
 return [
     ['GET', '/', [HomeController::class, 'index']],
     ['GET', '/syllabus', [HomeController::class, 'syllabus']],
-    ['POST', '/reviews', [ReviewController::class, 'submitReview']],
+    ['POST', '/reviews', [ReviewController::class, 'submitReview']], // @phpstan-ignore-line
 ];

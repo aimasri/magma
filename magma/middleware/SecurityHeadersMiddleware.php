@@ -25,8 +25,12 @@ use Magma\http\Response;
  */
 class SecurityHeadersMiddleware implements MiddlewareInterface
 {
+    /** @var array<int, string> */
     private array $cspDirectives;
 
+    /**
+     * @param array<int, string>|null $customDirectives
+     */
     public function __construct(?array $customDirectives = null)
     {
         $defaultCsp = [

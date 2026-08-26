@@ -23,6 +23,13 @@ use Magma\http\Response;
  */
 class UTMTrackerMiddleware implements MiddlewareInterface
 {
+    private \Magma\http\Session $session;
+
+    public function __construct(\Magma\http\Session $session)
+    {
+        $this->session = $session;
+    }
+
     /**
      * Executes the middleware layer.
      * 
@@ -50,14 +57,14 @@ class UTMTrackerMiddleware implements MiddlewareInterface
         $tracked = [];
         foreach ($utmParams as $param) {
             $value = $request->query($param);
-            if ($value !== null) {
+            if ($value !== null && is_scalar($value)) {
                 // Neutralize XSS payloads by escaping HTML special characters
                 $tracked[$param] = htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
             }
         }
 
         if (!empty($tracked)) {
-            $request->setSession('_utm_tracking', $tracked);
+            $this->session->set('_utm_tracking', $tracked);
             $request = $request->withAttribute('utm_data', $tracked);
         }
 

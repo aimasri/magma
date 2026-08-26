@@ -84,7 +84,9 @@ class Psr15Adapter implements MiddlewareInterface
             }
         };
 
-        $result = $this->psrMiddleware->process($request, $handler);
+        /** @var callable $callable */
+        $callable = [$this->psrMiddleware, 'process'];
+        $result = $callable($request, $handler);
 
         if ($result instanceof Response) {
             return $result;

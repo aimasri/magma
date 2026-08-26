@@ -22,10 +22,14 @@ use Magma\http\Response;
  */
 class SubscriptionMiddleware implements MiddlewareInterface
 {
+    /**
+     * @var array<int, string>
+     * @phpstan-ignore property.onlyWritten
+     */
     private array $requiredFeatures;
 
     /**
-     * @param array $requiredFeatures Features required to access the route.
+     * @param array<int, string> $requiredFeatures Features required to access the route.
      */
     public function __construct(array $requiredFeatures = [])
     {

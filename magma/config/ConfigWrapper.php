@@ -64,7 +64,7 @@ class ConfigWrapper implements ConfigInterface
      * Logic behind the logic:
      * - Centralizes DB config retrieval via the interface.
      *
-     * @return array
+     * @return array{driver: string, host: string, port: string, dbname: string, user: string, password: string}
      */
     public function getDatabaseSettings(): array
     {
@@ -80,7 +80,7 @@ class ConfigWrapper implements ConfigInterface
      * Logic behind the logic:
      * - Hides the static nature of the replica config setup from consumers.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getReplicaDatabaseSettings(): array
     {
@@ -96,7 +96,7 @@ class ConfigWrapper implements ConfigInterface
      * Logic behind the logic:
      * - Enables mockable mailer settings for tests.
      *
-     * @return array
+     * @return array{host: string, port: int, username: string, password: string, encryption: string, from_email: string, from_name: string}
      */
     public function getMailerSettings(): array
     {

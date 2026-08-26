@@ -44,7 +44,7 @@ class GuestMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $next): Response
     {
         $user = $this->session->get('user');
-        if ($user) {
+        if (is_array($user)) {
             if (isset($user['role']) && $user['role'] === 'vendor') {
                 return new RedirectResponse('/admin');
             }

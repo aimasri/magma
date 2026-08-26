@@ -39,7 +39,7 @@ class MiddlewareResolver
      * Logic behind the logic:
      * Utilizing `array_map` provides a functional approach to transform configuration metadata into operational domain objects without managing stateful loops.
      * 
-     * @param array $middlewareList
+     * @param array<int, string|object|array<int|string, mixed>> $middlewareList
      * @return MiddlewareInterface[]
      */
     public function resolveAll(array $middlewareList): array
@@ -59,22 +59,36 @@ class MiddlewareResolver
      * Logic behind the logic:
      * This method acts as a polymorphic factory, abstracting away the instantiation complexity from the router, allowing developers to define middleware using the most convenient syntax for their use-case.
      * 
-     * @param string|object|array $definition
+     * @param string|object|array<int|string, mixed> $definition
      * @return MiddlewareInterface
      */
     public function resolve(string|object|array $definition): MiddlewareInterface
     {
         if (is_array($definition)) {
             $class = array_shift($definition);
+            if (!is_string($class)) {
+                throw new \RuntimeException("Middleware array definition must have a class name as the first element.");
+            }
             $instance = $this->container->get($class);
-            if (method_exists($instance, 'configure')) {
+            if (is_object($instance) && method_exists($instance, 'configure')) {
                 $instance->configure(...$definition);
+            }
+            if (!$instance instanceof MiddlewareInterface) {
+                throw new \RuntimeException(sprintf("Middleware '%s' must implement MiddlewareInterface", $class));
             }
             return $instance;
         }
 
         if (is_string($definition)) {
-            return $this->container->get($definition);
+            $instance = $this->container->get($definition);
+            if (!$instance instanceof MiddlewareInterface) {
+                throw new \RuntimeException(sprintf("Middleware '%s' must implement MiddlewareInterface", $definition));
+            }
+            return $instance;
+        }
+
+        if (!$definition instanceof MiddlewareInterface) {
+            throw new \RuntimeException("Middleware object must implement MiddlewareInterface");
         }
 
         return $definition;

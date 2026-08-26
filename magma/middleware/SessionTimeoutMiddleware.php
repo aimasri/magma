@@ -53,12 +53,14 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
     {
         $user = $this->session->get('user');
 
-        if ($user) {
+        if (is_array($user)) {
             $lastActivity = $this->session->get('last_activity');
             $currentTime = time();
             
             $allowedTimeout = $this->standardTimeout;
-            if (\Magma\enums\UserRole::isVendorRole($user['role'] ?? null)) {
+            
+            $role = isset($user['role']) && is_scalar($user['role']) ? (string)$user['role'] : null;
+            if (\Magma\enums\UserRole::isVendorRole($role)) {
                 $allowedTimeout = $this->adminTimeout;
             }
 

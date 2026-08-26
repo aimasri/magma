@@ -21,7 +21,18 @@ interface ConfigInterface
 {
     public function get(string $key, mixed $default = null): mixed;
     public function getRequired(string $key): string;
+    /**
+     * @return array{driver: string, host: string, port: string, dbname: string, user: string, password: string}
+     */
     public function getDatabaseSettings(): array;
+
+    /**
+     * @return array<string, mixed>
+     */
     public function getReplicaDatabaseSettings(): array;
+
+    /**
+     * @return array{host: string, port: int, username: string, password: string, encryption: string, from_email: string, from_name: string}
+     */
     public function getMailerSettings(): array;
 }

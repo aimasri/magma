@@ -26,6 +26,7 @@ use Magma\http\RedirectResponse;
  */
 class RoleMiddleware implements MiddlewareInterface
 {
+    /** @var array<int, string> */
     private array $allowedRoles = [];
     private string $redirectPath = '/';
     private \Magma\services\AuthenticationService $authService;
@@ -35,6 +36,9 @@ class RoleMiddleware implements MiddlewareInterface
         $this->authService = $authService;
     }
 
+    /**
+     * @param array<int, string>|string $allowedRoles
+     */
     public function configure(array|string $allowedRoles, string $redirectPath = '/'): void
     {
         $this->allowedRoles = (array) $allowedRoles;
