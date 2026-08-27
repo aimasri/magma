@@ -28,11 +28,13 @@ if (php_sapi_name() !== 'cli') {
     exit(1);
 }
 
-require __DIR__ . '/../magma/config/bootstrap.php';
+try {
+    require __DIR__ . '/../magma/config/bootstrap.php';
 
-use Magma\queue\QueueInterface;
-use Magma\queue\QueueWorkerDaemon;
-
-$queue = $container->get(QueueInterface::class);
-$daemon = new QueueWorkerDaemon($container, $queue);
-$daemon->run();
+    $queue = $container->get(\Magma\queue\QueueInterface::class);
+    $daemon = new \Magma\queue\QueueWorkerDaemon($container, $queue, $container->get(\Magma\logging\LoggerInterface::class));
+    $daemon->run();
+} catch (\Throwable $e) {
+    fwrite(STDERR, "CRITICAL WORKER BOOT FAILURE: " . $e->getMessage() . "\n");
+    exit(1);
+}

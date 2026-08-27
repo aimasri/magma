@@ -63,7 +63,16 @@ class ImageProcessingService
 
     private function createImageFromSource(string $sourceData): GdImage
     {
-        $srcImage = @imagecreatefromstring($sourceData);
+        set_error_handler(function ($severity, $message, $file, $line) {
+            throw new RuntimeException("GD Error: " . $message, 0, new \ErrorException($message, 0, $severity, $file, $line));
+        });
+
+        try {
+            $srcImage = imagecreatefromstring($sourceData);
+        } finally {
+            restore_error_handler();
+        }
+
         if ($srcImage === false) {
             throw new RuntimeException("Failed to decode image data into valid GD resource.");
         }

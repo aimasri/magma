@@ -51,7 +51,11 @@ class LocalStorageService implements StorageInterface
             }
         }
 
-        return file_put_contents($fullPath, $contents) !== false;
+        $result = file_put_contents($fullPath, $contents);
+        if ($result === false) {
+            throw new \Magma\infrastructure\exceptions\StorageException("Failed to write to local storage path: {$fullPath}");
+        }
+        return true;
     }
 
     /**
@@ -69,7 +73,10 @@ class LocalStorageService implements StorageInterface
         }
 
         $contents = file_get_contents($fullPath);
-        return $contents !== false ? $contents : null;
+        if ($contents === false) {
+            throw new \Magma\infrastructure\exceptions\StorageException("Failed to read from local storage path: {$fullPath}");
+        }
+        return $contents;
     }
 
     /**
@@ -92,7 +99,11 @@ class LocalStorageService implements StorageInterface
     public function delete(string $path): bool
     {
         if ($this->exists($path)) {
-            return unlink($this->getFullPath($path));
+            $fullPath = $this->getFullPath($path);
+            if (!unlink($fullPath)) {
+                throw new \Magma\infrastructure\exceptions\StorageException("Failed to delete local storage path: {$fullPath}");
+            }
+            return true;
         }
         return false;
     }

@@ -71,6 +71,12 @@ class S3StorageService implements StorageInterface
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $res = curl_exec($ch);
+        if ($res === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 Network Failure during put: {$error}");
+        }
+
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -89,6 +95,12 @@ class S3StorageService implements StorageInterface
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $res = curl_exec($ch);
+        if ($res === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 Network Failure during get: {$error}");
+        }
+
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -107,7 +119,13 @@ class S3StorageService implements StorageInterface
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_NOBODY, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_exec($ch);
+        $res = curl_exec($ch);
+        if ($res === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 Network Failure during exists: {$error}");
+        }
+
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -127,7 +145,13 @@ class S3StorageService implements StorageInterface
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_exec($ch);
+        $res = curl_exec($ch);
+        if ($res === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 Network Failure during delete: {$error}");
+        }
+
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
