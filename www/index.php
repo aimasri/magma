@@ -18,6 +18,13 @@
  * - Similar to `public/index.php` in Laravel or Symfony. Keep this file extremely thin.
  */
 
+use Magma\Application;
+use Magma\middleware\CsrfMiddleware;
+use Magma\middleware\UTMTrackerMiddleware;
+use Magma\middleware\ViewShareMiddleware;
+use Magma\middleware\SessionTimeoutMiddleware;
+use Magma\middleware\SecurityHeadersMiddleware;
+
 try {
     /**
      * Load the application bootstrap.
