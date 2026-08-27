@@ -1718,7 +1718,12 @@ In default PHP, when a fatal error occurs (like trying to connect to a database 
 Both of these are unacceptable in a professional application.
 </p>
 <p>
-In the Magma Framework framework, we enforce a global <strong>Exception Handler</strong> and absolute <strong>Exception Boundaries</strong> at the infrastructure level. For example, our base <code>AbstractQueryRepository</code> and <code>AbstractCommandRepository</code> explicitly catch <code>PDOException</code> natively at the execution layer, translating them into <code>DatabaseException</code>. This mathematically guarantees raw database credentials or SQL syntax errors never bleed into the domain or HTTP application layers, even before the global error handler catches them.
+In the Magma Framework, we enforce a global <strong>Exception Handler</strong> and absolute <strong>Exception Boundaries</strong> at the infrastructure level.
+<br>
+For example, our base <code>AbstractQueryRepository</code> and <code>AbstractCommandRepository</code> explicitly catch <code>PDOException</code> natively at the execution layer, translating them into <code>DatabaseException</code>. Similarly, our storage adapters (<code>LocalStorageService</code>, <code>S3StorageService</code>) throw <code>StorageException</code> upon network drops or disk permission failures, preventing silent boolean data loss. This mathematically guarantees raw database credentials, SQL syntax errors, or cloud storage secrets never bleed into the domain or HTTP application layers.
+</p>
+<p>
+Furthermore, we enforce <strong>Pre-Kernel Boot Safety Nets</strong>. If a fatal error occurs in <code>www/index.php</code> or <code>bin/worker.php</code> *before* the application container and <code>ErrorHandler</code> are fully registered, an outermost <code>try/catch</code> wrapper intercepts the failure to emit a clean 500 status code, protecting the system from 0-day <code>.env</code> or container misconfiguration leaks.
 </p>
 <h4>The Theory: Catching Everything</h4>
 <p>
