@@ -22,18 +22,31 @@ use Redis;
 class RedisRateLimiter implements RateLimiterInterface
 {
     private Redis $redis;
+    private ?\Magma\security\TenantContext $tenantContext;
     private string $prefix = 'rate_limit:';
 
     /**
-     * Initializes the rate limiter with a Redis connection.
+     * Initializes the rate limiter with a Redis connection and optional TenantContext.
      * 
      * Logic behind the logic:
      * - Constructor injection ensures this class is fully instantiated and ready to use,
      *   rather than creating its own connection and violating Dependency Injection.
+     * - TenantContext namespacing prevents cross-tenant rate limit starvation.
      */
-    public function __construct(Redis $redis)
+    public function __construct(Redis $redis, ?\Magma\security\TenantContext $tenantContext = null)
     {
         $this->redis = $redis;
+        $this->tenantContext = $tenantContext;
+    }
+
+    /**
+     * Resolves the multi-tenant namespaced key.
+     */
+    private function resolveKey(string $key): string
+    {
+        $tenantId = $this->tenantContext?->getTenantId();
+        $namespace = $tenantId !== null ? "tenant_{$tenantId}:" : "global:";
+        return $this->prefix . $namespace . $key;
     }
 
     /**
@@ -49,7 +62,7 @@ class RedisRateLimiter implements RateLimiterInterface
      */
     public function tooManyAttempts(string $key, int $maxAttempts): bool
     {
-        $val = $this->redis->get($this->prefix . $key);
+        $val = $this->redis->get($this->resolveKey($key));
         $attempts = is_scalar($val) ? (int)$val : 0;
         return $attempts >= $maxAttempts;
     }
@@ -72,7 +85,7 @@ class RedisRateLimiter implements RateLimiterInterface
      */
     public function hit(string $key, int $decaySeconds): int
     {
-        $redisKey = $this->prefix . $key;
+        $redisKey = $this->resolveKey($key);
         
         $script = "
             local current = redis.call('INCR', KEYS[1])
@@ -98,6 +111,6 @@ class RedisRateLimiter implements RateLimiterInterface
      */
     public function clear(string $key): void
     {
-        $this->redis->del($this->prefix . $key);
+        $this->redis->del($this->resolveKey($key));
     }
 }

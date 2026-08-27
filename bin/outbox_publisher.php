@@ -78,12 +78,10 @@ while ($keepRunning) {
     try {
         set_time_limit($timeLimit);
 
-        $processedCount = $txManager->transactional(function () use ($outboxRepo, $queue, $batchSize): int {
-            $jobs = $outboxRepo->fetchAndLockPending($batchSize);
-            if (empty($jobs)) {
-                return 0;
-            }
-
+        $jobs = $outboxRepo->fetchAndLockPending($batchSize);
+        if (empty($jobs)) {
+            $processedCount = 0;
+        } else {
             $publishedIds = [];
             foreach ($jobs as $job) {
                 try {
@@ -99,8 +97,8 @@ while ($keepRunning) {
                 $outboxRepo->deleteBatch($publishedIds);
             }
 
-            return count($publishedIds);
-        });
+            $processedCount = count($publishedIds);
+        }
 
         if ($processedCount > 0) {
             echo "[" . date('Y-m-d H:i:s') . "] Published and cleared {$processedCount} outbox jobs.\n";

@@ -11,12 +11,12 @@ use Magma\jobs\SendPasswordResetEmailJob;
 
 class SendPasswordResetEmailListener
 {
-    private QueueInterface $queue;
+    private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
     private UrlGenerator $urlGenerator;
 
-    public function __construct(QueueInterface $queue, UrlGenerator $urlGenerator)
+    public function __construct(\Magma\database\OutboxJobRepositoryInterface $outboxJobRepository, UrlGenerator $urlGenerator)
     {
-        $this->queue = $queue;
+        $this->outboxJobRepository = $outboxJobRepository;
         $this->urlGenerator = $urlGenerator;
     }
 
@@ -31,9 +31,14 @@ class SendPasswordResetEmailListener
         ];
 
         try {
-            $this->queue->push('emails', SendPasswordResetEmailJob::class, $payload);
+            $jobDto = new \Magma\dto\OutboxJobDTO(
+                'emails',
+                SendPasswordResetEmailJob::class,
+                $payload
+            );
+            $this->outboxJobRepository->record($jobDto);
         } catch (\Throwable $e) {
-            error_log("Failed to queue password reset email: " . $e->getMessage());
+            error_log("Failed to queue password reset email in outbox: " . $e->getMessage());
         }
     }
 }

@@ -1,9 +1,10 @@
 # Magma Framework: The Educational Architecture Core
 
-> **🔥 Recent Core Hardening (The Lava Phase)**  
+> **🔥 Recent Core Hardening (The Lava Phase & Concurrency Audits)**  
 > The framework has recently undergone a rigorous architectural and security hardening phase (originally developed on the `lava` branch and now merged directly into `main`). Key upgrades include:
 > - **100% PHPStan Level 9 Compliance:** All types are mathematically proven, explicit array shapes are enforced, and ambiguous `mixed` types have been systematically eliminated across all 200+ framework files.
 > - **Zero Legacy Artifacts:** Complete removal of all backward-compatibility facades, legacy middleware, and primitive routing tuples. The framework strictly enforces modern object-oriented interfaces.
+> - **Concurrency & Race Condition Eradication:** A multi-pass concurrency audit was conducted, eradicating TOCTOU projection bugs, fixing Redis `BLPOP` daemon deadlocks, isolating Postgres transactions from network I/O, preventing cross-tenant rate limit starvation, stopping dual-write anti-patterns, and implementing atomic locks to prevent Cache Stampedes.
 > - **Automated Boundary Enforcement:** AST-level validation guarantees zero direct superglobal breaches and explicit `tenant_id` database scoping.
 > - **Cryptographic Hardening:** Upgraded core authentication to utilize Argon2id hashing with transparent on-the-fly rehashing, alongside strict `Permissions-Policy` security headers.
 > - **Zero Runtime Dependencies:** The production runtime remains 100% dependency-free, with all static analysis and testing tools securely relegated to `require-dev`.

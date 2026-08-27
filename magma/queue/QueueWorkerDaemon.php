@@ -25,6 +25,16 @@ class QueueWorkerDaemon
 
     public function run(string $queueName = 'emails'): void
     {
+        if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
+            pcntl_async_signals(true);
+            $signalHandler = function (int $signal) {
+                $this->logger->info("Signal {$signal} received. Initiating graceful shutdown...");
+                $this->running = false;
+            };
+            pcntl_signal(SIGTERM, $signalHandler);
+            pcntl_signal(SIGINT, $signalHandler);
+        }
+
         $this->logger->info("Worker started. Listening for jobs on '{$queueName}' queue...");
 
         while ($this->running) {
@@ -32,7 +42,7 @@ class QueueWorkerDaemon
             $this->container->flushInstances();
 
             try {
-                $jobString = $this->queue->pop($queueName, 0);
+                $jobString = $this->queue->pop($queueName, 3);
             } catch (\Throwable $e) {
                 $this->logger->critical("Queue pop failed (e.g. Redis offline). Sleeping for 5s.", ['exception' => $e->getMessage()]);
                 sleep(5);

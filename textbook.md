@@ -1821,7 +1821,44 @@ Instead of dispatching directly to a queue, the `OutboxJobRepository` records do
 #### FOR UPDATE SKIP LOCKED
 A continuous background daemon polls the outbox table to execute the jobs. If you run multiple parallel workers, they will race each other to grab the same job.
 
-Magma relies on PostgreSQL's native `FOR UPDATE SKIP LOCKED` locking primitive. When a worker selects a job, it locks the row. If a second worker queries the table at the exact same millisecond, the database seamlessly *skips* the locked row and hands it the next available job. This guarantees exactly-once delivery with zero lock-contention CPU churn.
+Magma solves this elegantly by using Postgres's `FOR UPDATE SKIP LOCKED` clause. This allows dozens of workers to read from the outbox simultaneously; if Worker A locks rows 1-50, Worker B will instantly skip them and fetch rows 51-100 without blocking. This provides infinite horizontal scaling for background jobs without race conditions.
+
+### Chapter 12.3: Mastering Concurrency and Race Conditions
+
+#### Subject & Intent: Designing for High Throughput
+As web applications scale horizontally, naive assumptions about code execution order break down. A race condition occurs when two or more threads (or web requests) attempt to read and write shared data at the exact same millisecond. Without strict synchronization mechanisms, this leads to corrupted data, duplicate actions, and catastrophic failures.
+
+Magma has undergone a rigorous, multi-pass **Concurrency Audit** to mathematically eliminate these architectural vulnerabilities from its core. By examining how we eradicated these patterns, you can learn to write truly thread-safe enterprise software.
+
+#### 1. TOCTOU (Time-Of-Check to Time-Of-Use) Races
+A common anti-pattern is checking if a condition exists, and then acting on it: `if (!$repo->exists()) { $repo->insert(); }`. Under concurrency, Worker A and Worker B both check `exists()` simultaneously, both receive `false`, and both execute the `insert()`, creating duplicate data.
+
+**The Magma Solution:** In our `IdempotentProjectionGuard`, we inverted the logic. We rely on the database's absolute truth by executing an atomic `INSERT ... ON CONFLICT DO NOTHING`. The database engine itself enforces the lock. If the insert succeeds, we proceed. If it returns false, we know another worker beat us to it, and we safely halt.
+
+#### 2. The Cache Stampede (Thundering Herd)
+When a highly-trafficked, cached dictionary (like system tax rates) expires, fifty concurrent web requests will experience a cache miss simultaneously. A naive cache decorator will allow all fifty requests to execute the heavy database query at the exact same millisecond, instantly overloading the connection pool.
+
+**The Magma Solution:** The `CachedRepositoryDecorator` utilizes an atomic `CacheInterface::add()` (which translates to a Redis `SETNX`) to create a distributed lock. Only the *first* request wins the lock and queries the database. The remaining 49 requests safely `usleep()` and poll until the first request populates the cache, protecting the database from the stampede.
+
+#### 3. Isolating Network I/O from Database Locks
+It is a cardinal sin to perform synchronous network I/O (like pushing to Redis, or calling a Stripe HTTP API) *inside* an open PostgreSQL transaction. If the Redis server experiences a 5-second latency spike, the PostgreSQL transaction is held open for 5 seconds, maintaining row locks and instantly exhausting the PgBouncer connection pool.
+
+**The Magma Solution:** In `outbox_publisher.php`, we removed the transaction wrapper entirely. The outbox uses a single, atomic `UPDATE ... RETURNING` statement to lock rows via a `locked_at = NOW()` application-level timestamp. Because the lock is recorded in the data itself rather than relying on a long-running SQL transaction, we can safely push to Redis over the network without hoarding database connections.
+
+#### 4. Graceful Daemon Termination and Deadlocks
+Background workers run in infinite loops (`while ($this->running)`). When deploying new code, deployment scripts send a `SIGTERM` signal to restart the workers. However, if the worker is stuck in an infinite `BLPOP` waiting for Redis, it will never evaluate the shutdown flag, resulting in a deadlock that forces the deployment script to violently `SIGKILL` the worker (corrupting data).
+
+**The Magma Solution:** `QueueWorkerDaemon` registers `pcntl_signal` hooks to intercept termination requests and uses a strict 3-second timeout on its Redis `pop()` command. This ensures the daemon regularly unblocks, checks its internal `$this->running` state, and gracefully exits before fetching the next job.
+
+#### 5. Cross-Tenant Rate Limit Starvation
+In a multi-tenant SaaS, rate limiters must strictly isolate traffic. If rate limit tracking keys are generated purely by the route name (e.g. `rate_limit:login`), a malicious actor spamming the login endpoint on Tenant A will max out the shared counter, effectively DoS-ing Tenant B.
+
+**The Magma Solution:** Magma's `RedisRateLimiter` utilizes Dependency Injection to retrieve the `TenantContext`. It automatically prefixes every Redis key with `tenant_{id}:`, ensuring mathematically isolated rate limit buckets for every organization on the platform.
+
+#### 6. Dual-Write Events and Exception Aggregation
+When an event (like `UserRegisteredEvent`) triggers multiple listeners (e.g., an Email Listener and a Metrics Listener), two major concurrency risks occur:
+1. **The Dual Write:** If a listener pushes an email directly to Redis during a database transaction, and the database subsequently rolls back, the user receives an email for an account that doesn't exist. Magma forces all side-effects through the `OutboxJobRepository` to tie network I/O strictly to the ACID commit.
+2. **Listener Isolation:** If the Metrics Listener throws an exception, the PHP `foreach` loop inside the Dispatcher breaks, and the Email Listener is silently skipped. Magma's `EventDispatcher` aggregates throwables natively, guaranteeing all independent listeners execute while still throwing an `EventDispatchException` at the very end to safely roll back the parent transaction.
 ## Module 13: End of Cycle Considerations - Automated Testing
 
 ### Chapter 13.1: Reaping the Rewards of Architecture

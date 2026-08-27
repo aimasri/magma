@@ -135,13 +135,10 @@ class IdempotentProjectionGuard
         ?int $tenantId = null,
         array $metadata = []
     ): mixed {
-        if ($this->isProcessed($projectionName, $eventId)) {
+        if (!$this->markProcessed($projectionName, $eventId, $tenantId, $metadata)) {
             return null;
         }
 
-        $result = $action();
-        $this->markProcessed($projectionName, $eventId, $tenantId, $metadata);
-
-        return $result;
+        return $action();
     }
 }

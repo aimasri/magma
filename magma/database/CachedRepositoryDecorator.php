@@ -72,10 +72,30 @@ abstract class CachedRepositoryDecorator
             return $cached;
         }
 
-        $result = $callback();
-        $this->cache->set($key, $result, $ttl ?? $this->defaultTtl);
+        $lockKey = $key . ':lock';
+        $acquired = $this->cache->add($lockKey, true, 10); // 10-second lease
 
-        return $result;
+        if (!$acquired) {
+            $attempts = 0;
+            while ($attempts < 50) { // Max 5 seconds waiting
+                usleep(100000); // 100ms polling
+                $cached = $this->cache->get($key);
+                if ($cached !== null) {
+                    return $cached;
+                }
+                $attempts++;
+            }
+        }
+
+        try {
+            $result = $callback();
+            $this->cache->set($key, $result, $ttl ?? $this->defaultTtl);
+            return $result;
+        } finally {
+            if ($acquired) {
+                $this->cache->delete($lockKey);
+            }
+        }
     }
 
     /**
