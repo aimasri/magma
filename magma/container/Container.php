@@ -285,6 +285,10 @@ class Container
             
             $dependencies = $this->buildDependencies($parameters, $id, [], $cacheEntry);
 
+            if (count(self::$reflectionCache) >= 1000) {
+                unset(self::$reflectionCache[array_key_first(self::$reflectionCache)]);
+            }
+            
             self::$reflectionCache[$id] = $cacheEntry;
 
             return $reflectionClass->newInstanceArgs($dependencies);

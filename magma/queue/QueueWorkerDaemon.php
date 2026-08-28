@@ -76,7 +76,7 @@ class QueueWorkerDaemon
             }
 
             if ($jobString) {
-                $this->processJob($jobString);
+                $this->processJob($jobString, $queueName);
             }
 
             // Prevent OOM in long-running processes (128MB threshold)
@@ -87,7 +87,7 @@ class QueueWorkerDaemon
         }
     }
 
-    private function processJob(string $jobString): void
+    private function processJob(string $jobString, string $queueName): void
     {
         $job = json_decode($jobString, true);
 
@@ -106,7 +106,12 @@ class QueueWorkerDaemon
         if (is_string($handlerClass) && class_exists($handlerClass)) {
             $this->logger->info("Received job: " . $handlerClass);
             try {
-                set_time_limit(120);
+                if (function_exists('pcntl_alarm') && function_exists('pcntl_signal')) {
+                    pcntl_signal(SIGALRM, function () {
+                        throw new \RuntimeException("Job execution timeout exceeded (120s).");
+                    });
+                    pcntl_alarm(120);
+                }
 
                 $handler = $this->container->get($handlerClass);
                 
@@ -118,22 +123,36 @@ class QueueWorkerDaemon
                 if (!is_array($payload)) {
                     $payload = [];
                 }
+                
+                $attempts = $payload['attempts'] ?? 0;
+                $payload['attempts'] = $attempts + 1;
 
                 $handler->handle($payload);
                 $this->logger->info("Successfully processed job.");
             } catch (Throwable $e) {
                 $this->logger->error("Failed to process job.", ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-                $job['error'] = $e->getMessage();
-                $job['failed_at'] = date('c');
-                $this->queue->push('failed_jobs', $handlerClass, $job);
+                
+                $payload['error'] = $e->getMessage();
+                $payload['trace'] = $e->getTraceAsString();
+                
+                if ($payload['attempts'] < 3) {
+                    $this->logger->info("Re-queueing job (Attempt {$payload['attempts']}/3)");
+                    sleep(1); // Brief delay before requeue
+                    $this->queue->push($queueName, $handlerClass, $payload);
+                } else {
+                    $payload['failed_at'] = date('c');
+                    $this->queue->push('failed_jobs', $handlerClass, $payload);
+                }
             } finally {
+                if (function_exists('pcntl_alarm')) {
+                    pcntl_alarm(0);
+                }
                 if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
                     $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
                     if ($db instanceof \Magma\database\DatabaseConnectionManager) {
                         $db->disconnect();
                     }
                 }
-                set_time_limit(0);
             }
         } else {
             $this->logger->warning("Invalid job payload or handler does not exist.");

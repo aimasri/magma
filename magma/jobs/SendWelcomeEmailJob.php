@@ -21,10 +21,12 @@ use Magma\mail\WelcomeEmail;
 class SendWelcomeEmailJob implements JobInterface
 {
     private MailerService $mailerService;
+    private \Magma\queue\IdempotentProjectionGuard $guard;
 
-    public function __construct(MailerService $mailerService)
+    public function __construct(MailerService $mailerService, \Magma\queue\IdempotentProjectionGuard $guard)
     {
         $this->mailerService = $mailerService;
+        $this->guard = $guard;
     }
 
     /**
@@ -43,11 +45,13 @@ class SendWelcomeEmailJob implements JobInterface
         $toName = is_scalar($payload['to_name'] ?? null) ? (string)$payload['to_name'] : '';
         $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
 
-        $mailable = new WelcomeEmail($toName);
-        
-        $this->mailerService->sendMailable(
-            $toEmail,
-            $mailable
-        );
+        $this->guard->guard('email_welcome', $toEmail, function () use ($toName, $toEmail) {
+            $mailable = new WelcomeEmail($toName);
+            
+            $this->mailerService->sendMailable(
+                $toEmail,
+                $mailable
+            );
+        });
     }
 }

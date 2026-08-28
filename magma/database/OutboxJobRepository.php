@@ -30,10 +30,12 @@ use RuntimeException;
 class OutboxJobRepository implements OutboxJobRepositoryInterface
 {
     private DatabaseConnectionManager $dbManager;
+    private ?TransactionManagerInterface $transactionManager;
 
-    public function __construct(DatabaseConnectionManager $dbManager)
+    public function __construct(DatabaseConnectionManager $dbManager, ?TransactionManagerInterface $transactionManager = null)
     {
         $this->dbManager = $dbManager;
+        $this->transactionManager = $transactionManager;
     }
 
     /**
@@ -183,29 +185,37 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
             return;
         }
 
-        $pdo = $this->dbManager->getWriteConnection();
+        $executeChunks = function () use ($jobs) {
+            $pdo = $this->dbManager->getWriteConnection();
 
-        $chunks = array_chunk($jobs, 1000);
-        foreach ($chunks as $chunk) {
-            $placeholders = implode(',', array_fill(0, count($chunk), '(?, ?, ?, ?, 0, NOW())'));
-            $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
+            $chunks = array_chunk($jobs, 1000);
+            foreach ($chunks as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '(?, ?, ?, ?, 0, NOW())'));
+                $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
 
-            $stmt = $pdo->prepare($sql);
-            
-            $i = 1;
-            /** @var \Magma\dto\OutboxJobDTO $job */
-            foreach ($chunk as $job) {
-                $stmt->bindValue($i++, trim($job->queue));
-                $stmt->bindValue($i++, trim($job->handlerClass));
-                $stmt->bindValue($i++, json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-                $stmt->bindValue($i++, json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                $stmt = $pdo->prepare($sql);
+                
+                $i = 1;
+                /** @var \Magma\dto\OutboxJobDTO $job */
+                foreach ($chunk as $job) {
+                    $stmt->bindValue($i++, trim($job->queue));
+                    $stmt->bindValue($i++, trim($job->handlerClass));
+                    $stmt->bindValue($i++, json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                    $stmt->bindValue($i++, json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                }
+
+                try {
+                    $stmt->execute();
+                } catch (\PDOException $e) {
+                    throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox bulk record failed.", 0, $e);
+                }
             }
+        };
 
-            try {
-                $stmt->execute();
-            } catch (\PDOException $e) {
-                throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox bulk record failed.", 0, $e);
-            }
+        if ($this->transactionManager) {
+            $this->transactionManager->transactional($executeChunks);
+        } else {
+            $executeChunks();
         }
     }
 

@@ -44,7 +44,7 @@ class RedisRateLimiter implements RateLimiterInterface
      */
     private function resolveKey(string $key): string
     {
-        $tenantId = $this->tenantContext?->getTenantId();
+        $tenantId = ($this->tenantContext !== null && $this->tenantContext->hasTenantId()) ? $this->tenantContext->getTenantId() : null;
         $namespace = $tenantId !== null ? "tenant_{$tenantId}:" : "global:";
         return $this->prefix . $namespace . $key;
     }
