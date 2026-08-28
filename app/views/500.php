@@ -28,12 +28,12 @@ $isDebug = !empty($debug);
     <title>500 Internal Server Error | Magma</title>
     <style>
         :root {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-danger: #f43f5e;
-            --border-card: #334155;
+            --bg-body: #380404;
+            --bg-card: #f4ead5;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --accent-danger: #ebb33a;
+            --border-card: #e2e8f0;
             --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
         }
@@ -55,14 +55,13 @@ $isDebug = !empty($debug);
             max-width: 680px;
             width: 100%;
             padding: 2.5rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center;
         }
         .error-badge {
             display: inline-block;
-            background-color: rgba(244, 63, 94, 0.15);
+            background-color: #380404;
             color: var(--accent-danger);
-            border: 1px solid rgba(244, 63, 94, 0.3);
             font-weight: 700;
             font-size: 0.85rem;
             padding: 0.35rem 0.85rem;
@@ -74,7 +73,7 @@ $isDebug = !empty($debug);
             font-size: 1.75rem;
             font-weight: 700;
             margin-bottom: 0.75rem;
-            color: #fff;
+            color: #622E00;
         }
         .error-desc {
             font-size: 1.05rem;
@@ -89,8 +88,8 @@ $isDebug = !empty($debug);
         }
         .btn {
             display: inline-block;
-            background-color: #38bdf8;
-            color: #0f172a;
+            background-color: #380404;
+            color: #ebb33a;
             font-weight: 600;
             padding: 0.65rem 1.25rem;
             border-radius: 6px;
@@ -106,18 +105,18 @@ $isDebug = !empty($debug);
             border: 1px solid var(--border-card);
         }
         .btn-outline:hover {
-            background-color: rgba(255,255,255,0.05);
+            background-color: rgba(0,0,0,0.05);
         }
         .trace-box {
             margin-top: 2rem;
             text-align: left;
-            background-color: #090d16;
+            background-color: rgba(0,0,0,0.05);
             border: 1px solid var(--border-card);
             border-radius: 8px;
             padding: 1rem;
             font-family: var(--font-mono);
             font-size: 0.85rem;
-            color: #e2e8f0;
+            color: var(--text-main);
             overflow-x: auto;
             max-height: 300px;
         }

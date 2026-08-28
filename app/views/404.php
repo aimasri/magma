@@ -24,12 +24,12 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
     <title>404 Not Found | Magma</title>
     <style>
         :root {
-            --bg-body: #0f172a;
-            --bg-card: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-warning: #fbbf24;
-            --border-card: #334155;
+            --bg-body: #380404;
+            --bg-card: #f4ead5;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --accent-warning: #ebb33a;
+            --border-card: #e2e8f0;
             --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
         }
@@ -51,14 +51,13 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
             max-width: 680px;
             width: 100%;
             padding: 3rem;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center;
         }
         .error-badge {
             display: inline-block;
-            background-color: rgba(251, 191, 36, 0.15);
+            background-color: #380404;
             color: var(--accent-warning);
-            border: 1px solid rgba(251, 191, 36, 0.3);
             font-weight: 700;
             font-size: 0.85rem;
             padding: 0.35rem 0.85rem;
@@ -70,7 +69,7 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            color: #fff;
+            color: #622E00;
         }
         .error-desc {
             font-size: 1.15rem;
@@ -85,8 +84,8 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
         }
         .btn {
             display: inline-block;
-            background-color: #38bdf8;
-            color: #0f172a;
+            background-color: #380404;
+            color: #ebb33a;
             font-weight: 600;
             padding: 0.65rem 1.25rem;
             border-radius: 6px;
@@ -102,7 +101,7 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
             border: 1px solid var(--border-card);
         }
         .btn-outline:hover {
-            background-color: rgba(255,255,255,0.05);
+            background-color: rgba(0,0,0,0.05);
         }
     </style>
 </head>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <g fill="none" stroke="#380404" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Volcano base and slopes -->
+    <path d="M 4 28 L 11 14 M 21 14 L 28 28 M 4 28 L 28 28" />
+    <!-- Lava drip -->
+    <path d="M 11 14 C 11 20, 16 20, 16 16 C 16 20, 21 20, 21 14" />
+    <!-- Crater opening line -->
+    <path d="M 11 14 L 21 14" />
+    <!-- Eruption ash/smoke lines -->
+    <path d="M 16 10 L 16 3" />
+    <path d="M 12 9 L 8 4" />
+    <path d="M 20 9 L 24 4" />
+    <!-- Small eruption sparks -->
+    <circle cx="12" cy="5" r="0.5" fill="#380404" stroke="none" />
+    <circle cx="21" cy="6" r="0.5" fill="#380404" stroke="none" />
+    <circle cx="16" cy="1" r="0.5" fill="#380404" stroke="none" />
+  </g>
+</svg>

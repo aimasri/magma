@@ -44,6 +44,8 @@ If changes represent framework evolutions (SOLID, performance, multi-tenancy, re
 > **Why it matters:** (Improvement details)
 > **Action:** Add this to the Magma review list.
 
+Crucially, candidates must improve core architecture (e.g., performance, security, design patterns) and strictly avoid any industry or feature-specific code. The Magma core must remain entirely agnostic of any specific business domain.
+
 ## 7. Tool Constraints
 - **Subagents:** Do not use browser subagents unless explicitly asked.
 - **Browser/DevTools:** Never use browser tool actions (e.g., chrome-devtools-mcp). They consume too much token quota.
@@ -59,7 +61,15 @@ If changes represent framework evolutions (SOLID, performance, multi-tenancy, re
 - **Debugging:** Always show ALL debugging information. Do not hide stack traces or error dumps.
 - **Legacy & Compatibility:** We do NOT keep backward compatibility and we do NOT worry about legacy files.
 - **Thoroughness:** Test all edge cases. No shortcuts are permitted. Make sure every implementation is complete and robust.
+
 ## 10. Git Branching & Workflow
 - **Directional Flow:** You must strictly observe the directional flow of the Git branches. The `main` branch is the pure, dependency-free Magma core. The `lava` branch is a downstream testing layer built on top of it (containing testing tools, phpunit, composer configs, etc.).
 - **Merging Protocol:** When applying bug fixes, UI updates, or core features that belong in both, you MUST commit the changes to `main` FIRST. Then, check out `lava` and merge `main` into it (`git merge main`). 
 - **Strict Prohibition:** You must NEVER merge `lava` into `main`, or you will permanently pollute the pure core framework with testing dependencies and break the architecture.
+
+## 11. Server & DevOps Protocol
+- **Production Access:** When diagnosing deployment, server, or production database issues, always remember that you act as the DevOps engineer for this project. You have direct SSH access to the live server (credentials and IPs are located in infrastructure.env).
+- **Consent Required:** DO NOT make changes to the live production environment proactively. Instead, investigate the issue, propose your fix, and explicitly ask for the user's permission before SSHing into the server to apply changes to the live database, files, or configurations.
+
+## 12. Execution Protocol
+- **Strict Task-By-Task Basis:** ALWAYS operate on a strict task-by-task basis. Never "jump the gun" or execute follow-up steps, architectural changes, or related fixes proactively. If a task naturally implies a next step, you must stop, present your findings, and explicitly ask for permission before proceeding. We refine between tasks without rushing. Do absolutely nothing more than what is explicitly requested.
