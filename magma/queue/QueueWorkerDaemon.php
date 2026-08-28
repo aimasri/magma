@@ -92,7 +92,12 @@ class QueueWorkerDaemon
         $job = json_decode($jobString, true);
 
         if (!is_array($job)) {
-            $this->logger->warning("Invalid job payload format.");
+            $this->logger->warning("Invalid job payload format. Pushing to DLQ.");
+            $this->queue->push('failed_jobs', 'UnknownHandler', [
+                'raw_payload' => $jobString,
+                'error' => 'json_decode failed or payload is not an array',
+                'failed_at' => date('c')
+            ]);
             return;
         }
 

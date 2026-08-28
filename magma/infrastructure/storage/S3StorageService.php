@@ -80,7 +80,11 @@ class S3StorageService implements StorageInterface
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return $status >= 200 && $status < 300;
+        if ($status < 200 || $status >= 300) {
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 PUT request failed with HTTP {$status}");
+        }
+
+        return true;
     }
 
     public function get(string $path): ?string
@@ -155,7 +159,11 @@ class S3StorageService implements StorageInterface
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return $status >= 200 && $status < 300;
+        if ($status < 200 || $status >= 300) {
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 DELETE request failed with HTTP {$status}");
+        }
+
+        return true;
     }
 
     /**
@@ -199,15 +207,17 @@ class S3StorageService implements StorageInterface
         $tmpName = sys_get_temp_dir() . '/' . $newFilename;
         $file->moveTo($tmpName);
 
-        $content = file_get_contents($tmpName);
-        unlink($tmpName);
-        
-        if ($content === false) {
-            throw new RuntimeException("Failed to read temporary upload payload.");
-        }
+        try {
+            $content = file_get_contents($tmpName);
+            if ($content === false) {
+                throw new \Magma\infrastructure\exceptions\StorageException("Failed to read temporary upload payload.");
+            }
 
-        if (!$this->put($key, $content)) {
-            throw new RuntimeException("Failed to persist object key to S3 bucket [{$this->bucket}].");
+            $this->put($key, $content);
+        } finally {
+            if (file_exists($tmpName)) {
+                unlink($tmpName);
+            }
         }
 
         return $key;

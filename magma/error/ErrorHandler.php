@@ -95,7 +95,8 @@ class ErrorHandler implements ErrorHandlerInterface
                     }
                 }
             } catch (\Throwable $e) {
-                // Ignore errors and fall back to default Magma colors
+                // Log the failure to prevent silent DB outage suppression, but fall back to default Magma colors
+                error_log("Failed to resolve tenant theme during error handling: " . $e->getMessage());
             }
         }
 
@@ -206,23 +207,45 @@ class ErrorHandler implements ErrorHandlerInterface
             return $this->renderError($code, $message, $e->getTraceAsString(), $request);
         }
 
-        // Log general Throwable
+        // Extract Tenant ID for log correlation
+        $tenantId = null;
+        if ($this->container !== null && method_exists($this->container, 'has') && $this->container->has(\Magma\security\TenantContext::class)) {
+            try {
+                /** @var \Magma\security\TenantContext $tenantContext */
+                $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+                $tenantId = $tenantContext->hasTenantId() ? $tenantContext->getTenantId() : null;
+            } catch (\Throwable) {}
+        }
+
+        // Build full exception chain trace to prevent losing PDOException details
+        $traceChain = $e->getTraceAsString();
+        $prev = $e->getPrevious();
+        while ($prev !== null) {
+            $traceChain .= "\n\n[Caused by]: " . get_class($prev) . " - " . $prev->getMessage() . "\n" . $prev->getTraceAsString();
+            $prev = $prev->getPrevious();
+        }
+
+        // Log general Throwable with Tenant ID context
         $logEntry = sprintf(
-            "[%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
+            "[%s] [Tenant:%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
             date('Y-m-d H:i:s'),
+            $tenantId ?? 'System',
             get_class($e),
             $e->getMessage(),
             $e->getFile(),
             $e->getLine(),
-            $e->getTraceAsString()
+            $traceChain
         );
         error_log($logEntry);
 
-        // Normalize HTTP status code
-        $code = $e->getCode();
-        if (!is_int($code) || $code < 400 || $code > 599) {
-            $code = 500;
-        }
+        // Map domain exceptions to appropriate HTTP status codes
+        $code = match (true) {
+            $e instanceof \Magma\domain\exceptions\DuplicateResourceException => 409,
+            $e instanceof \Magma\domain\exceptions\NotFoundException => 404,
+            $e instanceof \Magma\domain\exceptions\AuthorizationException => 403,
+            $e instanceof \Magma\domain\exceptions\InvalidStateTransitionException => 422,
+            default => (is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599) ? $e->getCode() : 500,
+        };
 
         $safeMessage = $this->debug ? $e->getMessage() : 'An unexpected system error occurred.';
 

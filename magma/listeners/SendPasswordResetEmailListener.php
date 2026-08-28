@@ -40,9 +40,6 @@ class SendPasswordResetEmailListener
      * 1. Generates an absolute URL for the reset link using the provided token.
      * 2. Packages the email intent and URL into a DTO payload.
      * 3. Records the job in the database outbox to guarantee delivery.
-     *
-     * Logic behind the logic:
-     * - We catch \Throwable around the outbox recording to prevent an infrastructure failure from bubbling up and crashing the user's web request. The user should still see a success message, while ops is notified via error log.
      */
     public function handle(PasswordResetRequestedEvent $event): void
     {
@@ -54,15 +51,11 @@ class SendPasswordResetEmailListener
             'reset_link' => $resetLink
         ];
 
-        try {
-            $jobDto = new \Magma\dto\OutboxJobDTO(
-                'emails',
-                SendPasswordResetEmailJob::class,
-                $payload
-            );
-            $this->outboxJobRepository->record($jobDto);
-        } catch (\Throwable $e) {
-            error_log("Failed to queue password reset email in outbox: " . $e->getMessage());
-        }
+        $jobDto = new \Magma\dto\OutboxJobDTO(
+            'emails',
+            SendPasswordResetEmailJob::class,
+            $payload
+        );
+        $this->outboxJobRepository->record($jobDto);
     }
 }
