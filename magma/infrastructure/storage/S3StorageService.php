@@ -108,6 +108,10 @@ class S3StorageService implements StorageInterface
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($status >= 500) {
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 GET request failed with HTTP {$status}");
+        }
+
         return ($status === 200 && is_string($res)) ? $res : null;
     }
 
@@ -132,6 +136,10 @@ class S3StorageService implements StorageInterface
 
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($status >= 500) {
+            throw new \Magma\infrastructure\exceptions\StorageException("S3 HEAD request failed with HTTP {$status}");
+        }
 
         return $status === 200;
     }
