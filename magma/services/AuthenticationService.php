@@ -33,17 +33,20 @@ class AuthenticationService
     protected UserCommandInterface $userCommandRepository;
     protected Session $session;
     protected RememberMeService $rememberMeService;
+    protected \Magma\contracts\ClockInterface $clock;
 
     public function __construct(
         UserQueryInterface $userRepository,
         UserCommandInterface $userCommandRepository,
         Session $session,
-        RememberMeService $rememberMeService
+        RememberMeService $rememberMeService,
+        \Magma\contracts\ClockInterface $clock
     ) {
         $this->userRepository = $userRepository;
         $this->userCommandRepository = $userCommandRepository;
         $this->session = $session;
         $this->rememberMeService = $rememberMeService;
+        $this->clock = $clock;
     }
 
     /**
@@ -83,7 +86,7 @@ class AuthenticationService
             $newHash = password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]);
             $userId = isset($user['id']) && is_scalar($user['id']) ? (int) $user['id'] : 0;
             if ($userId > 0) {
-                $this->userCommandRepository->updatePassword($userId, $newHash);
+                $this->userCommandRepository->updatePassword($userId, $newHash, $this->clock->now());
             }
         }
 
@@ -154,6 +157,7 @@ class AuthenticationService
         $this->session->regenerate(true);
 
         $this->session->set('user', $authUser->toSessionArray());
+        $this->session->set('login_time', $this->clock->now()->getTimestamp());
     }
 
     /**

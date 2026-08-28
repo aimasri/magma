@@ -1878,6 +1878,15 @@ Because we built the Magma framework using strict **Dependency Injection (Module
 #### The Theory: Mocks and Fakes
 If you want to test the `OrderService`, you do not need a database. You simply write a test script that injects a fake `InMemoryOrderRepository` into the service. You can instantly verify the logic is flawless without ever booting up PostgreSQL. This is the ultimate validation of our architectural choices!
 
+### Chapter 13.2: Deterministic Time (The Clock Interface)
+
+#### Subject & Intent: Eradicating Hidden Global State
+Time is inherently non-deterministic. Every time you call `time()`, `new DateTime()`, or SQL's `NOW()`, the output changes. If your application logic relies on these native functions (for instance, checking if a session token has expired), it becomes a hidden global dependency. This makes testing time-sensitive features incredibly flaky.
+
+To resolve this, Magma implements a strict **`ClockInterface`**. Rather than calling native time functions, services inject the `ClockInterface`. 
+In production, the DI container binds this to a `SystemClock` that returns real time. 
+In testing (our `lava` testing infrastructure), we bind it to a `MockClock`. This allows test suites to instantly "freeze", "advance", or "rewind" the flow of time deterministically without ever pausing the CPU!
+
 
 ## Module 14: Frontend Architecture: Deep Freeze & CSS Layers
 

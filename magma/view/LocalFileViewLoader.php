@@ -139,14 +139,23 @@ class LocalFileViewLoader implements ViewLoaderInterface
                     implode(', ', array_keys($this->namespaces))
                 );
             }
-
-            $resolvedFile = $this->namespaces[$namespace] . str_replace('/', DIRECTORY_SEPARATOR, $subPath);
+            
+            $boundaryPath = $this->namespaces[$namespace];
+            $resolvedFile = $boundaryPath . str_replace('/', DIRECTORY_SEPARATOR, $subPath);
         } else {
-            $resolvedFile = $this->basePath . str_replace('/', DIRECTORY_SEPARATOR, $cleanTemplate);
+            $boundaryPath = $this->basePath;
+            $resolvedFile = $boundaryPath . str_replace('/', DIRECTORY_SEPARATOR, $cleanTemplate);
         }
 
         if (!str_ends_with($resolvedFile, '.php')) {
             $resolvedFile .= '.php';
+        }
+
+        $realBoundary = realpath($boundaryPath);
+        $realResolved = realpath($resolvedFile);
+
+        if ($realResolved !== false && $realBoundary !== false && !str_starts_with($realResolved, $realBoundary)) {
+            throw new \RuntimeException("Path traversal detected in view resolution.");
         }
 
         if (!file_exists($resolvedFile)) {

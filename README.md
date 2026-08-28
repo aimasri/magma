@@ -205,6 +205,7 @@ Core business rules are structured using **Pragmatic Domain-Driven Design (DDD)*
 * **Thin Orchestrating Services:** Domain Services inject repositories strictly through Interfaces and coordinate multi-step workflows, transaction boundaries, and event publishing.
 * **Finite State Machine Engine:** [`StateMachine.php`](./magma/domain/StateMachine.php) and [`AbstractStateTransition.php`](./magma/domain/AbstractStateTransition.php) enforce uppercase state normalization, allowed transition path graphs, and terminal state invariants.
 * **Polymorphic Strategy Registry:** [`StrategyRegistry.php`](./magma/services/StrategyRegistry.php) implements a container-aware registry resolving dynamic domain algorithms (pricing, margin scoring, taxation) by key with runtime validation.
+* **Deterministic Time Abstraction:** [`ClockInterface.php`](./magma/contracts/ClockInterface.php) and `SystemClock.php` replace hidden global state (`time()`, `NOW()`) across all core services, enabling flawless, time-travel unit testing for token expiration and session invalidation.
 
 ---
 

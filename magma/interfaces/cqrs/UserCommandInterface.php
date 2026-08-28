@@ -34,9 +34,10 @@ interface UserCommandInterface extends CommandInterface
      *
      * @param int $userId Target user ID.
      * @param string $hashedPassword Securely hashed password string.
+     * @param \DateTimeImmutable|null $changedAt The deterministic time the password was changed.
      * @return void
      */
-    public function updatePassword(int $userId, string $hashedPassword): void;
+    public function updatePassword(int $userId, string $hashedPassword, ?\DateTimeImmutable $changedAt = null): void;
 
     /**
      * Updates the role designation for a specific user.

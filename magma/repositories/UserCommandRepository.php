@@ -65,10 +65,13 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      * @param string $hashedPassword
      * @return void
      */
-    public function updatePassword(int $userId, string $hashedPassword): void
+    public function updatePassword(int $userId, string $hashedPassword, ?\DateTimeImmutable $changedAt = null): void
     {
-        $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"password\" = ?, \"updated_at\" = NOW() WHERE \"id\" = ?");
-        $stmt->execute([$hashedPassword, $userId]);
+        $changedAtStr = $changedAt ? $changedAt->format('Y-m-d H:i:s') : null;
+        
+        $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = NOW() WHERE \"id\" = ?";
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute([$hashedPassword, $changedAtStr, $userId]);
     }
 
     /**

@@ -29,4 +29,12 @@ interface UserQueryInterface extends \Magma\interfaces\cqrs\QueryInterface
     public function findForAuth(string $email): ?array;
     
     public function findById(int $id): ?\Magma\domain\AuthUser;
+    
+    /**
+     * Retrieves the UNIX timestamp of when the user's password was last changed.
+     * 
+     * @param int $id The user ID
+     * @return int|null UNIX timestamp or null if never changed.
+     */
+    public function getPasswordChangedAt(int $id): ?int;
 }

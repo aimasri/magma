@@ -158,7 +158,23 @@ class LocalStorageService implements StorageInterface
             }
         }
 
-        $file->moveTo($fullDestination);
+        $tmpPath = sys_get_temp_dir() . '/' . $newFilename;
+        $file->moveTo($tmpPath);
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $tmpPath);
+        finfo_close($finfo);
+
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/csv'];
+        if (!in_array($mime, $allowedMimes, true)) {
+            unlink($tmpPath);
+            throw new RuntimeException("Invalid file content payload. MIME type blocked: {$mime}");
+        }
+
+        if (!rename($tmpPath, $fullDestination)) {
+            unlink($tmpPath);
+            throw new RuntimeException("Failed to move file to final destination.");
+        }
 
         return $relativeDestination;
     }
