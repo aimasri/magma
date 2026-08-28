@@ -15,6 +15,14 @@
  */
 $errorCode = $code ?? 404;
 $errorMessage = $message ?? 'The page or resource you are looking for does not exist or has been moved.';
+
+$bgBody = $data['theme']['bg_body'] ?? '#380404';
+$bgCard = $data['theme']['bg_card'] ?? '#f4ead5';
+$textMain = $data['theme']['text_main'] ?? '#333333';
+$textMuted = $data['theme']['text_muted'] ?? '#666666';
+$accentWarning = $data['theme']['accent'] ?? '#ebb33a';
+$borderCard = $data['theme']['border_card'] ?? '#e2e8f0';
+$colorPrimary = $data['theme']['primary'] ?? '#622E00';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,12 +32,13 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
     <title>404 Not Found | Magma</title>
     <style>
         :root {
-            --bg-body: #380404;
-            --bg-card: #f4ead5;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --accent-warning: #ebb33a;
-            --border-card: #e2e8f0;
+            --bg-body: <?= htmlspecialchars($bgBody, ENT_QUOTES, 'UTF-8') ?>;
+            --bg-card: <?= htmlspecialchars($bgCard, ENT_QUOTES, 'UTF-8') ?>;
+            --text-main: <?= htmlspecialchars($textMain, ENT_QUOTES, 'UTF-8') ?>;
+            --text-muted: <?= htmlspecialchars($textMuted, ENT_QUOTES, 'UTF-8') ?>;
+            --accent-warning: <?= htmlspecialchars($accentWarning, ENT_QUOTES, 'UTF-8') ?>;
+            --border-card: <?= htmlspecialchars($borderCard, ENT_QUOTES, 'UTF-8') ?>;
+            --color-primary: <?= htmlspecialchars($colorPrimary, ENT_QUOTES, 'UTF-8') ?>;
             --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
         }
@@ -56,7 +65,7 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
         }
         .error-badge {
             display: inline-block;
-            background-color: #380404;
+            background-color: var(--bg-body);
             color: var(--accent-warning);
             font-weight: 700;
             font-size: 0.85rem;
@@ -69,7 +78,7 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            color: #622E00;
+            color: var(--color-primary);
         }
         .error-desc {
             font-size: 1.15rem;
@@ -84,8 +93,8 @@ $errorMessage = $message ?? 'The page or resource you are looking for does not e
         }
         .btn {
             display: inline-block;
-            background-color: #380404;
-            color: #ebb33a;
+            background-color: var(--bg-body);
+            color: var(--accent-warning);
             font-weight: 600;
             padding: 0.65rem 1.25rem;
             border-radius: 6px;

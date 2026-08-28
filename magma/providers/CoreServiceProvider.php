@@ -52,8 +52,14 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new \Magma\config\ConfigWrapper();
         });
 
+        $container->set(\Magma\security\TenantContextProviderInterface::class, function ($c) {
+            return new \Magma\security\DomainTenantContextProvider(
+                $c->get(\Magma\database\DatabaseConnectionManager::class)
+            );
+        });
+
         $container->set(TenantContext::class, function ($c) {
-            return new TenantContext();
+            return new TenantContext($c->get(\Magma\security\TenantContextProviderInterface::class));
         });
 
         $container->set(Session::class, function ($c) {
@@ -136,7 +142,8 @@ class CoreServiceProvider implements ServiceProviderInterface
                 $c->get(TemplateEngine::class),
                 $c->get(\Magma\config\ConfigInterface::class),
                 $c->get(\Magma\interfaces\JsonErrorPresenterInterface::class),
-                $c->get(\Magma\interfaces\DebugErrorPresenterInterface::class)
+                $c->get(\Magma\interfaces\DebugErrorPresenterInterface::class),
+                $c
             );
         });
 
