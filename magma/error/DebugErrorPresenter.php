@@ -580,8 +580,6 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             box-shadow: 0 -10px 20px -5px rgba(0, 0, 0, 0.2);
             transition: box-shadow 0.3s ease;
             background: #ffffff;
-            padding: 6px;
-            border-radius: 8px;
         }
         
         .header-logo-wrapper {
