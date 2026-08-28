@@ -939,7 +939,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         .font-bold { font-weight: 700; }
         .context-file-path { color: #9aa0ac; font-weight: normal; margin-left: 4px; }
         .pill-highlight { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
-        .pill-dark { background: var(--color-bg-canvas); color: var(--color-bg-canvas); border: none; }
+        .pill-dark { background: var(--color-bg-canvas); color: #ffffff; border: none; }
         .mb-0 { margin-bottom: 0 !important; }
         .mb-2-5 { margin-bottom: 2.5rem; }
         .command-mappings-toggle { border-top: 1px solid var(--color-border-subtle); border-bottom: none; padding-top: 1.25rem; margin-bottom: 0; font-size: 1.05rem; cursor: pointer; user-select: none; }
