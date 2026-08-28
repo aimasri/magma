@@ -1,7 +1,7 @@
 # Magma Framework: The Educational Architecture Core
 
 > **💎 PRISTINE CHECKPOINT**  
-> The most pristine, mathematically pure version of the Magma and Lava architecture development is permanently captured at commit `f5663eb5d909393a27b20faeeaaa8aaf5683ab24`. If you ever need to return to the flawless core before experimental features are added, checkout this reference!
+> The most pristine, mathematically pure version of the Magma and Lava architecture development is permanently captured at commit `f4278368dc48bfa9801fe804b149201cfff6a871` (ID: `f427836`). If you ever need to return to the flawless core before experimental features are added, checkout this reference!
 
 > **🔥 Recent Core Hardening (The Lava Phase & Concurrency Audits)**  
 > The framework has recently undergone a rigorous architectural and security hardening phase (originally developed on the `lava` branch and now merged directly into `main`). Key upgrades include:
