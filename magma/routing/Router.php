@@ -99,7 +99,7 @@ class Router implements RouterInterface
         $this->handleMethodNotAllowedExceptions($requestMethod, $requestPath);
 
         $e = new RouteNotFoundException("Route not found for path: {$requestPath}", 404);
-        $e->setAvailableRoutes($this->routeCollection->all());
+        $e->setAvailableRoutes($this->collection->all());
         throw $e;
     }
 
