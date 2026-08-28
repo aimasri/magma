@@ -48,9 +48,9 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
      *    agnostic Magma Framework defaults, preventing recursive error loops.
      *
      * @param RequestInterface|null $request Optional request object used as a fallback for domain resolution.
-     * @return \Magma\interfaces\cqrs\TenantDTO|null The tenant DTO, or null if resolution fails.
+     * @return \Magma\dto\TenantDTO|null The tenant DTO, or null if resolution fails.
      */
-    private function getTenant(?RequestInterface $request = null): ?\Magma\interfaces\cqrs\TenantDTO
+    private function getTenant(?RequestInterface $request = null): ?\Magma\dto\TenantDTO
     {
         if ($this->container === null) {
             return null;
