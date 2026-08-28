@@ -63,10 +63,11 @@ Crucially, candidates must improve core architecture (e.g., performance, securit
 - **Legacy & Compatibility:** We do NOT keep backward compatibility and we do NOT worry about legacy files.
 - **Thoroughness:** Test all edge cases. No shortcuts are permitted. Make sure every implementation is complete and robust.
 
-## 10. Git Branching & Workflow
+## 10. Git Branching & Workflow (HARD ENFORCEMENT)
 - **Directional Flow:** You must strictly observe the directional flow of the Git branches. The `main` branch is the pure, dependency-free Magma core. The `lava` branch is a downstream testing layer built on top of it (containing testing tools, phpunit, composer configs, etc.).
 - **Merging Protocol:** When applying bug fixes, UI updates, or core features that belong in both, you MUST commit the changes to `main` FIRST. Then, check out `lava` and merge `main` into it (`git merge main`). 
-- **Strict Prohibition:** You must NEVER merge `lava` into `main`, or you will permanently pollute the pure core framework with testing dependencies and break the architecture.
+- **Strict Prohibition:** You must NEVER merge `lava` into `main`. The `main` branch must remain completely dependency-free.
+- **Physical Merge Defenses:** Do not attempt to override or delete the `.git/hooks/pre-merge-commit` local script or the `.github/workflows/enforce-main-purity.yml` action. These exist to physically block you (the agent) or humans from accidentally pulling testing infrastructure (`tests/`, `phpunit.xml`, `phpstan.neon`) upstream into `main`.
 
 ## 11. Server & DevOps Protocol
 - **Production Access:** When diagnosing deployment, server, or production database issues, always remember that you act as the DevOps engineer for this project. You have direct SSH access to the live server (credentials and IPs are located in infrastructure.env).

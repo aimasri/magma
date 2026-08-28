@@ -4,7 +4,7 @@
 > The most pristine, mathematically pure version of the Magma core architecture development is permanently captured at commit `f4278368dc48bfa9801fe804b149201cfff6a871` (ID: `f427836`). If you ever need to return to the flawless core before experimental features are added, checkout this reference!
 
 > **🌋 LAVA CHECKPOINT (TESTING INFRASTRUCTURE)**  
-> The exhaustive Lava testing infrastructure (MockClocks, Agnostic Factories, CI/CD pipelines, AST Static Analysis, and Headless HTTP Testing) is securely captured at commit `982306ed8fadeb9034b763b576a8ef940fa56d1d` (ID: `982306e`).  
+> The exhaustive Lava testing infrastructure (MockClocks, Agnostic Factories, CI/CD pipelines, AST Static Analysis, and Headless HTTP Testing) alongside its strict Git Merge Protections is securely captured at commit `11510ba4d461ea44e1e605984983d0a174270d7b` (ID: `11510ba`).  
 > **Final Test Results on this Commit:** 7/7 Database & HTTP Integration Tests passed (100%), 20 assertions validated perfectly in <150ms. Zero DB pollution across all rollbacks.  
 
 > **🔥 Recent Core Hardening (The Lava Phase & Concurrency Audits)**  
@@ -299,7 +299,7 @@ Magma provides a set of standalone CLI utilities designed for deployment pipelin
 Magma’s ecosystem is structured through a geological metaphor, illustrating how code evolves from foundational principles to hardened infrastructure, and eventually into specialized modules and external services.
 
 * **Magma:** The pure, unseen foundational core logic. This is the inner mantle—Vanilla PHP, strictly adhering to CQRS and SOLID, devoid of external dependencies. It is raw, theoretical, and powerful.
-* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It is the hardened testing environment. **WARNING: LAVA MUST NEVER BE MERGED INTO MAIN.** Lava provides Database Integration test cases, custom AST static analysis to ban superglobals, deterministic Time Mocking (`MockClock`), Agnostic Test Factories, and Headless HTTP testing. Downstream apps (like Urban Sugar) build on top of Lava.
+* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It is the hardened testing environment. **WARNING: LAVA MUST NEVER BE MERGED INTO MAIN.** To enforce this, the `.git/hooks/pre-merge-commit` local script and `.github/workflows/enforce-main-purity.yml` physically block testing infrastructure from being merged upstream. Lava provides Database Integration test cases, custom AST static analysis to ban superglobals, deterministic Time Mocking (`MockClock`), Agnostic Test Factories, and Headless HTTP testing. Downstream apps (like Urban Sugar) build on top of Lava.
 * **Basalt & Obsidian:** Opinionated business logic modules built on top. Like cooled, structured rock formations, these represent the tangible application layers where domain-specific logic resides.
 * **Granite:** Headless, ultra-secure, backend-only microservices (B2B API data brokering). Dense, impermeable, and designed for heavy lifting, Granite layers handle secure system-to-system communications without UI overhead.
 * **Pumice:** Secondary ecosystem tools like a Redis caching layer. Lightweight, porous, and fast, Pumice accelerates the system by reducing friction and latency.
