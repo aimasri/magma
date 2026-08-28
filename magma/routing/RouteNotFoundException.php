@@ -20,4 +20,15 @@ namespace Magma\routing;
  */
 class RouteNotFoundException extends \RuntimeException
 {
+    private array $availableRoutes = [];
+
+    public function setAvailableRoutes(array $routes): void
+    {
+        $this->availableRoutes = $routes;
+    }
+
+    public function getAvailableRoutes(): array
+    {
+        return $this->availableRoutes;
+    }
 }
