@@ -82,6 +82,7 @@ class ErrorHandler implements ErrorHandlerInterface
                 $tenantId = $tenantContext->hasTenantId() ? $tenantContext->getTenantId() : null;
                 if ($tenantId === null && $request !== null) {
                     $domainProvider = $container->get(\Magma\security\DomainTenantContextProvider::class);
+                    assert($domainProvider instanceof \Magma\security\DomainTenantContextProvider);
                     $tenantId = $domainProvider->resolveTenantId($request);
                 }
                 if ($tenantId !== null) {

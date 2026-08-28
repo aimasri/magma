@@ -8,6 +8,20 @@ use Magma\container\Container;
 use Magma\queue\QueueInterface;
 use Throwable;
 
+/**
+ * Title: Queue Worker Daemon
+ *
+ * Purpose:
+ * - Coordinates the polling of queue jobs from a backend (e.g., Redis).
+ * - Handles process signals for graceful shutdown.
+ * - Deserializes job payloads, instantiates handlers, and processes jobs.
+ *
+ * Why this design:
+ * - Implements a Long-Running Process pattern. It flushes the dependency container between jobs to prevent memory leaks and tenant data contamination in a persistent PHP process.
+ *
+ * Teaching notes:
+ * - Daemons require careful memory management (e.g., checking memory usage and exiting if threshold is breached) because PHP is typically designed for short-lived request lifecycles.
+ */
 class QueueWorkerDaemon
 {
     private Container $container;

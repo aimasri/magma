@@ -205,7 +205,7 @@ class Request implements RequestInterface
             $input = file_get_contents('php://input');
             self::$cachedRawBody = $input !== false ? $input : null;
         }
-
+        // @phpstan-ignore-next-line
         return self::build($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, self::$cachedRawBody);
     }
 

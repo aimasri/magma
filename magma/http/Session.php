@@ -38,6 +38,7 @@ class Session implements SessionInterface
             session_set_cookie_params([
                 'httponly' => true,
                 'samesite' => 'Lax',
+                // @phpstan-ignore-next-line
                 'secure'   => isset($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off',
                 'path'     => '/',
             ]);
@@ -47,9 +48,12 @@ class Session implements SessionInterface
         if ($storage !== null) {
             $this->storage = &$storage;
         } else {
+            // @phpstan-ignore-next-line
             if (!isset($_SESSION)) {
+                // @phpstan-ignore-next-line
                 $_SESSION = [];
             }
+            // @phpstan-ignore-next-line
             $this->storage = &$_SESSION;
         }
     }

@@ -126,7 +126,7 @@ class Application
     {
         if ($e instanceof \Magma\routing\RouteNotFoundException) {
             try {
-                return $this->errorHandler->renderNotFound($request, $e);
+                return $this->errorHandler->renderNotFound($request);
             } catch (\Throwable $fatal) {
                 return new Response('Not Found', 404);
             }

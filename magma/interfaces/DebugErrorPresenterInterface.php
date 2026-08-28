@@ -42,7 +42,7 @@ interface DebugErrorPresenterInterface
      * Presents a 404 Not Found error with available routes during debug mode.
      *
      * @param RequestInterface|null $request The HTTP request context (optional).
-     * @param array<string, mixed> $availableRoutes An array of registered routes to display as suggestions.
+     * @param array<int|string, mixed> $availableRoutes An array of registered routes to display as suggestions.
      * @return Response
      */
     public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = []): Response;

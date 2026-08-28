@@ -22,24 +22,44 @@ namespace Magma\logging;
  */
 class NativeLogger implements LoggerInterface
 {
+    /**
+     * @param array<string, mixed> $context
+     */
     public function error(string $message, array $context = []): void
     {
         $this->log('ERROR', $message, $context);
     }
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function warning(string $message, array $context = []): void
     {
         $this->log('WARNING', $message, $context);
     }
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function info(string $message, array $context = []): void
     {
         $this->log('INFO', $message, $context);
     }
 
+    /**
+     * @param array<string, mixed> $context
+     */
     public function debug(string $message, array $context = []): void
     {
         $this->log('DEBUG', $message, $context);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function critical(string $message, array $context = []): void
+    {
+        $this->log('CRITICAL', $message, $context);
     }
 
     /**
@@ -49,6 +69,8 @@ class NativeLogger implements LoggerInterface
      * 1. Check if context is empty to avoid noisy empty JSON objects.
      * 2. Format string as `[LEVEL] Message {"context": "json"}`.
      * 3. Dispatch to `error_log()`.
+     *
+     * @param array<string, mixed> $context
      */
     private function log(string $level, string $message, array $context): void
     {
