@@ -15,6 +15,7 @@
  * @var int|null $code HTTP status code (500).
  * @var string|null $trace Exception stack trace (only if $debug is true).
  * @var bool|null $debug Whether debug diagnostics are active.
+ * @var array{theme?: array<string, string|null>, tenant?: object|null} $data View data variables, including theme configuration.
  */
 $errorCode = $code ?? 500;
 $errorMessage = $message ?? 'An unexpected system error occurred. Please try again later.';

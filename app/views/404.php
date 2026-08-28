@@ -12,6 +12,7 @@
  * @var int|null $code HTTP status code (404).
  * @var string|null $trace Exception stack trace (optional/unused for 404 usually).
  * @var bool|null $debug Whether debug diagnostics are active.
+ * @var array{theme?: array<string, string|null>, tenant?: object|null} $data View data variables, including theme configuration.
  */
 $errorCode = $code ?? 404;
 $errorMessage = $message ?? 'The page or resource you are looking for does not exist or has been moved.';

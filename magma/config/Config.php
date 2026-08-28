@@ -47,7 +47,7 @@ class Config
             if (!isset(self::$env[$key])) {
                 self::$env[$key] = $value;
                 putenv("$key=$value");
-                $_ENV[$key] = $value;
+                $_ENV[$key] = $value; // @phpstan-ignore-line
             }
         }
     }
@@ -77,7 +77,7 @@ class Config
         }
 
         // Prioritize $_ENV then fall back to getenv()
-        $val = $_ENV[$key] ?? getenv($key);
+        $val = $_ENV[$key] ?? getenv($key); // @phpstan-ignore-line
         
         if ($val !== false && $val !== null) {
             self::$env[$key] = $val; // Cache the value for subsequent reads

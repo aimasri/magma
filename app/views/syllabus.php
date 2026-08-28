@@ -1,7 +1,14 @@
 <?php
 /**
  * Title: Syllabus View
- * Purpose: Renders the textbook / syllabus page.
+ *
+ * Purpose:
+ * - Renders the textbook / syllabus page.
+ *
+ * Teaching notes:
+ * - This view is largely static HTML serving as documentation.
+ *
+ * @var array{title?: string} $data The view data payload.
  */
 $pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
 ?>

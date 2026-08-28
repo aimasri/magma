@@ -6,6 +6,15 @@ namespace Modules\Reviews\constants;
 
 /**
  * Title: Review Module Constants
+ *
+ * Purpose:
+ * - Centralizes static string literals, validation rules, and configuration flags specific to the Reviews module.
+ *
+ * Why this design:
+ * - Prevents "magic strings" from being scattered across controllers and services, drastically reducing typo-induced bugs and making system-wide changes (like adjusting the max rating length) a single-line fix.
+ *
+ * Teaching notes:
+ * - These constants are exclusively for the Reviews domain. Do not place framework-wide configuration keys here.
  */
 class ReviewConstants
 {

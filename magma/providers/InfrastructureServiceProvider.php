@@ -119,8 +119,10 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             try {
                 $redis = $c->get(\Redis::class);
                 assert($redis instanceof \Redis);
+                $logger = $c->get(\Magma\logging\LoggerInterface::class);
+                assert($logger instanceof \Magma\logging\LoggerInterface);
                 $ttl = Config::get('CACHE_TTL', 3600);
-                return new RedisCache($redis, 'magma:cache:', is_scalar($ttl) ? (int)$ttl : 3600);
+                return new RedisCache($redis, $logger, 'magma:cache:', is_scalar($ttl) ? (int)$ttl : 3600);
             } catch (\Throwable) {
                 return new ArrayCache();
             }

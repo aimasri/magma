@@ -12,6 +12,9 @@ use Magma\http\RedirectResponse;
  * Purpose:
  * - Ensures the user is NOT authenticated.
  * - Prevents logged-in users from accessing login/register pages.
+ *
+ * Why this design:
+ * - Implements the Filter / Intercepting pattern for HTTP requests. Pushing this responsibility into middleware strictly prevents access control logic from bleeding into feature-specific controllers, ensuring the Open/Closed Principle.
  * 
  * Teaching notes:
  * - Enforcing guest status via middleware centralizes flow control for

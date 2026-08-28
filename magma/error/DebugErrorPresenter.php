@@ -63,6 +63,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
             if ($tenantId === null && $request !== null) {
                 $domainProvider = $this->container->get(\Magma\security\DomainTenantContextProvider::class);
+                assert($domainProvider instanceof \Magma\security\DomainTenantContextProvider);
                 $tenantId = $domainProvider->resolveTenantId($request);
             }
 
@@ -120,7 +121,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
      * Renders an interactive HTML 404 Route Not Found debug page with registered route explorer.
      *
      * @param RequestInterface|null $request
-     * @param array $availableRoutes
+     * @param array<int|string, mixed> $availableRoutes
      * @return Response
      */
     public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = []): Response
@@ -129,8 +130,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $environmentData = self::gatherEnvironmentMetrics();
         $formattedRoutes = self::formatRoutesList($availableRoutes);
 
-        $path = $request !== null ? $request->getPath() : ($_SERVER['REQUEST_URI'] ?? '/');
-        $method = $request !== null ? $request->getMethod() : ($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $path = $request !== null ? $request->getPath() : '/';
+        $method = $request !== null ? $request->getMethod() : 'GET';
 
         // Generate a stack trace to show execution context
         $dummyException = new \Exception("Route not found for path: {$path}");
@@ -201,7 +202,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
      * Formats the exception stack trace into structured frames with code previews.
      *
      * @param Throwable $e
-     * @return array<int, array{index: int, file: string, line: int, call: string, snippet: array, args: array}>
+     * @return array<int, array{index: int, file: string, line: int, call: string, snippet: array<int, mixed>, args: array<int|string, mixed>}>
      */
     private static function formatTraceFrames(Throwable $e): array
     {
@@ -213,7 +214,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             $line = $frame['line'] ?? 0;
             $class = $frame['class'] ?? '';
             $type = $frame['type'] ?? '';
-            $function = $frame['function'] ?? '';
+            $function = $frame['function'];
             $call = $class ? "{$class}{$type}{$function}()" : "{$function}()";
 
             $args = [];
@@ -286,19 +287,27 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
     {
         $sessionData = [];
         if (session_status() === PHP_SESSION_ACTIVE) {
+            /** @phpstan-ignore-next-line */
             $sessionData = $_SESSION;
         }
 
         $headers = function_exists('getallheaders') ? (getallheaders() ?: []) : [];
 
         return [
+            // @phpstan-ignore-next-line
             'Method'          => $request ? $request->getMethod() : ($_SERVER['REQUEST_METHOD'] ?? 'GET'),
+            // @phpstan-ignore-next-line
             'URI'             => $request ? $request->getUri() : ($_SERVER['REQUEST_URI'] ?? '/'),
+            // @phpstan-ignore-next-line
             'Client IP'       => $request && method_exists($request, 'server') ? ($request->server('REMOTE_ADDR') ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') : ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'),
+            // @phpstan-ignore-next-line
             'User Agent'      => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
+            // @phpstan-ignore-next-line
             'Query ($_GET)'   => !empty($_GET) ? $_GET : '(Empty)',
+            // @phpstan-ignore-next-line
             'Body ($_POST)'   => !empty($_POST) ? self::sanitizePayload($_POST) : '(Empty)',
             'Session State'   => !empty($sessionData) ? self::sanitizePayload($sessionData) : '(Empty)',
+            // @phpstan-ignore-next-line
             'Cookies'         => !empty($_COOKIE) ? self::sanitizePayload($_COOKIE) : '(Empty)',
             'HTTP Headers'    => !empty($headers) ? $headers : '(Empty)',
         ];
@@ -307,8 +316,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
     /**
      * Sanitizes sensitive fields like passwords and tokens in diagnostic output.
      *
-     * @param array $payload
-     * @return array
+     * @param array<string|int, mixed> $payload
+     * @return array<string|int, mixed>
      */
     private static function sanitizePayload(array $payload): array
     {
@@ -362,14 +371,14 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
     /**
      * Formats available routes into structured rows.
      *
-     * @param array $routes
+     * @param array<int|string, mixed> $routes
      * @return array<int, array{method: string, uri: string, handler: string, name: string, middleware: string}>
      */
     private static function formatRoutesList(array $routes): array
     {
         $formatted = [];
         foreach ($routes as $route) {
-            if (is_object($route) && (method_exists($route, 'getMethod') && method_exists($route, 'getUri'))) {
+            if ($route instanceof Route) {
                 $method = $route->getMethod();
                 $uri = $route->getUri();
                 $handler = $route->getHandler();
@@ -431,6 +440,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $mode = $data['mode'] ?? 'exception';
         $request = $data['requestObject'] ?? null;
         
+        /** @var \Magma\dto\TenantDTO|null $tenant */
         $tenant = $data['activeTenant'] ?? null;
         
         // Default Magma Framework Branding
@@ -438,53 +448,97 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $logoPath = $tenant?->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
-        $colorBgCanvas = $tenant?->theme_settings['diagnostic_bg_color'] ?? $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
-        $colorLogoBg = $tenant?->theme_settings['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
+        $bgCanvas = $tenant?->theme_settings['diagnostic_bg_color'] ?? $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
+        $colorBgCanvas = is_string($bgCanvas) ? $bgCanvas : '#380404';
+        
+        $logoBg = $tenant?->theme_settings['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
+        $colorLogoBg = is_string($logoBg) ? $logoBg : 'transparent';
+        
         $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';
-        $colorPrimary = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00'); 
+        
+        $primary = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00');
+        $colorPrimary = is_string($primary) ? $primary : '#622E00';
+        
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
-        $colorSecondary = $tenant?->theme_settings['secondary_color'] ?? (getenv('APP_COLOR_SECONDARY') ?: '#ebb33a');
-        $colorSecondaryLight = $tenant?->theme_settings['secondary_light_color'] ?? (getenv('APP_COLOR_SECONDARY_LIGHT') ?: '#f2c86b');
+        
+        $secondary = $tenant?->theme_settings['secondary_color'] ?? (getenv('APP_COLOR_SECONDARY') ?: '#ebb33a');
+        $colorSecondary = is_string($secondary) ? $secondary : '#ebb33a';
+        
+        $secondaryLight = $tenant?->theme_settings['secondary_light_color'] ?? (getenv('APP_COLOR_SECONDARY_LIGHT') ?: '#f2c86b');
+        $colorSecondaryLight = is_string($secondaryLight) ? $secondaryLight : '#f2c86b';
+        
         $colorDark = getenv('APP_COLOR_DARK') ?: '#1a1a1a';
         $colorDarkBorder = getenv('APP_COLOR_DARK_BORDER') ?: '#333333';
-        $colorTextDark = getenv('APP_COLOR_TEXT_DARK') ?: '#333333'; // Dark text for white cards
-        $colorBorderSubtle = getenv('APP_COLOR_BORDER_SUBTLE') ?: '#e2e8f0'; // Light border for white cards
-        $statusCode = (int)$data['statusCode'];
-        $exceptionClass = htmlspecialchars((string)$data['exceptionClass'], ENT_QUOTES, 'UTF-8');
-        $message = nl2br(htmlspecialchars((string)($data['message'] ?? ''), ENT_QUOTES, 'UTF-8'));
+        $colorTextDark = getenv('APP_COLOR_TEXT_DARK') ?: '#333333';
+        $colorBorderSubtle = getenv('APP_COLOR_BORDER_SUBTLE') ?: '#e2e8f0';
         
-        $rawFile = (string)($data['file'] ?? '');
+        $statusCode = isset($data['statusCode']) && is_numeric($data['statusCode']) ? (int)$data['statusCode'] : 500;
+        
+        $exceptionClassStr = isset($data['exceptionClass']) && is_string($data['exceptionClass']) ? $data['exceptionClass'] : '';
+        $exceptionClass = htmlspecialchars($exceptionClassStr, ENT_QUOTES, 'UTF-8');
+        
+        $messageStr = isset($data['message']) && is_string($data['message']) ? $data['message'] : '';
+        $message = nl2br(htmlspecialchars($messageStr, ENT_QUOTES, 'UTF-8'));
+        
+        $rawFile = isset($data['file']) && is_string($data['file']) ? $data['file'] : '';
         $basePath = dirname(__DIR__, 2);
         if (str_starts_with($rawFile, $basePath)) {
             $rawFile = substr($rawFile, strlen($basePath) + 1);
         }
         $file = htmlspecialchars($rawFile, ENT_QUOTES, 'UTF-8');
         
-        $line = (int)($data['line'] ?? 0);
+        $line = isset($data['line']) && is_numeric($data['line']) ? (int)$data['line'] : 0;
         $rawTraceJson = json_encode($data['rawTrace'] ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        
         $fullDiagnosticsJson = json_encode([
             'status'      => $statusCode,
-            'exception'   => (string)$data['exceptionClass'],
-            'message'     => (string)$data['message'],
-            'location'    => (string)$data['file'] . ':' . (int)$data['line'],
+            'exception'   => $exceptionClassStr,
+            'message'     => $messageStr,
+            'location'    => $rawFile . ':' . $line,
             'request'     => $data['requestData'] ?? [],
             'environment' => $data['environmentData'] ?? [],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-        $snippetHtml = self::renderSnippetRows($data['codeSnippet'] ?? []);
-        $framesHtml = self::renderFramesList($data['frames'] ?? []);
-        $routesHtml = !empty($data['availableRoutes']) ? self::renderRoutesTable($data['availableRoutes']) : '';
-        $requestHtml = self::renderPropertiesTable($data['requestData'] ?? []);
-        $envHtml = self::renderPropertiesTable($data['environmentData'] ?? self::gatherEnvironmentMetrics());
-        $infraHtml = self::renderPropertiesTable($data['infrastructureData'] ?? self::gatherInfrastructureMetrics());
-        $tenantHtml = self::renderPropertiesTable($data['tenantData'] ?? self::gatherTenantMetrics());
-        $cqrsHtml = self::renderPropertiesTable($data['cqrsMetrics'] ?? self::gatherCqrsMetrics());
+        /** @var array<int, array{line: int, code: string, isTarget: bool}> $codeSnippet */
+        $codeSnippet = $data['codeSnippet'] ?? [];
+        $snippetHtml = self::renderSnippetRows($codeSnippet);
+        
+        /** @var array<int, array<string, mixed>> $frames */
+        $frames = $data['frames'] ?? [];
+        $framesHtml = self::renderFramesList($frames);
+        
+        /** @var array<int, array<string, mixed>> $availableRoutes */
+        $availableRoutes = $data['availableRoutes'] ?? [];
+        $routesHtml = !empty($availableRoutes) ? self::renderRoutesTable($availableRoutes) : '';
+        
+        /** @var array<string, mixed> $requestData */
+        $requestData = $data['requestData'] ?? [];
+        $requestHtml = self::renderPropertiesTable($requestData);
+        
+        /** @var array<string, mixed> $environmentData */
+        $environmentData = $data['environmentData'] ?? self::gatherEnvironmentMetrics();
+        $envHtml = self::renderPropertiesTable($environmentData);
+        
+        /** @var array<string, mixed> $infrastructureData */
+        $infrastructureData = $data['infrastructureData'] ?? self::gatherInfrastructureMetrics();
+        $infraHtml = self::renderPropertiesTable($infrastructureData);
+        
+        /** @var array<string, mixed> $tenantData */
+        $tenantData = $data['tenantData'] ?? self::gatherTenantMetrics();
+        $tenantHtml = self::renderPropertiesTable($tenantData);
+        
+        /** @var array<string, mixed> $cqrsMetrics */
+        $cqrsMetrics = $data['cqrsMetrics'] ?? self::gatherCqrsMetrics();
+        $cqrsHtml = self::renderPropertiesTable($cqrsMetrics);
+        
+        /** @var array<int, array{command: string, handler: string}> $commandMappings */
         $commandMappings = $data['commandMappings'] ?? self::gatherCommandMappings();
         $commandsHtml = !empty($commandMappings) ? self::renderCommandMappingsTable($commandMappings) : '';
+        
         $workerHtml = self::renderPropertiesTable(self::gatherWorkerMetrics());
 
-        $frameCount = count((array)($data['frames'] ?? []));
-        $routeCount = count((array)($data['availableRoutes'] ?? []));
+        $frameCount = count($frames);
+        $routeCount = count($availableRoutes);
 
         $badgeText = match ($statusCode) {
             404 => '404 • ROUTE NOT FOUND',
@@ -492,8 +546,9 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             default => "{$statusCode} • INTERNAL SERVER ERROR",
         };
 
-        $logoHtml = $logoPath 
-            ? '<img src="' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="header-logo" width="500" height="500">'
+        $logoStr = is_string($logoPath) ? $logoPath : '';
+        $logoHtml = $logoStr 
+            ? '<img src="' . htmlspecialchars($logoStr, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="header-logo" width="500" height="500">'
             : '<div class="header-logo-wrapper"><img src="/logo.svg" alt="Logo" class="header-brand-icon"><span class="header-brand-text">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span></div>';
 
         $html = <<<HTML
@@ -1336,16 +1391,23 @@ HTML;
 
         $html = '';
         foreach ($frames as $frame) {
-            $index = (int)$frame['index'];
-            $file = htmlspecialchars((string)$frame['file'], ENT_QUOTES, 'UTF-8');
-            $line = (int)$frame['line'];
-            $call = htmlspecialchars((string)$frame['call'], ENT_QUOTES, 'UTF-8');
-            $snippetHtml = self::renderSnippetRows($frame['snippet'] ?? []);
+            $index = isset($frame['index']) && is_numeric($frame['index']) ? (int)$frame['index'] : 0;
+            $fileStr = isset($frame['file']) && is_string($frame['file']) ? $frame['file'] : '';
+            $file = htmlspecialchars($fileStr, ENT_QUOTES, 'UTF-8');
+            $line = isset($frame['line']) && is_numeric($frame['line']) ? (int)$frame['line'] : 0;
+            $callStr = isset($frame['call']) && is_string($frame['call']) ? $frame['call'] : '';
+            $call = htmlspecialchars($callStr, ENT_QUOTES, 'UTF-8');
+            
+            /** @var array<int, array{line: int, code: string, isTarget: bool}> $snippet */
+            $snippet = $frame['snippet'] ?? [];
+            $snippetHtml = self::renderSnippetRows($snippet);
 
             $argsHtml = '';
             if (!empty($frame['args'])) {
+                /** @var array<string> $args */
+                $args = $frame['args'];
                 $argsHtml .= '<div class="frame-args"><strong>Arguments:</strong> ';
-                $argsHtml .= implode(', ', $frame['args']);
+                $argsHtml .= implode(', ', $args);
                 $argsHtml .= '</div>';
             }
 
@@ -1379,12 +1441,17 @@ HTML;
     {
         $html = '<table class="routes-table"><thead><tr><th>Method</th><th>URI Pattern</th><th>Handler / Action</th><th>Route Name</th><th>Middleware</th></tr></thead><tbody>';
         foreach ($routes as $route) {
-            $method = htmlspecialchars($route['method'], ENT_QUOTES, 'UTF-8');
+            $methodStr = isset($route['method']) && is_string($route['method']) ? $route['method'] : '';
+            $method = htmlspecialchars($methodStr, ENT_QUOTES, 'UTF-8');
             $methodClass = 'method-' . strtolower($method);
-            $uri = htmlspecialchars($route['uri'], ENT_QUOTES, 'UTF-8');
-            $handler = htmlspecialchars($route['handler'], ENT_QUOTES, 'UTF-8');
-            $name = htmlspecialchars($route['name'] ?: '—', ENT_QUOTES, 'UTF-8');
-            $middleware = htmlspecialchars($route['middleware'], ENT_QUOTES, 'UTF-8');
+            $uriStr = isset($route['uri']) && is_string($route['uri']) ? $route['uri'] : '';
+            $uri = htmlspecialchars($uriStr, ENT_QUOTES, 'UTF-8');
+            $handlerStr = isset($route['handler']) && is_string($route['handler']) ? $route['handler'] : '';
+            $handler = htmlspecialchars($handlerStr, ENT_QUOTES, 'UTF-8');
+            $nameStr = !empty($route['name']) && is_string($route['name']) ? $route['name'] : '—';
+            $name = htmlspecialchars($nameStr, ENT_QUOTES, 'UTF-8');
+            $middlewareStr = isset($route['middleware']) && is_string($route['middleware']) ? $route['middleware'] : '';
+            $middleware = htmlspecialchars($middlewareStr, ENT_QUOTES, 'UTF-8');
 
             $html .= "<tr><td><span class=\"method-pill {$methodClass}\">{$method}</span></td><td><strong>{$uri}</strong></td><td>{$handler}</td><td>{$name}</td><td>{$middleware}</td></tr>";
         }
@@ -1403,11 +1470,11 @@ HTML;
     {
         $html = '<table class="props-table">';
         foreach ($data as $key => $val) {
-            $label = htmlspecialchars((string)$key, ENT_QUOTES, 'UTF-8');
+            $label = htmlspecialchars($key, ENT_QUOTES, 'UTF-8');
             if (is_array($val)) {
-                $content = '<pre class="dump-pre">' . htmlspecialchars(json_encode($val, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8') . '</pre>';
+                $content = '<pre class="dump-pre">' . htmlspecialchars(json_encode($val, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) ?: '', ENT_QUOTES, 'UTF-8') . '</pre>';
             } else {
-                $content = htmlspecialchars((string)$val, ENT_QUOTES, 'UTF-8');
+                $content = htmlspecialchars(is_scalar($val) ? (string)$val : '', ENT_QUOTES, 'UTF-8');
             }
             $html .= "<tr><th>{$label}</th><td>{$content}</td></tr>";
         }

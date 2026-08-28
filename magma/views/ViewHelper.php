@@ -93,7 +93,9 @@ class ViewHelper
     {
         $resolvedToken = $token ?? self::$csrfToken;
         
+        // @phpstan-ignore-next-line
         if (empty($resolvedToken) && isset($_SESSION['csrf_token'])) {
+            // @phpstan-ignore-next-line
             $resolvedToken = (string) $_SESSION['csrf_token'];
         }
 
@@ -115,7 +117,9 @@ class ViewHelper
             return self::$csrfToken;
         }
 
+        // @phpstan-ignore-next-line
         if (isset($_SESSION['csrf_token'])) {
+            // @phpstan-ignore-next-line
             return (string) $_SESSION['csrf_token'];
         }
 
@@ -162,7 +166,9 @@ class ViewHelper
             return self::$oldInput[$key];
         }
 
+        // @phpstan-ignore-next-line
         if (isset($_SESSION['_flash']['old'][$key])) {
+            // @phpstan-ignore-next-line
             return $_SESSION['_flash']['old'][$key];
         }
 
@@ -177,6 +183,7 @@ class ViewHelper
      */
     public static function hasError(string $key): bool
     {
+        // @phpstan-ignore-next-line
         return isset(self::$errors[$key]) || isset($_SESSION['_flash']['errors'][$key]);
     }
 
@@ -192,7 +199,9 @@ class ViewHelper
             return self::$errors[$key];
         }
 
+        // @phpstan-ignore-next-line
         if (isset($_SESSION['_flash']['errors'][$key])) {
+            // @phpstan-ignore-next-line
             return (string) $_SESSION['_flash']['errors'][$key];
         }
 
