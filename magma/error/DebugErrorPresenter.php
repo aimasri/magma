@@ -438,12 +438,12 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $logoPath = $tenant?->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
-        $colorBgCanvas = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404'); // Keep canvas dark red
-        $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';     // Soft warm cream cards
-        $colorPrimary = $tenant?->theme_settings['secondary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00');    // Use the old card red as highlight
+        $colorBgCanvas = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
+        $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';
+        $colorPrimary = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00'); 
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
-        $colorSecondary = getenv('APP_COLOR_SECONDARY') ?: '#ebb33a';
-        $colorSecondaryLight = getenv('APP_COLOR_SECONDARY_LIGHT') ?: '#f2c86b';
+        $colorSecondary = $tenant?->theme_settings['secondary_color'] ?? (getenv('APP_COLOR_SECONDARY') ?: '#ebb33a');
+        $colorSecondaryLight = $tenant?->theme_settings['secondary_light_color'] ?? (getenv('APP_COLOR_SECONDARY_LIGHT') ?: '#f2c86b');
         $colorDark = getenv('APP_COLOR_DARK') ?: '#1a1a1a';
         $colorDarkBorder = getenv('APP_COLOR_DARK_BORDER') ?: '#333333';
         $colorTextDark = getenv('APP_COLOR_TEXT_DARK') ?: '#333333'; // Dark text for white cards
@@ -579,6 +579,9 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             border-radius: 12px;
             box-shadow: 0 -10px 20px -5px rgba(0, 0, 0, 0.2);
             transition: box-shadow 0.3s ease;
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 8px;
         }
         
         .header-logo-wrapper {
@@ -606,7 +609,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             font-family: var(--font-mono);
             font-size: 0.72rem;
             background: var(--color-dark);
-            color: var(--color-secondary);
+            color: #ffffff;
             padding: 4px 12px;
             border-radius: 20px;
             text-transform: uppercase;
@@ -1003,12 +1006,12 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             font-size: 0.75rem;
             font-weight: 700;
             margin-top: auto;
-            border-top: 1px solid rgba(0,0,0,0.1);
+            border-top: 6px solid var(--color-secondary-light);
         }
             .bg-primary { background: var(--color-primary); }
         .flex-align-center { display: flex; align-items: center; gap: 8px; }
         .flex-between { justify-content: space-between; }
-        .text-secondary { color: var(--color-secondary); }
+        .text-primary { color: var(--color-primary); }
         .font-bold { font-weight: 700; }
         .context-file-path { color: #9aa0ac; font-weight: normal; margin-left: 4px; }
         .pill-highlight { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
@@ -1068,7 +1071,7 @@ HTML;
             $html .= <<<HTML
         <div class="code-card">
             <div class="code-card-header">
-                <div class="flex-align-center text-secondary">
+                <div class="flex-align-center text-primary">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
                     <span class="font-bold">Primary Exception Source Code Context</span>
                     <span class="context-file-path">&mdash; {$file}</span>
