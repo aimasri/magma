@@ -104,7 +104,7 @@ class ErrorHandler implements ErrorHandlerInterface
      * @param RequestInterface|null $request
      * @return Response
      */
-    public function renderNotFound(?RequestInterface $request = null): Response
+    public function renderNotFound(?RequestInterface $request = null, ?\Throwable $e = null): Response
     {
         while (ob_get_level() > 0) {
             ob_end_clean();
@@ -112,6 +112,14 @@ class ErrorHandler implements ErrorHandlerInterface
 
         if ($request !== null && ($request->isJsonExpected() || $request->expectsJson())) {
             return $this->jsonPresenter->presentNotFound('The requested endpoint or resource was not found.');
+        }
+
+        if ($this->debug) {
+            $routes = [];
+            if ($e instanceof \Magma\routing\RouteNotFoundException && method_exists($e, 'getAvailableRoutes')) {
+                $routes = $e->getAvailableRoutes();
+            }
+            return $this->debugPresenter->presentNotFound($request, $routes);
         }
 
         return $this->renderError(404, "Page Not Found");
