@@ -31,6 +31,7 @@ $colorPrimary = $data['theme']['primary'] ?? '#622E00';
 $tenant = $data['tenant'] ?? null;
 $appName = $tenant?->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
 $logoPath = $data['theme']['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: '');
+$logoBgColor = $data['theme']['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
 
 $logoHtml = $logoPath 
     ? '<img src="' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="card-logo">'
@@ -51,6 +52,7 @@ $logoHtml = $logoPath
             --accent-danger: <?= htmlspecialchars($accentWarning, ENT_QUOTES, 'UTF-8') ?>;
             --border-card: <?= htmlspecialchars($borderCard, ENT_QUOTES, 'UTF-8') ?>;
             --color-primary: <?= htmlspecialchars($colorPrimary, ENT_QUOTES, 'UTF-8') ?>;
+            --color-logo-bg: <?= htmlspecialchars($logoBgColor, ENT_QUOTES, 'UTF-8') ?>;
             --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, Monaco, monospace;
         }
@@ -148,7 +150,7 @@ $logoHtml = $logoPath
             display: block;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            background: var(--bg-body);
+            background: var(--color-logo-bg);
             padding: 6px;
         }
         .card-logo-wrapper {
