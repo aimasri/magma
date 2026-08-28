@@ -8,6 +8,17 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\Variable;
 
 /**
+ * Title: Superglobal Ban Rule (PHPStan)
+ *
+ * Purpose:
+ * - Analyzes AST nodes during static analysis to detect and flag direct access to PHP superglobals.
+ *
+ * Why this design:
+ * - Enforces the Dependency Inversion Principle (DIP). By physically banning $_POST, $_GET, etc., developers are forced to use the injected Request object, which is essential for testability, stateless execution, and PSR-7 compliance.
+ *
+ * Teaching notes:
+ * - AST-level enforcement prevents technical debt from leaking in during code reviews. It is much more resilient than regex-based linting.
+ *
  * @implements Rule<Variable>
  */
 class SuperglobalBanRule implements Rule

@@ -37,6 +37,18 @@ class QueueWorkerDaemon
         $this->logger = $logger;
     }
 
+    /**
+     * Runs the worker daemon loop.
+     *
+     * Execution Flow:
+     * 1. Registers PCNTL signal handlers to intercept kill signals for graceful shutdowns.
+     * 2. Enters an infinite loop polling the specified queue.
+     * 3. Flushes the Dependency Injection container state per iteration.
+     * 4. Pops a job, processes it, and checks memory limits to prevent Out-Of-Memory (OOM) crashes.
+     *
+     * Logic behind the logic:
+     * - The container flush is critical: it prevents singleton pollution (e.g., leftover Tenant contexts or DB connections) from bleeding into subsequent, unrelated background jobs.
+     */
     public function run(string $queueName = 'emails'): void
     {
         if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {

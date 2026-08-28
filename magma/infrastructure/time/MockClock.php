@@ -7,6 +7,18 @@ namespace Magma\infrastructure\time;
 use DateTimeImmutable;
 use Magma\contracts\ClockInterface;
 
+/**
+ * Title: Mock Clock
+ *
+ * Purpose:
+ * - Provides a mutable, controllable time source for automated tests.
+ *
+ * Why this design:
+ * - Implements the state pattern for time. By allowing test suites to arbitrarily "freeze", "advance", or "sleep" time without blocking the CPU, we can instantly test time-sensitive logic (like token expiration).
+ *
+ * Teaching notes:
+ * - Never bind this implementation in the production dependency injection container. It is strictly for testing infrastructure.
+ */
 class MockClock implements ClockInterface
 {
     private DateTimeImmutable $now;

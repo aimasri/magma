@@ -9,6 +9,19 @@ use Magma\queue\QueueInterface;
 use Magma\routing\UrlGenerator;
 use Magma\jobs\SendPasswordResetEmailJob;
 
+/**
+ * Title: Send Password Reset Email Listener
+ *
+ * Purpose:
+ * - Coordinates the creation of an email job when a password reset is requested.
+ * - Bridges the event domain to the background queueing infrastructure.
+ *
+ * Why this design:
+ * - Employs the Outbox pattern. Instead of sending emails synchronously or pushing directly to Redis during the web request, it records the intent in the database outbox, ensuring atomicity with the password token generation.
+ *
+ * Teaching notes:
+ * - Listeners should strictly avoid heavy domain logic. Their role is to translate domain events into infrastructure side-effects (like queue jobs).
+ */
 class SendPasswordResetEmailListener
 {
     private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
