@@ -35,6 +35,21 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $this->container = $container;
     }
 
+    /**
+     * Retrieves the active tenant for branding the debug diagnostic pages.
+     *
+     * Execution Flow & Architectural Reasoning:
+     * 1. Check if the container is available (it may be null in extremely early boot failures).
+     * 2. Attempt to safely retrieve the TenantId directly from the `TenantContext`.
+     * 3. If the context is empty (e.g., during a 404 before TenantSecurityMiddleware executes),
+     *    and a request object is provided, manually resolve the tenant via `DomainTenantContextProvider`.
+     * 4. Fetch the TenantDTO via `TenantQueryInterface`.
+     * 5. If any step fails, we swallow the exception and return null to safely fall back to
+     *    agnostic Magma Framework defaults, preventing recursive error loops.
+     *
+     * @param RequestInterface|null $request Optional request object used as a fallback for domain resolution.
+     * @return \Magma\interfaces\cqrs\TenantDTO|null The tenant DTO, or null if resolution fails.
+     */
     private function getTenant(?RequestInterface $request = null): ?\Magma\interfaces\cqrs\TenantDTO
     {
         if ($this->container === null) {
