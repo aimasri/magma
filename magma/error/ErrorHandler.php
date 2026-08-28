@@ -70,7 +70,7 @@ class ErrorHandler implements ErrorHandlerInterface
      * @param string|null $trace
      * @return Response
      */
-    public function renderError(int $code, string $message, ?string $trace = null): Response
+    public function renderError(int $code, string $message, ?string $trace = null, ?RequestInterface $request = null): Response
     {
         $theme = null;
         $container = $this->container;
@@ -78,15 +78,17 @@ class ErrorHandler implements ErrorHandlerInterface
             try {
                 /** @var \Magma\security\TenantContext $tenantContext */
                 $tenantContext = $container->get(\Magma\security\TenantContext::class);
-                if ($tenantContext->hasTenantId()) {
+                $tenantId = $tenantContext->hasTenantId() ? $tenantContext->getTenantId() : null;
+                if ($tenantId === null && $request !== null) {
+                    $domainProvider = $container->get(\Magma\security\DomainTenantContextProvider::class);
+                    $tenantId = $domainProvider->resolveTenantId($request);
+                }
+                if ($tenantId !== null) {
                     /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantRepo */
                     $tenantRepo = $container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
-                    $tenantId = $tenantContext->getTenantId();
-                    if ($tenantId !== null) {
-                        $tenant = $tenantRepo->find($tenantId);
-                        if ($tenant) {
-                            $theme = $tenant->theme_settings;
-                        }
+                    $tenant = $tenantRepo->find($tenantId);
+                    if ($tenant) {
+                        $theme = $tenant->theme_settings;
                     }
                 }
             } catch (\Throwable $e) {
@@ -149,7 +151,7 @@ class ErrorHandler implements ErrorHandlerInterface
             return $this->debugPresenter->presentNotFound($request, $routes);
         }
 
-        return $this->renderError(404, "Page Not Found");
+        return $this->renderError(404, "Page Not Found", null, $request);
     }
 
     /**
@@ -197,7 +199,7 @@ class ErrorHandler implements ErrorHandlerInterface
                 return $this->debugPresenter->present($e, $request, $code);
             }
 
-            return $this->renderError($code, $message, $e->getTraceAsString());
+            return $this->renderError($code, $message, $e->getTraceAsString(), $request);
         }
 
         // Log general Throwable
@@ -228,6 +230,6 @@ class ErrorHandler implements ErrorHandlerInterface
             return $this->debugPresenter->present($e, $request, $code);
         }
 
-        return $this->renderError($code, $safeMessage, $e->getTraceAsString());
+        return $this->renderError($code, $safeMessage, $e->getTraceAsString(), $request);
     }
 }

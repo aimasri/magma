@@ -38,7 +38,7 @@ interface ErrorHandlerInterface
      * @param string|null $trace Optional stack trace included only in debug modes.
      * @return Response The generated error response.
      */
-    public function renderError(int $code, string $message, ?string $trace = null): Response;
+    public function renderError(int $code, string $message, ?string $trace = null, ?RequestInterface $request = null): Response;
 
     /**
      * Renders a standard 404 Not Found response.
