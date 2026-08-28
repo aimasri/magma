@@ -126,17 +126,25 @@ class DatabaseTransactionManager implements TransactionManagerInterface
         }
 
         if ($this->transactionLevel > 1) {
-            $this->transactionLevel--;
-            $savepoint = 'trans_' . $this->transactionLevel;
-            $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
+            $savepoint = 'trans_' . ($this->transactionLevel - 1);
+            try {
+                $dbWrite->exec("RELEASE SAVEPOINT {$savepoint}");
+                $this->transactionLevel--;
+            } catch (\PDOException $e) {
+                throw new \Magma\infrastructure\exceptions\DatabaseException("Savepoint release failed.", 0, $e);
+            }
         } else {
-            $this->transactionLevel = 0;
             try {
                 if ($dbWrite->inTransaction()) {
                     $dbWrite->commit();
                 }
+                $this->transactionLevel = 0;
+            } catch (\PDOException $e) {
+                throw new \Magma\infrastructure\exceptions\DatabaseException("Transaction commit failed.", 0, $e);
             } finally {
-                $this->dbManager->forceWriteForReads(false);
+                if ($this->transactionLevel === 0) {
+                    $this->dbManager->forceWriteForReads(false);
+                }
             }
         }
     }

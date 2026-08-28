@@ -33,19 +33,15 @@ class SendWelcomeEmailListener
 
     public function handle(UserRegisteredEvent $event): void
     {
-        try {
-            $jobDto = new \Magma\dto\OutboxJobDTO(
-                'emails',
-                SendWelcomeEmailJob::class,
-                [
-                    'to_email' => $event->registration->getEmail(),
-                    'to_name'  => $event->registration->getName()
-                ]
-            );
-            
-            $this->outboxJobRepository->record($jobDto);
-        } catch (\Throwable $e) {
-            error_log("Failed to record welcome email in outbox: " . $e->getMessage());
-        }
+        $jobDto = new \Magma\dto\OutboxJobDTO(
+            'emails',
+            SendWelcomeEmailJob::class,
+            [
+                'to_email' => $event->registration->getEmail(),
+                'to_name'  => $event->registration->getName()
+            ]
+        );
+        
+        $this->outboxJobRepository->record($jobDto);
     }
 }
