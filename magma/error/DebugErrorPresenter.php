@@ -387,7 +387,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
         $colorBgCanvas = getenv('APP_COLOR_BG_CANVAS') ?: '#380404'; // Keep canvas dark red
-        $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#ffffff';     // White cards
+        $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#fff8eb';     // Soft warm cream cards
         $colorPrimary = getenv('APP_COLOR_PRIMARY') ?: '#622E00';    // Use the old card red as highlight
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
         $colorSecondary = getenv('APP_COLOR_SECONDARY') ?: '#ebb33a';

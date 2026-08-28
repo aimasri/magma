@@ -17,8 +17,8 @@
     :root {
         /* Color Palette - Magma and Lava Theme */
         --bg-canvas: #380404; /* Keep canvas dark red */
-        --bg-surface: #ffffff; /* White cards */
-        --bg-surface-elevated: #ffffff; /* White */
+        --bg-surface: #fff8eb; /* Soft warm cream cards */
+        --bg-surface-elevated: #fffcf5; /* Lighter warm cream */
         --bg-code: #f4f2eb; /* Light code background */
         
         /* Text Colors */
