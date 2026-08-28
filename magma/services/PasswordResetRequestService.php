@@ -58,26 +58,20 @@ class PasswordResetRequestService
         $token = \Magma\domain\PasswordResetToken::generate();
 
         try {
-            $this->transactionManager->transactional(function () use ($user, $token) {
+            $this->transactionManager->transactional(function () use ($user, $token, $email) {
                 $this->userTokenRepository->deleteAllPasswordResetTokensForUser($user->getId());
                 $this->userTokenRepository->createPasswordResetToken($user->getId(), $token);
+                
+                $this->eventDispatcher->dispatch(new \Magma\domain\events\PasswordResetRequestedEvent(
+                    $email,
+                    $user->getName(),
+                    $token->getPlainTextToken()
+                ));
             });
+            return PasswordResetStatus::SUCCESS;
         } catch (\Throwable $e) {
-            error_log("Failed to create password reset token: " . $e->getMessage());
+            error_log("Failed to process password reset request: " . $e->getMessage());
             return PasswordResetStatus::SYSTEM_ERROR;
         }
-
-        try {
-            $this->eventDispatcher->dispatch(new \Magma\domain\events\PasswordResetRequestedEvent(
-                $email,
-                $user->getName(),
-                $token->getPlainTextToken()
-            ));
-        } catch (\Throwable $e) {
-            error_log("Failed to dispatch password reset event: " . $e->getMessage());
-            return PasswordResetStatus::SYSTEM_ERROR;
-        }
-        
-        return PasswordResetStatus::SUCCESS;
     }
 }
