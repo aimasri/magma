@@ -59,3 +59,7 @@ If changes represent framework evolutions (SOLID, performance, multi-tenancy, re
 - **Debugging:** Always show ALL debugging information. Do not hide stack traces or error dumps.
 - **Legacy & Compatibility:** We do NOT keep backward compatibility and we do NOT worry about legacy files.
 - **Thoroughness:** Test all edge cases. No shortcuts are permitted. Make sure every implementation is complete and robust.
+## 10. Git Branching & Workflow
+- **Directional Flow:** You must strictly observe the directional flow of the Git branches. The `main` branch is the pure, dependency-free Magma core. The `lava` branch is a downstream testing layer built on top of it (containing testing tools, phpunit, composer configs, etc.).
+- **Merging Protocol:** When applying bug fixes, UI updates, or core features that belong in both, you MUST commit the changes to `main` FIRST. Then, check out `lava` and merge `main` into it (`git merge main`). 
+- **Strict Prohibition:** You must NEVER merge `lava` into `main`, or you will permanently pollute the pure core framework with testing dependencies and break the architecture.
