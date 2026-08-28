@@ -439,6 +439,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
         $colorBgCanvas = $tenant?->theme_settings['diagnostic_bg_color'] ?? $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
+        $colorLogoBg = $tenant?->theme_settings['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
         $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';
         $colorPrimary = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00'); 
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
@@ -518,6 +519,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             --color-accent-red: #8b0000;
             --color-accent-purple: #a43590;
             --color-bg-canvas: {$colorBgCanvas};
+            --color-logo-bg: {$colorLogoBg};
             --color-card-bg: {$colorCardBg};
             --color-border-subtle: {$colorBorderSubtle};
             --font-main: 'Montserrat', sans-serif;
@@ -579,7 +581,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             border-radius: 12px;
             box-shadow: 0 -10px 20px -5px rgba(0, 0, 0, 0.2);
             transition: box-shadow 0.3s ease;
-            background: var(--color-bg-canvas);
+            background: var(--color-logo-bg);
             padding: 6px;
         }
         
