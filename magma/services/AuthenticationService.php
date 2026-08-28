@@ -71,4 +71,22 @@ class AuthenticationService
         $this->sessionAuth->logout();
         return AuthenticationResult::failure()->clearCookie('remember_user');
     }
+
+    /**
+     * Delegates session login for an authenticated user.
+     */
+    public function login(AuthUser $authUser): void
+    {
+        $this->sessionAuth->login($authUser);
+    }
+
+    /**
+     * Delegates fetching the currently authenticated user from the session.
+     * 
+     * @return AuthUser|null
+     */
+    public function getAuthenticatedUser(): ?AuthUser
+    {
+        return $this->sessionAuth->getAuthenticatedUser();
+    }
 }

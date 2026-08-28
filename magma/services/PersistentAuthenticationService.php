@@ -54,7 +54,8 @@ class PersistentAuthenticationService
      */
     public function attemptAutoLogin(string $token): AuthenticationResult
     {
-        return $this->transactionManager->transactional(function () use ($token) {
+        /** @var AuthenticationResult $result */
+        $result = $this->transactionManager->transactional(function () use ($token) {
             $userId = $this->rememberMeService->validateToken($token);
             if (!$userId) {
                 return AuthenticationResult::failure()->clearCookie('remember_user');
@@ -65,14 +66,15 @@ class PersistentAuthenticationService
                 return AuthenticationResult::failure()->clearCookie('remember_user');
             }
 
-            $authUser = new \Magma\domain\AuthUser($user);
-            $this->sessionAuth->login($authUser);
+            $this->sessionAuth->login($user);
 
             $tokenData = $this->rememberMeService->rotateToken($token, $userId);
             
-            return AuthenticationResult::success($authUser)
+            return AuthenticationResult::success($user)
                 ->withCookie('remember_user', $tokenData['token'], $tokenData['expiry']);
         });
+
+        return $result;
     }
 
     /**

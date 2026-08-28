@@ -98,13 +98,36 @@ class DomainServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(AuthenticationService::class, function ($c) {
-            return new AuthenticationService(
+        $container->set(\Magma\services\SessionAuthenticationService::class, function ($c) {
+            return new \Magma\services\SessionAuthenticationService(
+                $c->get(Session::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
+            );
+        });
+
+        $container->set(\Magma\services\CredentialAuthenticationService::class, function ($c) {
+            return new \Magma\services\CredentialAuthenticationService(
                 $c->get(UserQueryInterface::class),
                 $c->get(UserCommandInterface::class),
-                $c->get(Session::class),
-                $c->get(RememberMeService::class),
+                $c->get(\Magma\services\SessionAuthenticationService::class),
                 $c->get(\Magma\contracts\ClockInterface::class)
+            );
+        });
+
+        $container->set(\Magma\services\PersistentAuthenticationService::class, function ($c) {
+            return new \Magma\services\PersistentAuthenticationService(
+                $c->get(RememberMeService::class),
+                $c->get(\Magma\services\SessionAuthenticationService::class),
+                $c->get(UserQueryInterface::class),
+                $c->get(TransactionManagerInterface::class)
+            );
+        });
+
+        $container->set(AuthenticationService::class, function ($c) {
+            return new AuthenticationService(
+                $c->get(\Magma\services\CredentialAuthenticationService::class),
+                $c->get(\Magma\services\PersistentAuthenticationService::class),
+                $c->get(\Magma\services\SessionAuthenticationService::class)
             );
         });
 
