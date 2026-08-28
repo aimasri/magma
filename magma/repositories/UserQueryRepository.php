@@ -46,4 +46,12 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         
         return is_array($row) ? new AuthUser($row) : null;
     }
+
+    public function getPasswordChangedAt(int $id): ?int
+    {
+        $stmt = $this->getDb()->prepare("SELECT password_changed_at FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        $val = $stmt->fetchColumn();
+        return $val ? strtotime((string)$val) : null;
+    }
 }

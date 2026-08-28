@@ -161,7 +161,8 @@ class LocalFileStorageService implements StorageInterface
             throw new RuntimeException("Extension not allowed");
         }
         
-        $filename = uniqid() . '.' . $ext;
+        $token = bin2hex(random_bytes(16));
+        $filename = $token . '.' . $ext;
         $path = $directory . '/' . $filename;
         
         $fullPath = $this->getFullPath($path);
@@ -171,7 +172,23 @@ class LocalFileStorageService implements StorageInterface
             mkdir($dir, 0755, true);
         }
         
-        $file->moveTo($fullPath);
+        $tmpPath = sys_get_temp_dir() . '/' . $filename;
+        $file->moveTo($tmpPath);
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $tmpPath);
+        finfo_close($finfo);
+
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/csv'];
+        if (!in_array($mime, $allowedMimes, true)) {
+            unlink($tmpPath);
+            throw new RuntimeException("Invalid file content payload. MIME type blocked: {$mime}");
+        }
+
+        if (!rename($tmpPath, $fullPath)) {
+            unlink($tmpPath);
+            throw new RuntimeException("Failed to move file to final destination.");
+        }
         
         return $path;
     }

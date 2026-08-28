@@ -26,10 +26,14 @@ use Magma\http\SessionInterface;
 class AuthMiddleware implements MiddlewareInterface
 {
     private SessionInterface $session;
+    private \Magma\interfaces\cqrs\UserQueryInterface $userRepository;
 
-    public function __construct(SessionInterface $session)
-    {
+    public function __construct(
+        SessionInterface $session,
+        \Magma\interfaces\cqrs\UserQueryInterface $userRepository
+    ) {
         $this->session = $session;
+        $this->userRepository = $userRepository;
     }
 
     /**
@@ -52,20 +56,38 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(RequestInterface $request, callable $next): Response
     {
-        if (!$this->session->get('user')) {
-            if ($request->isJsonExpected() || $request->expectsJson()) {
-                $payload = json_encode([
-                    'success' => false,
-                    'error'   => 'Unauthenticated access.',
-                    'code'    => 401,
-                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-
-                return new Response($payload, 401, ['Content-Type' => 'application/json; charset=utf-8']);
+        $user = $this->session->get('user');
+        
+        if (!$user) {
+            return $this->handleUnauthorized($request);
+        }
+        
+        $loginTime = $this->session->get('login_time');
+        $userId = $user['id'] ?? null;
+        
+        if ($userId && $loginTime) {
+            $passwordChangedAt = $this->userRepository->getPasswordChangedAt((int) $userId);
+            if ($passwordChangedAt && $passwordChangedAt > $loginTime) {
+                $this->session->destroy();
+                return $this->handleUnauthorized($request);
             }
+        }
+        
+        return $next($request);
+    }
+    
+    private function handleUnauthorized(RequestInterface $request): Response
+    {
+        if ($request->isJsonExpected() || $request->expectsJson()) {
+            $payload = json_encode([
+                'success' => false,
+                'error'   => 'Unauthenticated access.',
+                'code'    => 401,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
-            return new RedirectResponse('/login');
+            return new Response($payload, 401, ['Content-Type' => 'application/json; charset=utf-8']);
         }
 
-        return $next($request);
+        return new RedirectResponse('/login');
     }
 }
