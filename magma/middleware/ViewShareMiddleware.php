@@ -28,19 +28,21 @@ class ViewShareMiddleware implements MiddlewareInterface
     private TemplateEngine $templateEngine;
     private TenantQueryInterface $tenantRepository;
     private \Magma\http\Session $session;
+    private \Magma\security\TenantContext $tenantContext;
 
-    public function __construct(TemplateEngine $templateEngine, TenantQueryInterface $tenantRepository, \Magma\http\Session $session)
+    public function __construct(TemplateEngine $templateEngine, TenantQueryInterface $tenantRepository, \Magma\http\Session $session, \Magma\security\TenantContext $tenantContext)
     {
         $this->templateEngine = $templateEngine;
         $this->tenantRepository = $tenantRepository;
         $this->session = $session;
+        $this->tenantContext = $tenantContext;
     }
 
     /**
      * Executes the middleware layer.
      * 
      * Execution Flow:
-     * 1. Retrieve the primary tenant from the repository.
+     * 1. Retrieve the tenant from the context (or fallback to primary) from the repository.
      * 2. Share the tenant array and its tagline globally with the TemplateEngine.
      * 3. Share the current authenticated user session globally.
      * 4. Inject the CSRF token and flash session variables (`errors`, `old`) into the TemplateEngine.
@@ -52,7 +54,11 @@ class ViewShareMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        $tenant = $this->tenantRepository->getPrimaryTenant();
+        if ($this->tenantContext->hasTenantId()) {
+            $tenant = $this->tenantRepository->find($this->tenantContext->getTenantId());
+        } else {
+            $tenant = $this->tenantRepository->getPrimaryTenant();
+        }
 
         $this->templateEngine->share('tenant', $tenant);
         $this->templateEngine->share('tagline', $tenant ? $tenant->tagline : '');
