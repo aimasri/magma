@@ -32,17 +32,21 @@ class ErrorHandler implements ErrorHandlerInterface
     private JsonErrorPresenterInterface $jsonPresenter;
     private DebugErrorPresenterInterface $debugPresenter;
     private bool $debug;
+    private ?\Magma\container\Container $container;
 
     public function __construct(
         TemplateEngine $templateEngine, 
         \Magma\config\ConfigInterface $config, 
         JsonErrorPresenterInterface $jsonPresenter,
         DebugErrorPresenterInterface $debugPresenter,
+        ?\Magma\container\Container $container = null,
         ?bool $debug = null
     ) {
         $this->templateEngine = $templateEngine;
         $this->jsonPresenter = $jsonPresenter;
         $this->debugPresenter = $debugPresenter;
+        $this->container = $container;
+        
         if ($debug !== null) {
             $this->debug = $debug;
         } else {
@@ -68,12 +72,29 @@ class ErrorHandler implements ErrorHandlerInterface
      */
     public function renderError(int $code, string $message, ?string $trace = null): Response
     {
+        $theme = null;
+        if ($this->container && $this->container->has(\Magma\security\TenantContext::class)) {
+            try {
+                $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+                if ($tenantContext->hasTenantId()) {
+                    $tenantRepo = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
+                    $tenant = $tenantRepo->find($tenantContext->getTenantId());
+                    if ($tenant) {
+                        $theme = $tenant->theme_settings;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore errors and fall back to default Magma colors
+            }
+        }
+
         $data = [
             'message' => $message,
             'code'    => $code,
             'trace'   => ($this->debug) ? $trace : null,
             'title'   => "Error {$code}",
             'debug'   => $this->debug,
+            'theme'   => $theme,
         ];
 
         try {

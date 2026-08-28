@@ -87,6 +87,13 @@ CREATE TABLE IF NOT EXISTS tenant_addons (
     PRIMARY KEY (tenant_id, feature_id)
 );
 
+CREATE TABLE IF NOT EXISTS tenant_domains (
+    id SERIAL PRIMARY KEY,
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    domain VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Section: 4. Global Lookups
 
 CREATE TABLE IF NOT EXISTS countries (
