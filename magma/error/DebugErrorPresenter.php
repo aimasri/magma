@@ -35,7 +35,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $this->container = $container;
     }
 
-    private function getTenant(): ?\Magma\interfaces\cqrs\TenantDTO
+    private function getTenant(?RequestInterface $request = null): ?\Magma\interfaces\cqrs\TenantDTO
     {
         if ($this->container === null) {
             return null;
@@ -46,13 +46,18 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
             $tenantId = $tenantContext->getTenantId();
 
-            if ($tenantId === null) {
-                return null;
+            if ($tenantId === null && $request !== null) {
+                $domainProvider = $this->container->get(\Magma\security\DomainTenantContextProvider::class);
+                $tenantId = $domainProvider->resolveTenantId($request);
             }
 
-            /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantQuery */
-            $tenantQuery = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
-            return $tenantQuery->find($tenantId);
+            if ($tenantId !== null) {
+                /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantQuery */
+                $tenantQuery = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
+                return $tenantQuery->find($tenantId);
+            }
+
+            return null;
         } catch (\Throwable $e) {
             return null;
         }
@@ -90,7 +95,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             'requestData'     => $requestData,
             'environmentData' => $environmentData,
             'requestObject'   => $request,
-            'activeTenant'    => $this->getTenant(),
+            'activeTenant'    => $this->getTenant($request),
         ]);
 
         return new Response($html, $statusCode, ['Content-Type' => 'text/html; charset=utf-8']);
@@ -132,7 +137,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             'requestData'     => $requestData,
             'environmentData' => $environmentData,
             'requestObject'   => $request,
-            'activeTenant'    => $this->getTenant(),
+            'activeTenant'    => $this->getTenant($request),
             'infrastructureData' => self::gatherInfrastructureMetrics(),
             'tenantData'         => self::gatherTenantMetrics(),
             'cqrsMetrics'        => self::gatherCqrsMetrics(),
