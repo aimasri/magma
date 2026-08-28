@@ -16,35 +16,35 @@
 @layer tokens {
     :root {
         /* Color Palette - Magma and Lava Theme */
-        --bg-canvas: #380404; /* Darkest maroon/black */
-        --bg-surface: #622E00; /* Dark warm brown */
-        --bg-surface-elevated: #622E00; /* Dark warm brown */
-        --bg-code: #250202; /* Derived darker for code */
+        --bg-canvas: #380404; /* Keep canvas dark red */
+        --bg-surface: #ffffff; /* White cards */
+        --bg-surface-elevated: #ffffff; /* White */
+        --bg-code: #f4f2eb; /* Light code background */
         
         /* Text Colors */
-        --text-main: #fff5eb;
-        --text-muted: #fff5eb; /* Changed to white */
-        --text-subtle: #f9a876; /* Lighter warm orange for readable subtle text */
-        --text-danger: #ffdbbb; /* Light orange */
+        --text-main: #333333; /* Dark text for white cards */
+        --text-muted: #666666; /* Muted text */
+        --text-subtle: #888888; /* Subtle text */
+        --text-danger: #cc0000; /* Danger text */
         
         /* Accent & Brand Colors */
-        --brand-flame: #ff5252; /* Vivid Red adjusted for accessible contrast on dark backgrounds */
-        --brand-flame-hover: #b0040b; 
-        --brand-flame-subtle: rgba(232, 4, 20, 0.15);
+        --brand-flame: #622E00; /* The old card red, now used as highlight */
+        --brand-flame-hover: #4a2200; 
+        --brand-flame-subtle: rgba(98, 46, 0, 0.1);
         
-        --color-info: #ffdbbb;
-        --color-info-subtle: rgba(255, 219, 187, 0.15);
+        --color-info: #622E00;
+        --color-info-subtle: rgba(98, 46, 0, 0.1);
         
-        --color-success: #ffb703; /* Bright molten yellow instead of green */
-        --color-success-subtle: rgba(255, 183, 3, 0.15);
+        --color-success: #ebb33a; /* Darker yellow/gold for white backgrounds */
+        --color-success-subtle: rgba(235, 179, 58, 0.15);
         
-        --color-warning: #ffcc99;
-        --color-warning-subtle: rgba(255, 204, 153, 0.15);
+        --color-warning: #f2c86b;
+        --color-warning-subtle: rgba(242, 200, 107, 0.15);
 
         /* Borders & Outlines */
-        --border-subtle: #59040c;
-        --border-medium: #b0040b;
-        --border-focus: #ffdbbb;
+        --border-subtle: #e2e8f0; /* Light borders for white cards */
+        --border-medium: #cbd5e1;
+        --border-focus: #622E00;
 
         /* Typography */
         --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
