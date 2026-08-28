@@ -438,7 +438,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $logoPath = $tenant?->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
-        $colorBgCanvas = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
+        $colorBgCanvas = $tenant?->theme_settings['diagnostic_bg_color'] ?? $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
         $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';
         $colorPrimary = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00'); 
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
