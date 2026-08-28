@@ -1,0 +1,22 @@
+name: Enforce Main Branch Purity
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  enforce-purity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check for Testing Infrastructure
+        run: |
+          if [ -d "tests" ] || [ -f "phpunit.xml" ] || [ -f "phpstan.neon" ]; then
+            echo "::error::🛑 CRITICAL ARCHITECTURAL VIOLATION: You are attempting to merge testing infrastructure (Lava) into the pure 'main' branch."
+            echo "::error::The 'main' branch must remain 100% dependency-free. Tests belong in 'lava' and downstream applications."
+            exit 1
+          fi
+          echo "Main branch purity verified."
