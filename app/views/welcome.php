@@ -44,7 +44,7 @@ $serverOs = $diag->serverOs;
             </div>
 
             <div class="welcome-hero__brand">
-                <img src="/favicon.svg" alt="Magma Logo" class="welcome-hero__brand-logo">
+                <img src="/logo.svg" alt="Magma Logo" class="welcome-hero__brand-logo">
                 <h1 class="welcome-hero__title">The Magma Framework</h1>
             </div>
 
