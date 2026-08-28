@@ -15,15 +15,17 @@ $pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
     <link rel="stylesheet" href="/css/components/syllabus.css">
 </head>
 <body class="welcome-page">
-    <div class="welcome-container mx-auto d-flex flex-column gap-6">
-        <header class="welcome-hero syllabus-hero">
-            <h1 class="welcome-hero__title">Architectural Syllabus</h1>
-            <p class="welcome-hero__tagline syllabus-hero__subtitle">A Masterclass in Enterprise Software Architecture. This textbook is a comprehensive, iteratively compiled record of our deep dives into the explicit, vanilla PHP/JS architecture that powers Magma.</p>
-        </header>
-        
-        <div class="syllabus-layout">
-            <div class="syllabus-sidebar"><details class="syllabus-toc" open><summary class="toc-summary"><h3>Chapters</h3></summary><ul><li><a href="#module-1-introduction-philosophy"><span class="toc-num">1</span> <span class="toc-title">Introduction & Philosophy</span></a></li><li><a href="#module-2-the-request-lifecycle-front-controller"><span class="toc-num">2</span> <span class="toc-title">The Request Lifecycle & Front Controller</span></a></li><li><a href="#module-3-the-dependency-injection-container-the-core"><span class="toc-num">3</span> <span class="toc-title">The Dependency Injection Container (The Core)</span></a></li><li><a href="#module-4-routing-the-http-request"><span class="toc-num">4</span> <span class="toc-title">Routing & The HTTP Request</span></a></li><li><a href="#module-5-controllers-services-the-business-logic"><span class="toc-num">5</span> <span class="toc-title">Controllers & Services (The Business Logic)</span></a></li><li><a href="#module-6-data-persistence-multi-tenancy"><span class="toc-num">6</span> <span class="toc-title">Data Persistence & Multi-Tenancy</span></a></li><li><a href="#module-7-views-and-the-template-engine"><span class="toc-num">7</span> <span class="toc-title">Views and the Template Engine</span></a></li><li><a href="#module-8-error-handling-logging"><span class="toc-num">8</span> <span class="toc-title">Error Handling & Logging</span></a></li><li><a href="#module-9-the-final-polish-dtos-data-transfer-objects"><span class="toc-num">9</span> <span class="toc-title">The Final Polish - DTOs (Data Transfer Objects)</span></a></li><li><a href="#module-10-the-evolution-domain-driven-design-ddd"><span class="toc-num">10</span> <span class="toc-title">The Evolution - Domain-Driven Design (DDD)</span></a></li><li><a href="#module-11-decoupling-with-event-driven-architecture"><span class="toc-num">11</span> <span class="toc-title">Decoupling with Event-Driven Architecture</span></a></li><li><a href="#module-12-asynchronous-background-workers"><span class="toc-num">12</span> <span class="toc-title">Asynchronous Background Workers</span></a></li><li><a href="#module-13-end-of-cycle-considerations-automated-testing"><span class="toc-num">13</span> <span class="toc-title">End of Cycle Considerations - Automated Testing</span></a></li><li><a href="#module-14-frontend-architecture-deep-freeze-css-layers"><span class="toc-num">14</span> <span class="toc-title">Frontend Architecture: Deep Freeze & CSS Layers</span></a></li><li><a href="#module-15-security-big-o-analytics"><span class="toc-num">15</span> <span class="toc-title">Security & Big-O Analytics</span></a></li><li><a href="#module-16-the-lava-hardening-phase-enterprise-quality-control"><span class="toc-num">16</span> <span class="toc-title">The Lava Hardening Phase - Enterprise Quality Control</span></a></li></ul></details></div>
-            <div class="syllabus-content">
+    <div class="welcome-container">
+<div class="welcome-hero syllabus-hero">
+    <div class="container">
+        <h1 class="welcome-hero__title">Architectural Syllabus</h1>
+        <p class="welcome-hero__subtitle syllabus-hero__subtitle">A Masterclass in Enterprise Software Architecture. This textbook is a comprehensive, iteratively compiled record of our deep dives into the explicit, vanilla PHP/JS architecture that powers Magma.</p>
+    </div>
+</div>
+<main class="syllabus-page">
+    <div class="container syllabus-layout">
+        <div class="syllabus-sidebar"><details class="syllabus-toc" open><summary class="toc-summary"><h3>Chapters</h3></summary><ul><li><a href="#module-1-introduction-philosophy"><span class="toc-num">1</span> <span class="toc-title">Introduction & Philosophy</span></a></li><li><a href="#module-2-the-request-lifecycle-front-controller"><span class="toc-num">2</span> <span class="toc-title">The Request Lifecycle & Front Controller</span></a></li><li><a href="#module-3-the-dependency-injection-container-the-core"><span class="toc-num">3</span> <span class="toc-title">The Dependency Injection Container (The Core)</span></a></li><li><a href="#module-4-routing-the-http-request"><span class="toc-num">4</span> <span class="toc-title">Routing & The HTTP Request</span></a></li><li><a href="#module-5-controllers-services-the-business-logic"><span class="toc-num">5</span> <span class="toc-title">Controllers & Services (The Business Logic)</span></a></li><li><a href="#module-6-data-persistence-multi-tenancy"><span class="toc-num">6</span> <span class="toc-title">Data Persistence & Multi-Tenancy</span></a></li><li><a href="#module-7-views-and-the-template-engine"><span class="toc-num">7</span> <span class="toc-title">Views and the Template Engine</span></a></li><li><a href="#module-8-error-handling-logging"><span class="toc-num">8</span> <span class="toc-title">Error Handling & Logging</span></a></li><li><a href="#module-9-the-final-polish-dtos-data-transfer-objects"><span class="toc-num">9</span> <span class="toc-title">The Final Polish - DTOs (Data Transfer Objects)</span></a></li><li><a href="#module-10-the-evolution-domain-driven-design-ddd"><span class="toc-num">10</span> <span class="toc-title">The Evolution - Domain-Driven Design (DDD)</span></a></li><li><a href="#module-11-decoupling-with-event-driven-architecture"><span class="toc-num">11</span> <span class="toc-title">Decoupling with Event-Driven Architecture</span></a></li><li><a href="#module-12-asynchronous-background-workers"><span class="toc-num">12</span> <span class="toc-title">Asynchronous Background Workers</span></a></li><li><a href="#module-13-end-of-cycle-considerations-automated-testing"><span class="toc-num">13</span> <span class="toc-title">End of Cycle Considerations - Automated Testing</span></a></li><li><a href="#module-14-frontend-architecture-deep-freeze-css-layers"><span class="toc-num">14</span> <span class="toc-title">Frontend Architecture: Deep Freeze & CSS Layers</span></a></li><li><a href="#module-15-security-big-o-analytics"><span class="toc-num">15</span> <span class="toc-title">Security & Big-O Analytics</span></a></li><li><a href="#module-16-the-lava-hardening-phase-enterprise-quality-control"><span class="toc-num">16</span> <span class="toc-title">The Lava Hardening Phase - Enterprise Quality Control</span></a></li></ul></details></div>
+        <div class="syllabus-content">
             <h1 class="syllabus-title">Magma Framework: The Masterclass Textbook</h1>
 <div class="chapter-module" id="module-1-introduction-philosophy"><h2 class="chapter-title">Module 1: Introduction & Philosophy</h2>
 <h3>Chapter 1.1: The Domain Context & The Platform Vision</h3>
@@ -1529,6 +1531,13 @@ Why is this architecture superior?
 <br>
 <strong>A:</strong> You have to know what is going on behind the scenes to properly code new functions. Relying on "magic" can backfire entirely if you don't actually know where the data you are receiving is coming from, or if you encounter an edge case where you *need* to bypass the magic but can't figure out how. By explicitly injecting the context and writing the <code>WHERE</code> clause in the repository, the mechanism is completely transparent, readable, and debuggable.<br>
 </blockquote>
+<h4>Domain-Based Tenant Resolution (White Labeling)</h4>
+<p>
+As a platform grows, tenants may want their own dedicated URLs (e.g., <code>client.sandboxplatform.com</code> or entirely custom domains like <code>www.mybakery.com</code>). To securely support this "White Label" service without polluting the core logic, Magma utilizes the <strong>Strategy Pattern</strong> at the Middleware layer.
+</p>
+<p>
+Instead of hardcoding domain logic, the <code>TenantSecurityMiddleware</code> injects a <code>DomainTenantContextProvider</code>. This provider inspects the incoming HTTP request's host, securely queries a <code>tenant_domains</code> mapping table using a read-replica connection, and explicitly binds the corresponding <code>TenantContext</code>. The Magma core remains beautifully agnostic—it doesn't care if the tenant is resolved via a domain, an API token, or a user session; the downstream Repositories and Error Handlers simply consume the active <code>TenantContext</code> to load the correct themes and isolate data.
+</p>
 <hr>
 <h3>Chapter 6.3: The Evolution to CQRS & SERIALIZABLE ACID Compliance</h3>
 <p>
@@ -2171,6 +2180,7 @@ Security is not bolted on; it is embedded into the core.
 </div>
         </div>
     </div>
+</main>
         <footer class="welcome-footer">
             <p>Magma Framework &bull; Educational Architecture Core &bull; Debian Linux &bull; Strict SOLID Architecture</p>
         </footer>

@@ -1329,6 +1329,11 @@ Why is this architecture superior?
 > 
 > **A:** You have to know what is going on behind the scenes to properly code new functions. Relying on "magic" can backfire entirely if you don't actually know where the data you are receiving is coming from, or if you encounter an edge case where you *need* to bypass the magic but can't figure out how. By explicitly injecting the context and writing the `WHERE` clause in the repository, the mechanism is completely transparent, readable, and debuggable.
 
+#### Domain-Based Tenant Resolution (White Labeling)
+As a platform grows, tenants may want their own dedicated URLs (e.g., `client.sandboxplatform.com` or entirely custom domains like `www.mybakery.com`). To securely support this "White Label" service without polluting the core logic, Magma utilizes the **Strategy Pattern** at the Middleware layer.
+
+Instead of hardcoding domain logic, the `TenantSecurityMiddleware` injects a `DomainTenantContextProvider`. This provider inspects the incoming HTTP request's host, securely queries a `tenant_domains` mapping table using a read-replica connection, and explicitly binds the corresponding `TenantContext`. The Magma core remains beautifully agnostic—it doesn't care if the tenant is resolved via a domain, an API token, or a user session; the downstream Repositories and Error Handlers simply consume the active `TenantContext` to load the correct themes and isolate data.
+
 ---
 
 
