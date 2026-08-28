@@ -28,6 +28,36 @@ use Magma\routing\Route;
  */
 class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterface
 {
+    private ?\Magma\container\Container $container;
+
+    public function __construct(?\Magma\container\Container $container = null)
+    {
+        $this->container = $container;
+    }
+
+    private function getTenant(): ?\Magma\interfaces\cqrs\TenantDTO
+    {
+        if ($this->container === null) {
+            return null;
+        }
+
+        try {
+            /** @var \Magma\security\TenantContext $tenantContext */
+            $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+            $tenantId = $tenantContext->getTenantId();
+
+            if ($tenantId === null) {
+                return null;
+            }
+
+            /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantQuery */
+            $tenantQuery = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
+            return $tenantQuery->getTenantById($tenantId);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     /**
      * Renders an interactive HTML debug page for the given Throwable.
      *
@@ -60,7 +90,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             'requestData'     => $requestData,
             'environmentData' => $environmentData,
             'requestObject'   => $request,
-            'requestObject'   => $request,
+            'activeTenant'    => $this->getTenant(),
         ]);
 
         return new Response($html, $statusCode, ['Content-Type' => 'text/html; charset=utf-8']);
@@ -102,7 +132,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             'requestData'     => $requestData,
             'environmentData' => $environmentData,
             'requestObject'   => $request,
-            'requestObject'   => $request,
+            'activeTenant'    => $this->getTenant(),
             'infrastructureData' => self::gatherInfrastructureMetrics(),
             'tenantData'         => self::gatherTenantMetrics(),
             'cqrsMetrics'        => self::gatherCqrsMetrics(),
@@ -381,14 +411,16 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $mode = $data['mode'] ?? 'exception';
         $request = $data['requestObject'] ?? null;
         
+        $tenant = $data['activeTenant'] ?? null;
+        
         // Default Magma Framework Branding
-        $appName = getenv('APP_NAME') ?: 'Magma Framework';
-        $logoPath = getenv('APP_LOGO_PATH') ?: ''; // Leave empty if no logo
+        $appName = $tenant?->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+        $logoPath = $tenant?->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
-        $colorBgCanvas = getenv('APP_COLOR_BG_CANVAS') ?: '#380404'; // Keep canvas dark red
+        $colorBgCanvas = $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404'); // Keep canvas dark red
         $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';     // Soft warm cream cards
-        $colorPrimary = getenv('APP_COLOR_PRIMARY') ?: '#622E00';    // Use the old card red as highlight
+        $colorPrimary = $tenant?->theme_settings['secondary_color'] ?? (getenv('APP_COLOR_PRIMARY') ?: '#622E00');    // Use the old card red as highlight
         $colorPrimaryHover = getenv('APP_COLOR_PRIMARY_HOVER') ?: '#4a2200';
         $colorSecondary = getenv('APP_COLOR_SECONDARY') ?: '#ebb33a';
         $colorSecondaryLight = getenv('APP_COLOR_SECONDARY_LIGHT') ?: '#f2c86b';
