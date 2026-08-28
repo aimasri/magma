@@ -62,6 +62,10 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new TenantContext($c->get(\Magma\security\TenantContextProviderInterface::class));
         });
 
+        $container->set(\Magma\contracts\ClockInterface::class, function ($c) {
+            return new \Magma\infrastructure\time\SystemClock();
+        });
+
         $container->set(Session::class, function ($c) {
             $handler = null;
             if (Config::get('SESSION_DRIVER') === 'redis') {

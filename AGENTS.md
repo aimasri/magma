@@ -18,6 +18,7 @@
 - **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services. **Dual Dependency Injection Strategy:** Core framework files (`/magma/`) MUST use Constructor Injection to enforce rigid instantiation contracts. Application and module controllers (`/app/` and `/modules/`) MUST use Method Injection to prevent constructor bloat and allow dynamic request-time resolution.
 - **Database (PostgreSQL):** All queries MUST explicitly include the tenant ID in the `WHERE` clause to enforce multi-tenant isolation, unless operating in a strictly defined global administrative context. Utilize append-only ledger patterns for financial or critical transactional data.
 - **Language Standards (PHP/JS):** All PHP and JavaScript code MUST utilize strict typing. Return types and property types are mandatory.
+- **Subscription & Module Isolation Constraints:** When building new features, you MUST account for subscription state, enforce graceful fallbacks, and never build dynamic per-tenant schemas.
 
 ## 3. Mandatory Pre-Flight & Canonical Pattern Matching
 - **SCAN FIRST:** Before scaffolding any new module, controller, or data-saving logic, you MUST use your tools to scan the `/modules/` directory to locate canonical examples of existing enterprise architecture.

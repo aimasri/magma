@@ -1935,3 +1935,18 @@ Security is not bolted on; it is embedded into the core.
 1. **Argon2id Hashing:** We replaced legacy Bcrypt with Argon2id—the most robust, memory-hard hashing algorithm available, defending against GPU-based brute-force attacks.
 2. **Transparent Rehashing:** The `AuthenticationService` actively listens for legacy hashes during successful logins and transparently upgrades them to Argon2id via the `UserCommandRepository`.
 3. **Strict Headers:** The injection of `Permissions-Policy` disables intrusive browser features (camera, microphone, geolocation) by default, dramatically reducing the application's attack surface.
+
+### Chapter 16.4: The Lava Testing Infrastructure - Zero Cross-Tenant Leakage
+While Magma represents the theoretical core architecture, the **Lava** branch represents its hardened, tested realization before being pulled downstream. The Lava infrastructure provides mathematically proven Database Integration testing environments for downstream modules. 
+By wrapping PHPUnit tests in isolated PostgreSQL `BEGIN/ROLLBACK` transactions, Lava prevents database pollution while guaranteeing fast Execution Times. Downstream developers must extend `DatabaseIntegrationTestCase` to mathematically prove their newly ported CQRS repositories enforce the multi-tenant `tenant_id` boundaries without ever leaking data cross-tenant.
+
+### Chapter 16.5: Deterministic Time, Factories, and Headless Execution
+To support immense systems like Urban Sugar, Lava introduces crucial industry-agnostic infrastructure:
+1. **The Chronos MockClock:** A pure Vanilla PHP `DateTimeImmutable` architecture replacing `date()` and `time()`. It enables tests to utilize `$this->travelTo('2026-12-25 08:00:00')` to deterministically test scheduling boundaries without external libraries.
+2. **Agnostic Factories:** `AbstractModelFactory` provides a strict, generic hydration engine allowing downstream projects to seed nested relational data directly via `$this->recipeFactory()->create(...)` without manual SQL queries.
+3. **Async Event Marshalling & Headless HTTP:** Lava enables developers to synchronously drain the Transactional Outbox (simulating Redis queue execution instantly) using `AsyncIntegrationTestCase`. Similarly, `HttpIntegrationTestCase` allows fake PSR-7 HTTP requests to penetrate the middleware onion (e.g., verifying `TenantSecurityMiddleware`) without ever spinning up a physical web server.
+
+### Chapter 16.6: CI/CD Gates and AST Enforcement
+The final layer of Lava's defense is the pipeline. GitHub Actions strictly boots Postgres and Redis services to execute the tests on every commit. More importantly, Lava introduces custom PHPStan rules that parse the PHP Abstract Syntax Tree (AST) to strictly **ban direct superglobal access** (`$_POST`, `$_GET`, `$_SESSION`) across the framework, ensuring developers strictly use proper DTOs and Request abstractions.
+
+> **CRITICAL WARNING FOR LAVA BRANCH:** The Lava branch contains testing libraries (PHPUnit, PHPStan) and CI/CD logic. **NEVER** merge the `lava` branch back into `main`. The `main` branch must remain 100% pure, dependency-free Magma Core. Lava is a downstream layer. Downstream applications (like Urban Sugar) should branch *from* Lava, not merge back into Main.

@@ -250,6 +250,15 @@ To ensure high availability and prevent blocking synchronous HTTP requests durin
 * **Encapsulated Storage Layer:** [`StorageInterface.php`](./magma/infrastructure/storage/StorageInterface.php), [`LocalStorageService.php`](./magma/infrastructure/storage/LocalStorageService.php), and [`S3StorageService.php`](./magma/infrastructure/storage/S3StorageService.php) enforce binary `finfo` MIME validation, extension allowlists, and cryptographic filename randomization.
 * **Media Processing Service:** [`ImageProcessingService.php`](./magma/services/ImageProcessingService.php) utilizes native PHP `ext-gd` for square-center cropping and automatic WebP conversion.
 
+### Subscription-Based Module Toggles
+
+Magma handles elective, subscription-based modules through a strict, four-pillar standard:
+
+* **Middleware Entitlement Gate:** Block unsubscribed access at the HTTP layer via the Onion pipeline.
+* **UI Feature Flags:** Conditionally render navigation and buttons based on injected subscription state in the TemplateEngine.
+* **Graceful Core Fallbacks:** Core modules must bypass missing dependencies seamlessly (e.g., Scheduling reverting to default capacity if Staffing is inactive).
+* **Unified Multi-Tenant Schema:** All module tables live in the shared PostgreSQL database with a strict `tenant_id`, explicitly forbidding dynamic table creation per tenant.
+
 ---
 
 ## 12. High-Performance Optimizations & Production Diagnostics
@@ -286,7 +295,7 @@ Magma provides a set of standalone CLI utilities designed for deployment pipelin
 Magma’s ecosystem is structured through a geological metaphor, illustrating how code evolves from foundational principles to hardened infrastructure, and eventually into specialized modules and external services.
 
 * **Magma:** The pure, unseen foundational core logic. This is the inner mantle—Vanilla PHP, strictly adhering to CQRS and SOLID, devoid of external dependencies. It is raw, theoretical, and powerful.
-* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It's what happens when Magma hits the surface environment and hardens. Tests and pipelines give the raw code structure, predictability, and safety.
+* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It is the hardened testing environment. **WARNING: LAVA MUST NEVER BE MERGED INTO MAIN.** Lava provides Database Integration test cases, custom AST static analysis to ban superglobals, deterministic Time Mocking (`MockClock`), Agnostic Test Factories, and Headless HTTP testing. Downstream apps (like Urban Sugar) build on top of Lava.
 * **Basalt & Obsidian:** Opinionated business logic modules built on top. Like cooled, structured rock formations, these represent the tangible application layers where domain-specific logic resides.
 * **Granite:** Headless, ultra-secure, backend-only microservices (B2B API data brokering). Dense, impermeable, and designed for heavy lifting, Granite layers handle secure system-to-system communications without UI overhead.
 * **Pumice:** Secondary ecosystem tools like a Redis caching layer. Lightweight, porous, and fast, Pumice accelerates the system by reducing friction and latency.

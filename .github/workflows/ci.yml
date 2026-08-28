@@ -1,0 +1,61 @@
+name: Magma CI
+
+on:
+  push:
+    branches:
+      - lava
+  pull_request:
+    branches:
+      - lava
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: magma
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: magma
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_pgsql, redis
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Initialize Database
+        run: |
+          PGPASSWORD=password psql -h 127.0.0.1 -U magma -d magma -f magma/database/schema.sql
+
+      - name: Run PHPUnit (Integration Testsuite)
+        run: vendor/bin/phpunit --testsuite Integration
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyze
