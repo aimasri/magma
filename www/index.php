@@ -44,6 +44,7 @@ try {
      * The order of middleware matters: first in, outermost layer.
      */
     $app = $container->get(Application::class);
+    $app->addMiddleware(\Magma\middleware\TenantSecurityMiddleware::class);
     $app->addMiddleware(CsrfMiddleware::class);
     $app->addMiddleware(UTMTrackerMiddleware::class);
     $app->addMiddleware(ViewShareMiddleware::class);
