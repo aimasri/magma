@@ -23,6 +23,14 @@ $textMuted = $data['theme']['text_muted'] ?? '#666666';
 $accentWarning = $data['theme']['accent'] ?? '#ebb33a';
 $borderCard = $data['theme']['border_card'] ?? '#e2e8f0';
 $colorPrimary = $data['theme']['primary'] ?? '#622E00';
+
+$tenant = $data['tenant'] ?? null;
+$appName = $tenant?->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+$logoPath = $data['theme']['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: '');
+
+$logoHtml = $logoPath 
+    ? '<img src="' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="card-logo">'
+    : '<div class="card-logo-wrapper"><img src="/logo.svg" alt="Logo" class="card-brand-icon"><span class="card-brand-text">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span></div>';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -112,10 +120,43 @@ $colorPrimary = $data['theme']['primary'] ?? '#622E00';
         .btn-outline:hover {
             background-color: rgba(0,0,0,0.05);
         }
+        .card-logo-container {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+        .card-logo {
+            height: 80px;
+            width: auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: var(--bg-body);
+            padding: 6px;
+        }
+        .card-logo-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+        .card-brand-icon {
+            height: 2.5rem;
+            width: auto;
+            display: block;
+        }
+        .card-brand-text {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
     </style>
 </head>
 <body>
     <div class="error-card">
+        <div class="card-logo-container">
+            <?= $logoHtml ?>
+        </div>
         <span class="error-badge">Error <?= htmlspecialchars((string)$errorCode, ENT_QUOTES, 'UTF-8') ?></span>
         <h1 class="error-title">Page not found</h1>
         <p class="error-desc"><?= htmlspecialchars((string)$errorMessage, ENT_QUOTES, 'UTF-8') ?></p>
