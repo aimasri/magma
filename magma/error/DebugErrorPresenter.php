@@ -441,7 +441,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
         $logoHtml = $logoPath 
             ? '<img src="' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="header-logo" width="500" height="500">'
-            : '<div class="header-logo-wrapper"><img src="/favicon.svg" alt="Logo" class="header-brand-icon"><span class="header-brand-text">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span></div>';
+            : '<div class="header-logo-wrapper"><img src="/logo.svg" alt="Logo" class="header-brand-icon"><span class="header-brand-text">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span></div>';
 
         $html = <<<HTML
 <!DOCTYPE html>
