@@ -1,4 +1,4 @@
-You now have a powerful $this->travelTo('2026-12-25 08:00:00') helper available in your tests. This means when Urban Sugar developers port the Kitchen Scheduling or Staffing modules, they can instantly simulate holiday rushes or overnight shifts without relying on date() or time()
+You now have a powerful $this->travelTo('2026-12-25 08:00:00') helper available in your tests. This means when downstream developers port their domain modules, they can instantly simulate holiday rushes or overnight shifts without relying on date() or time()
 
 ---
 

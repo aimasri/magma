@@ -175,7 +175,7 @@ $serverOs = $diag->serverOs;
                 <a href="/syllabus#module-1-introduction-philosophy" class="module-card">
                     <div class="module-card__header"><span class="module-card__num">Chapter 01</span><span class="badge badge--neutral">Philosophy</span></div>
                     <h3 class="module-card__title">Introduction &amp; Philosophy</h3>
-                    <p class="module-card__desc">The cost of "Magic", explicit engineering, and understanding the TSP domain platform vision.</p>
+                    <p class="module-card__desc">The cost of "Magic", explicit engineering, and understanding the core framework platform vision.</p>
                 </a>
                 <!-- Chapter 02 -->
                 <a href="/syllabus#module-2-the-request-lifecycle-front-controller" class="module-card">

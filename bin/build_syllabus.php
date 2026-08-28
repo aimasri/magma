@@ -233,7 +233,7 @@ $welcomePath = dirname(__DIR__) . '/app/views/welcome.php';
 $welcomeHtml = file_get_contents($welcomePath);
 
 $curated = [
-    1 => ['cat' => 'Philosophy', 'desc' => 'The cost of "Magic", explicit engineering, and understanding the TSP domain platform vision.'],
+    1 => ['cat' => 'Philosophy', 'desc' => 'The cost of "Magic", explicit engineering, and understanding the core framework platform vision.'],
     2 => ['cat' => 'Kernel', 'desc' => 'Bootstrapping, dual-mode kernels (HTTP vs CLI), and enforcing the public <code>www/</code> boundary.'],
     3 => ['cat' => 'Core', 'desc' => 'Recursive reflection autowiring, singleton caching, and defending against circular deadlocks.'],
     4 => ['cat' => 'Network', 'desc' => 'O(1) PCRE Regex compiled routing, the Middleware Onion architecture, and dual-mode compatibility.'],

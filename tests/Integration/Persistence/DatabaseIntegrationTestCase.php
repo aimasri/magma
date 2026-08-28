@@ -18,7 +18,7 @@ use Magma\security\TenantContext;
  * - Provides a fully wired DI container and real PostgreSQL database connection for tests.
  * - Enforces zero data pollution by wrapping every test in an automatic transaction rollback.
  * - Serves as the industry-agnostic base test class for all Magma framework persistence tests 
- *   and downstream Urban Sugar module repository tests.
+ *   and downstream application module repository tests.
  *
  * Why / Why this design:
  * - Real Engine Testing: Proves that Magma's PostgreSQL-specific syntax executes successfully.
