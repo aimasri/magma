@@ -48,10 +48,22 @@
         --badge-border: var(--color-success);
     }
 
+    .badge--debug {
+        --badge-bg: var(--bg-canvas);
+        --badge-color: var(--color-success);
+        --badge-border: transparent;
+    }
+
     .badge--info {
         --badge-bg: var(--color-info-subtle);
         --badge-color: var(--color-info);
         --badge-border: var(--color-info);
+    }
+
+    .badge--topology {
+        --badge-bg: var(--brand-flame);
+        --badge-color: var(--color-success);
+        --badge-border: transparent;
     }
 
     .badge--warning {

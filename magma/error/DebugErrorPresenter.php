@@ -441,7 +441,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
         $logoHtml = $logoPath 
             ? '<img src="' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' Logo" class="header-logo" width="500" height="500">'
-            : '<span style="font-family: var(--font-heading); font-size: 1.5rem; color: var(--color-bg-canvas); font-weight: bold; letter-spacing: 0.05em;">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span>';
+            : '<div class="header-logo-wrapper"><img src="/favicon.svg" alt="Logo" class="header-brand-icon"><span class="header-brand-text">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</span></div>';
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -527,6 +527,27 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             border-radius: 12px;
             box-shadow: 0 -10px 20px -5px rgba(0, 0, 0, 0.2);
             transition: box-shadow 0.3s ease;
+        }
+        
+        .header-logo-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .header-brand-icon {
+            height: 1.2rem;
+            width: auto;
+            display: block;
+            transform: translateY(1px);
+        }
+        
+        .header-brand-text {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            color: var(--color-bg-canvas);
+            font-weight: bold;
+            letter-spacing: 0.05em;
         }
 
         .header-status-badge {

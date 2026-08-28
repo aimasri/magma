@@ -29,6 +29,7 @@ $serverOs = $diag->serverOs;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body class="welcome-page">
@@ -37,12 +38,16 @@ $serverOs = $diag->serverOs;
         <!-- Hero Showcase Banner -->
         <header class="welcome-hero">
             <div class="welcome-hero__top">
-                <span class="badge badge--pill <?= $isDebug ? 'badge--success' : 'badge--neutral' ?>">
+                <span class="badge badge--pill <?= $isDebug ? 'badge--debug' : 'badge--neutral' ?>">
                     <?= $isDebug ? 'Debug mode active' : 'Production mode' ?>
                 </span>
             </div>
 
-            <h1 class="welcome-hero__title">The Magma Framework</h1>
+            <div class="welcome-hero__brand">
+                <img src="/favicon.svg" alt="Magma Logo" class="welcome-hero__brand-logo">
+                <h1 class="welcome-hero__title">The Magma Framework</h1>
+            </div>
+
             <p class="welcome-hero__tagline">
                 An instructional, enterprise-hardened PHP 8.2+ codebase demonstrating how to build robust, scalable, and mathematically sound web applications without relying on heavy, black-box frameworks.
             </p>
@@ -91,7 +96,7 @@ $serverOs = $diag->serverOs;
                     <h3 class="gallery-card__title">SOLID & DIP</h3>
                     <div class="gallery-card__content">
                         <p class="gallery-card__desc">
-                            Favor interface injection over concrete instantiation. Classes hold a single responsibility and high cohesion.
+                            Strictly favor interface injection over concrete instantiation to eliminate tight coupling. We enforce single-responsibility, highly cohesive classes that depend exclusively on abstractions, keeping the core domain entirely framework-agnostic.
                         </p>
                     </div>
                 </div>
@@ -100,7 +105,7 @@ $serverOs = $diag->serverOs;
                     <h3 class="gallery-card__title">Separation of concerns</h3>
                     <div class="gallery-card__content">
                         <p class="gallery-card__desc">
-                            Controllers never query SQL; views never perform business math; repositories isolate data persistence entirely.
+                            Controllers remain deliberately thin, acting purely as HTTP traffic cops, while repositories encapsulate all data persistence logic. Views are entirely logic-less, ensuring that complex business math never leaks into the presentation layer.
                         </p>
                     </div>
                 </div>
@@ -109,7 +114,7 @@ $serverOs = $diag->serverOs;
                     <h3 class="gallery-card__title">Pragmatic DDD</h3>
                     <div class="gallery-card__content">
                         <p class="gallery-card__desc">
-                            Behavior belongs with data. Skinny domain entities manage their own state and sanitization; services orchestrate.
+                            Behavior belongs intrinsically with data. We deploy rich, isolated domain entities that enforce their own internal invariants and rules, while dedicated application services seamlessly orchestrate broader, higher-level business workflows.
                         </p>
                     </div>
                 </div>
@@ -118,7 +123,7 @@ $serverOs = $diag->serverOs;
                     <h3 class="gallery-card__title">Instructional docblocks</h3>
                     <div class="gallery-card__content">
                         <p class="gallery-card__desc">
-                            Every core file explains its title, purpose, architectural rationale, and teaching notes with strict scalar types.
+                            Every critical core file features an extensive docblock explaining its title, precise purpose, architectural rationale, and educational notes. We mandate strict scalar typing and complete architectural transparency across the entire codebase.
                         </p>
                     </div>
                 </div>
@@ -129,7 +134,7 @@ $serverOs = $diag->serverOs;
         <section id="lifecycle">
             <div class="section-header">
                 <h2 class="section-header__title">Magma core architecture</h2>
-                <span class="badge badge--info">System topology</span>
+                <span class="badge badge--topology">System topology</span>
             </div>
 
             <div class="lifecycle-diagram-wrapper">
@@ -161,7 +166,7 @@ $serverOs = $diag->serverOs;
             </div>
             
             <p class="section-description">
-                Explore the definitive guide to Magma's enterprise architecture. This masterclass textbook details our explicit, vanilla PHP/JS design philosophy. <a href="/syllabus">Click here to read the full syllabus</a>.
+                Dive into the complete 16-chapter curriculum defining Magma's enterprise architecture and strict SOLID principles. This masterclass textbook covers the full stack—from request lifecycle and dependency injection to event-driven background workers and CSS cascade layers. <a href="/syllabus">Click here to read the full syllabus</a>.
             </p>
 
             <div class="syllabus-grid">
@@ -264,17 +269,13 @@ $serverOs = $diag->serverOs;
                 </a>
                 <!-- SYLLABUS_GRID_END -->
             </div>
-            <div class="mt-6 text-center">
-                <a href="/syllabus" class="btn btn--primary">View Full Masterclass Syllabus</a>
-            </div>
-        </div>
         </section>
 
         <!-- Command Line Utilities Reference -->
         <section id="cli-tools">
             <div class="section-header">
                 <h2 class="section-header__title">Kernel command line toolkit</h2>
-                <span class="badge badge--info">CLI console</span>
+                <span class="badge badge--topology">CLI console</span>
             </div>
 
             <div class="command-terminal">

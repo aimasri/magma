@@ -18,11 +18,13 @@
 @layer components {
     .syllabus-hero {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         padding-top: var(--space-xl);
         padding-bottom: var(--space-xl);
+        gap: var(--space-md);
     }
     
     .syllabus-hero__subtitle {
@@ -36,8 +38,6 @@
     }
     
     .syllabus-content {
-        max-width: 800px;
-        margin: 0 auto;
         font-size: 1.1rem;
         line-height: 1.7;
         color: var(--text-main);
@@ -52,7 +52,7 @@
         color: var(--brand-flame);
         margin-top: var(--space-2xl);
         margin-bottom: var(--space-lg);
-        border-bottom: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--bg-canvas); /* deep red line */
         padding-bottom: var(--space-sm);
     }
     
@@ -154,7 +154,7 @@
     /* Textbook Layout Update */
     .syllabus-layout {
         display: grid;
-        grid-template-columns: 300px 1fr;
+        grid-template-columns: 300px minmax(0, 1fr);
         gap: var(--space-2xl);
         align-items: start;
     }
@@ -265,12 +265,12 @@
         border-radius: var(--radius-lg);
         padding: var(--space-2xl);
         margin-bottom: 5rem; /* Increased spacing between cards */
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
     
     .chapter-module:target {
         border-color: var(--brand-flame);
-        box-shadow: 0 0 0 1px var(--brand-flame), 0 10px 25px rgba(0,0,0,0.3);
+        box-shadow: 0 0 0 1px var(--brand-flame), 0 8px 24px rgba(0, 0, 0, 0.08);
     }
     
     .syllabus-content .chapter-title {
