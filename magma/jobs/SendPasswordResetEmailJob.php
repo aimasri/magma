@@ -21,10 +21,12 @@ use Magma\mail\PasswordResetEmail;
 class SendPasswordResetEmailJob implements JobInterface
 {
     private MailerService $mailerService;
+    private \Magma\queue\IdempotentProjectionGuard $guard;
 
-    public function __construct(MailerService $mailerService)
+    public function __construct(MailerService $mailerService, \Magma\queue\IdempotentProjectionGuard $guard)
     {
         $this->mailerService = $mailerService;
+        $this->guard = $guard;
     }
 
     /**
@@ -46,14 +48,17 @@ class SendPasswordResetEmailJob implements JobInterface
         $resetLink = is_scalar($payload['reset_link'] ?? null) ? (string)$payload['reset_link'] : '';
         $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
 
-        $mailable = new PasswordResetEmail(
-            $toName,
-            $resetLink
-        );
-        
-        $this->mailerService->sendMailable(
-            $toEmail,
-            $mailable
-        );
+        // The reset link is unique per password reset attempt, so it makes a perfect idempotency key
+        $this->guard->guard('email_password_reset', md5($resetLink), function () use ($toName, $resetLink, $toEmail) {
+            $mailable = new PasswordResetEmail(
+                $toName,
+                $resetLink
+            );
+            
+            $this->mailerService->sendMailable(
+                $toEmail,
+                $mailable
+            );
+        });
     }
 }
