@@ -52,6 +52,10 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         $stmt = $this->getDb()->prepare("SELECT password_changed_at FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $val = $stmt->fetchColumn();
-        return $val ? strtotime((string)$val) : null;
+        if (!$val) {
+            return null;
+        }
+        $time = strtotime((string)$val);
+        return $time !== false ? $time : null;
     }
 }
