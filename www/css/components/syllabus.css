@@ -58,7 +58,7 @@
     
     .syllabus-content h3 {
         font-size: 1.5rem;
-        color: #ffdbbb;
+        color: var(--brand-flame);
         margin-top: var(--space-xl);
         margin-bottom: var(--space-md);
     }
@@ -127,7 +127,7 @@
     .syllabus-content code {
         font-family: var(--font-mono);
         font-size: 0.9em;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: var(--bg-code);
         padding: 2px 4px;
         border-radius: var(--radius-sm);
     }
@@ -211,7 +211,7 @@
     
     .syllabus-toc h3 {
         font-size: 1.2rem;
-        color: #ffdbbb;
+        color: var(--brand-flame);
         margin-bottom: var(--space-md);
         margin-top: 0;
         text-transform: uppercase;
@@ -250,7 +250,7 @@
     }
     
     .toc-num {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: var(--bg-code);
         color: var(--text-main);
         font-weight: 700;
         font-size: 0.75rem;
@@ -287,7 +287,7 @@
     #table-of-contents + .syllabus-list { display: none; }
     
     .syllabus-quote {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: rgba(0, 0, 0, 0.03);
         border-left: 4px solid var(--brand-flame);
         margin: var(--space-lg) 0;
         padding: var(--space-md) var(--space-lg);
