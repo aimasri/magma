@@ -52,7 +52,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
             /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantQuery */
             $tenantQuery = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
-            return $tenantQuery->getTenantById($tenantId);
+            return $tenantQuery->find($tenantId);
         } catch (\Throwable $e) {
             return null;
         }
