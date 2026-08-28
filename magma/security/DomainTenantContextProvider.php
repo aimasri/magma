@@ -41,7 +41,7 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
     public function resolveTenantId(RequestInterface $request): ?int
     {
         $host = $request->server('HTTP_HOST');
-        if (empty($host)) {
+        if (empty($host) || !is_scalar($host)) {
             return null;
         }
 
