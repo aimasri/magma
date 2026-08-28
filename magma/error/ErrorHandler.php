@@ -73,14 +73,20 @@ class ErrorHandler implements ErrorHandlerInterface
     public function renderError(int $code, string $message, ?string $trace = null): Response
     {
         $theme = null;
-        if ($this->container && $this->container->has(\Magma\security\TenantContext::class)) {
+        $container = $this->container;
+        if ($container !== null && method_exists($container, 'has') && $container->has(\Magma\security\TenantContext::class)) {
             try {
-                $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+                /** @var \Magma\security\TenantContext $tenantContext */
+                $tenantContext = $container->get(\Magma\security\TenantContext::class);
                 if ($tenantContext->hasTenantId()) {
-                    $tenantRepo = $this->container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
-                    $tenant = $tenantRepo->find($tenantContext->getTenantId());
-                    if ($tenant) {
-                        $theme = $tenant->theme_settings;
+                    /** @var \Magma\interfaces\cqrs\TenantQueryInterface $tenantRepo */
+                    $tenantRepo = $container->get(\Magma\interfaces\cqrs\TenantQueryInterface::class);
+                    $tenantId = $tenantContext->getTenantId();
+                    if ($tenantId !== null) {
+                        $tenant = $tenantRepo->find($tenantId);
+                        if ($tenant) {
+                            $theme = $tenant->theme_settings;
+                        }
                     }
                 }
             } catch (\Throwable $e) {
