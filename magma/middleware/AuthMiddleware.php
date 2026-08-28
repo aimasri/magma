@@ -58,14 +58,14 @@ class AuthMiddleware implements MiddlewareInterface
     {
         $user = $this->session->get('user');
         
-        if (!$user) {
+        if (!is_array($user)) {
             return $this->handleUnauthorized($request);
         }
         
         $loginTime = $this->session->get('login_time');
         $userId = $user['id'] ?? null;
         
-        if ($userId && $loginTime) {
+        if (is_numeric($userId) && is_numeric($loginTime)) {
             $passwordChangedAt = $this->userRepository->getPasswordChangedAt((int) $userId);
             if ($passwordChangedAt && $passwordChangedAt > $loginTime) {
                 $this->session->destroy();

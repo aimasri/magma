@@ -103,7 +103,8 @@ class DomainServiceProvider implements ServiceProviderInterface
                 $c->get(UserQueryInterface::class),
                 $c->get(UserCommandInterface::class),
                 $c->get(Session::class),
-                $c->get(RememberMeService::class)
+                $c->get(RememberMeService::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 

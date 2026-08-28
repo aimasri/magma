@@ -162,11 +162,15 @@ class LocalStorageService implements StorageInterface
         $file->moveTo($tmpPath);
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo === false) {
+            unlink($tmpPath);
+            throw new RuntimeException("Could not initialize finfo.");
+        }
         $mime = finfo_file($finfo, $tmpPath);
         finfo_close($finfo);
 
         $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'text/csv'];
-        if (!in_array($mime, $allowedMimes, true)) {
+        if ($mime === false || !in_array($mime, $allowedMimes, true)) {
             unlink($tmpPath);
             throw new RuntimeException("Invalid file content payload. MIME type blocked: {$mime}");
         }
