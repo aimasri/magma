@@ -44,7 +44,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         try {
             /** @var \Magma\security\TenantContext $tenantContext */
             $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
-            $tenantId = $tenantContext->getTenantId();
+            $tenantId = $tenantContext->hasTenantId() ? $tenantContext->getTenantId() : null;
 
             if ($tenantId === null && $request !== null) {
                 $domainProvider = $this->container->get(\Magma\security\DomainTenantContextProvider::class);
