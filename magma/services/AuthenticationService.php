@@ -88,6 +88,8 @@ class AuthenticationService
      * Execution Flow:
      * 1. Forwards the request to the PersistentAuthenticationService.
      * 2. Returns the generated short-lived token and its expiry.
+     * 
+     * @return array{token: string, expiry: int}
      */
     public function issueSsoToken(int $userId): array
     {
