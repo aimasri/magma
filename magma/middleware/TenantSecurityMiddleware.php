@@ -125,7 +125,9 @@ class TenantSecurityMiddleware implements MiddlewareInterface
                 $userTenantId = (int)$user->getTenantId();
                 if ($userTenantId !== $this->tenantContext->getTenantId()) {
                     if ($this->provider !== null && method_exists($this->provider, 'resolveDomainByTenantId')) {
-                        $correctDomain = $this->provider->resolveDomainByTenantId($userTenantId);
+                        $currentHost = $request->server('HTTP_HOST');
+                        $currentHostString = is_string($currentHost) ? $currentHost : null;
+                        $correctDomain = $this->provider->resolveDomainByTenantId($userTenantId, $currentHostString);
                         if ($correctDomain !== null) {
                             $ssoData = $this->authService->issueSsoToken($user->getId());
                             $this->authService->logout();

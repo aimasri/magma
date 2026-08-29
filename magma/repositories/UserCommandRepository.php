@@ -10,6 +10,9 @@ use Magma\interfaces\cqrs\UserCommandInterface;
 use Magma\models\AbstractCommandRepository;
 use Magma\domain\UserRegistration;
 use Magma\domain\exceptions\DuplicateResourceException;
+use Magma\contracts\ClockInterface;
+use Magma\database\DatabaseConnectionManager;
+use Magma\security\TenantContext;
 
 /**
  * Title: User Command Repository (CQRS Write Model)
@@ -27,6 +30,13 @@ use Magma\domain\exceptions\DuplicateResourceException;
  */
 class UserCommandRepository extends AbstractCommandRepository implements UserCommandInterface
 {
+    protected ClockInterface $clock;
+
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext, ClockInterface $clock)
+    {
+        parent::__construct($dbManager, $tenantContext);
+        $this->clock = $clock;
+    }
     /**
      * Creates a new user record from a UserRegistration domain entity.
      *
@@ -69,9 +79,9 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
     {
         $changedAtStr = $changedAt ? $changedAt->format('Y-m-d H:i:s') : null;
         
-        $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = NOW() WHERE \"id\" = ?";
+        $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = ? WHERE \"id\" = ?";
         $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute([$hashedPassword, $changedAtStr, $userId]);
+        $stmt->execute([$hashedPassword, $changedAtStr, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
     }
 
     /**
@@ -83,8 +93,8 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function updateRole(int $userId, string $role): bool
     {
-        $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = NOW() WHERE \"id\" = ?");
-        $stmt->execute([$role, $userId]);
+        $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = ? WHERE \"id\" = ?");
+        $stmt->execute([$role, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
         return $stmt->rowCount() > 0;
     }
 
@@ -110,7 +120,7 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
                 SET \"name\" = EXCLUDED.\"name\", 
                     \"password\" = EXCLUDED.\"password\", 
                     \"role\" = EXCLUDED.\"role\", 
-                    \"updated_at\" = NOW() 
+                    \"updated_at\" = :now 
                 RETURNING \"id\"";
                 
         $stmt = $this->getDb()->prepare($sql);
@@ -119,6 +129,7 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
             'email' => $email,
             'password' => $hashedPassword,
             'role' => $role,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
         
         return (int) $stmt->fetchColumn();

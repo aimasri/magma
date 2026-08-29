@@ -4,6 +4,9 @@ namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
 use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
+use Magma\contracts\ClockInterface;
+use Magma\database\DatabaseConnectionManager;
+use Magma\security\TenantContext;
 
 /**
  * Title: Remember Token Repository
@@ -19,7 +22,13 @@ use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
  */
 class RememberTokenRepository extends AbstractCommandRepository implements RememberTokenRepositoryInterface
 {
+    protected ClockInterface $clock;
 
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext, ClockInterface $clock)
+    {
+        parent::__construct($dbManager, $tenantContext);
+        $this->clock = $clock;
+    }
 
     /**
      * Saves a new "remember me" session token into the database.
@@ -56,9 +65,9 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
         $stmt = $this->getDb()->prepare("
             SELECT user_id, token_hash as hashed_validator 
             FROM user_tokens 
-            WHERE selector = ? AND type = 'remember_me' AND expires_at > NOW()
+            WHERE selector = ? AND type = 'remember_me' AND expires_at > ?
         ");
-        $stmt->execute([$selector]);
+        $stmt->execute([$selector, $this->clock->now()->format('Y-m-d H:i:s')]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return is_array($result) ? $result : null;
     }
@@ -97,8 +106,8 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function deleteExpiredTokens(): int
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < NOW() AND type = 'remember_me'");
-        $stmt->execute();
+        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'remember_me'");
+        $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
         return $stmt->rowCount();
     }
 
