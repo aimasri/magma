@@ -76,7 +76,13 @@ class SessionAuthenticationService
     {
         $userData = $this->session->get('user');
         if (is_array($userData)) {
-            return new AuthUser($userData);
+            $cleanData = [];
+            foreach ($userData as $k => $v) {
+                if (is_string($k)) {
+                    $cleanData[$k] = $v;
+                }
+            }
+            return new AuthUser($cleanData);
         }
         return null;
     }

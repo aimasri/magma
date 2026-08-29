@@ -214,7 +214,7 @@ class Session implements SessionInterface
             if (ini_get("session.use_cookies")) {
                 $params = session_get_cookie_params();
                 $sessionName = session_name();
-                if (is_string($sessionName) && $sessionName !== '') {
+                if (is_string($sessionName)) {
                     setcookie(
                         $sessionName,
                         '',

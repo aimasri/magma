@@ -121,10 +121,10 @@ class TenantSecurityMiddleware implements MiddlewareInterface
         // Cross-domain mismatch check & SSO redirect
         if ($this->tenantContext->hasTenantId() && $this->authService !== null) {
             $user = $this->authService->getAuthenticatedUser();
-            if ($user !== null && method_exists($user, 'hasTenantId') && $user->hasTenantId()) {
+            if ($user !== null && $user->hasTenantId()) {
                 $userTenantId = (int)$user->getTenantId();
                 if ($userTenantId !== $this->tenantContext->getTenantId()) {
-                    if ($this->provider !== null && method_exists($this->provider, 'resolveDomainByTenantId')) {
+                    if ($this->provider !== null) {
                         $currentHost = $request->server('HTTP_HOST');
                         $currentHostString = is_string($currentHost) ? $currentHost : null;
                         $correctDomain = $this->provider->resolveDomainByTenantId($userTenantId, $currentHostString);
@@ -156,9 +156,9 @@ class TenantSecurityMiddleware implements MiddlewareInterface
         if (!$this->tenantContext->hasTenantId() && $this->authService !== null) {
             $user = $this->authService->getAuthenticatedUser();
             if ($user !== null) {
-                if (method_exists($user, 'getTenantId') && $user->getTenantId() !== null) {
+                if ($user->getTenantId() !== null) {
                     $this->tenantContext->setTenantId((int)$user->getTenantId());
-                } elseif (method_exists($user, 'getTenantId') && $user->hasTenantId()) {
+                } elseif ($user->hasTenantId()) {
                     $this->tenantContext->setTenantId((int)$user->getTenantId());
                 }
 

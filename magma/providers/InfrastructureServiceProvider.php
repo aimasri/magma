@@ -100,8 +100,10 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                 }
 
                 $password = Config::get('REDIS_PASSWORD');
-                if ($password !== null && (is_string($password) || is_array($password))) {
+                if (is_string($password)) {
                     $redis->auth($password);
+                } elseif (is_array($password)) {
+                    $redis->auth(array_map(fn($v) => is_scalar($v) ? (string)$v : '', array_values($password)));
                 }
 
                 $db = Config::get('REDIS_DB');

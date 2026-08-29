@@ -99,7 +99,7 @@ class Psr15Adapter implements MiddlewareInterface
             
             $flattenedHeaders = [];
             foreach ($headers as $name => $values) {
-                $flattenedHeaders[$name] = is_array($values) ? implode(', ', $values) : (string) $values;
+                $flattenedHeaders[$name] = is_array($values) ? implode(', ', array_map(fn($v) => is_scalar($v) ? (string)$v : '', $values)) : (string) $values;
             }
 
             return new Response($body, $statusCode, $flattenedHeaders);

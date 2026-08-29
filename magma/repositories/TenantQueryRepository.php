@@ -85,7 +85,13 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             if (is_array($row)) {
-                yield $this->mapper->toDomain($row);
+                $cleanRow = [];
+                foreach ($row as $k => $v) {
+                    if (is_string($k)) {
+                        $cleanRow[$k] = $v;
+                    }
+                }
+                yield $this->mapper->toDomain($cleanRow);
             }
         }
     }
@@ -103,10 +109,8 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
      */
     public function find(int $id): ?TenantDTO
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM tenants WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-        $tenant = $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
-        return is_array($tenant) ? $this->mapper->toDomain($tenant) : null;
+        $tenant = $this->fetchOne("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM tenants WHERE id = :id", ['id' => $id]);
+        return $tenant ? $this->mapper->toDomain($tenant) : null;
     }
 
     /**

@@ -31,11 +31,8 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function findByEmail(string $email): ?AuthUser
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, tenant_id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        
-        return is_array($row) ? new AuthUser($row) : null;
+        $row = $this->fetchOne("SELECT id, name, email, role, tenant_id FROM users WHERE email = ?", [$email]);
+        return $row ? new AuthUser($row) : null;
     }
 
     /**
@@ -56,7 +53,16 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         $stmt = $this->getDb()->prepare("SELECT id, name, email, role, password, tenant_id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return is_array($result) ? $result : null;
+        if (is_array($result)) {
+            $row = [];
+            foreach ($result as $k => $v) {
+                if (is_string($k)) {
+                    $row[$k] = $v;
+                }
+            }
+            return $row;
+        }
+        return null;
     }
 
     /**
@@ -72,11 +78,8 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function findById(int $id): ?AuthUser
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, tenant_id FROM users WHERE id = ?");
-        $stmt->execute([$id]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        
-        return is_array($row) ? new AuthUser($row) : null;
+        $row = $this->fetchOne("SELECT id, name, email, role, tenant_id FROM users WHERE id = ?", [$id]);
+        return $row ? new AuthUser($row) : null;
     }
 
     /**

@@ -80,7 +80,13 @@ class LoginController
 
         $sessionUser = $this->session->get('user');
         if (is_array($sessionUser)) {
-            $authUser = new \Magma\domain\AuthUser($sessionUser);
+            $userData = [];
+            foreach ($sessionUser as $k => $v) {
+                if (is_string($k)) {
+                    $userData[$k] = $v;
+                }
+            }
+            $authUser = new \Magma\domain\AuthUser($userData);
             return $this->redirectToDashboard($authUser);
         }
 

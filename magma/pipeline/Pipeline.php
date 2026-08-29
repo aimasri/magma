@@ -163,13 +163,11 @@ class Pipeline
                     return $pipe($passable, $next);
                 }
 
-                if (is_object($pipe)) {
-                    if (method_exists($pipe, $this->method)) {
-                        return $pipe->{$this->method}($passable, $next);
-                    }
-                    if (method_exists($pipe, 'handle')) {
-                        return $pipe->handle($passable, $next);
-                    }
+                if (method_exists($pipe, $this->method)) {
+                    return $pipe->{$this->method}($passable, $next);
+                }
+                if (method_exists($pipe, 'handle')) {
+                    return $pipe->handle($passable, $next);
                 }
 
                 $type = get_class($pipe);

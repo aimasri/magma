@@ -100,6 +100,10 @@ class Route implements \JsonSerializable
         if (!is_array($handler) && !is_callable($handler) && !is_string($handler)) {
             $handler = [];
         }
+        
+        if (is_array($handler)) {
+            $handler = array_map(fn($v) => is_scalar($v) ? (string)$v : '', array_values($handler));
+        }
 
         return new self(
             method: is_string($state['method'] ?? null) ? $state['method'] : 'GET',

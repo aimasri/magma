@@ -66,6 +66,7 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
 
         if (is_array($user)) {
             $lastActivity = $this->session->get('last_activity');
+            $lastActivity = is_numeric($lastActivity) ? (int)$lastActivity : null;
             $currentTime = time();
             
             $allowedTimeout = $this->standardTimeout;

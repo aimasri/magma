@@ -317,10 +317,10 @@ class Container
      * @param \ReflectionParameter[] $parameters
      * @param string $class
      * @param array<int|string, mixed> $args
-     * @param array<int, array{class?: string, default?: mixed}>|null $cacheEntry
+     * @param array<int, array{class?: string, default?: mixed}> &$cacheEntry
      * @return array<int, mixed>
      */
-    private function buildDependencies(array $parameters, string $class, array $args = [], ?array &$cacheEntry = null): array
+    private function buildDependencies(array $parameters, string $class, array $args = [], array &$cacheEntry = []): array
     {
         $dependencies = [];
         foreach ($parameters as $parameter) {
@@ -335,15 +335,11 @@ class Container
             } elseif ($type instanceof ReflectionNamedType && !$type->isBuiltin() && $this->has($type->getName())) {
                 $typeName = $type->getName();
                 $dependencies[] = $this->get($typeName);
-                if ($cacheEntry !== null) {
-                    $cacheEntry[] = ['class' => $typeName];
-                }
+                $cacheEntry[] = ['class' => $typeName];
             } elseif ($parameter->isDefaultValueAvailable()) {
                 $val = $parameter->getDefaultValue();
                 $dependencies[] = $val;
-                if ($cacheEntry !== null) {
-                    $cacheEntry[] = ['default' => $val];
-                }
+                $cacheEntry[] = ['default' => $val];
             } else {
                 throw new RuntimeException("Cannot resolve constructor parameter [{$paramName}] for class [{$class}].");
             }

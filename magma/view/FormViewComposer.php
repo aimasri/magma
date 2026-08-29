@@ -325,13 +325,12 @@ class FormViewComposer
             return !empty($entity['id']);
         }
 
-        if (is_object($entity)) {
-            if (method_exists($entity, 'getId')) {
-                return !empty($entity->getId());
-            }
-            if (isset($entity->id)) {
-                return !empty($entity->id);
-            }
+        // Guaranteed to be object at this point
+        if (method_exists($entity, 'getId')) {
+            return !empty($entity->getId());
+        }
+        if (isset($entity->id)) {
+            return !empty($entity->id);
         }
 
         return true;

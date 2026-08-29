@@ -83,7 +83,7 @@ class RedisQueue implements QueueInterface
         $result = $this->redis->blpop([$this->prefix . $queue], $timeout);
         
         // blpop returns an array: [0 => list_name, 1 => payload] or empty array on timeout/failure
-        if (is_array($result) && isset($result[1])) {
+        if (is_array($result) && isset($result[1]) && is_scalar($result[1])) {
             return (string) $result[1];
         }
 

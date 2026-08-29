@@ -132,7 +132,13 @@ class AssetVersionManager
             if ($content !== false) {
                 $decoded = json_decode($content, true);
                 if (is_array($decoded)) {
-                    $this->manifest = $decoded;
+                    $typedManifest = [];
+                    foreach ($decoded as $key => $value) {
+                        if (is_string($key) && (is_string($value) || is_array($value))) {
+                            $typedManifest[$key] = $value;
+                        }
+                    }
+                    $this->manifest = $typedManifest;
                 }
             }
         }

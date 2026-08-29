@@ -49,7 +49,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
             $configDirectives = array_map('trim', explode(';', $configDirectives));
         }
 
-        $this->cspDirectives = $customDirectives ?? (is_array($configDirectives) ? $configDirectives : $defaultCsp);
+        $this->cspDirectives = $customDirectives ?? (is_array($configDirectives) ? array_map(fn($v) => is_scalar($v) ? (string)$v : '', array_values($configDirectives)) : $defaultCsp);
     }
 
     /**

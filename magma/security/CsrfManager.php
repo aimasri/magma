@@ -59,7 +59,8 @@ class CsrfManager
             return $token;
         }
 
-        return (string)end($tokens);
+        $last = end($tokens);
+        return is_scalar($last) ? (string)$last : '';
     }
 
     /**

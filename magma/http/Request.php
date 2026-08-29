@@ -439,7 +439,7 @@ class Request implements RequestInterface
         $isTrustedProxy = false;
         if (is_array($trustedProxies)) {
             foreach ($trustedProxies as $proxy) {
-                if (str_starts_with($remoteAddr, trim((string)$proxy))) {
+                if (is_string($proxy) && str_starts_with($remoteAddr, trim($proxy))) {
                     $isTrustedProxy = true;
                     break;
                 }

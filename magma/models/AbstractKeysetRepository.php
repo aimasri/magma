@@ -76,7 +76,7 @@ abstract class AbstractKeysetRepository extends AbstractQueryRepository
             if (is_int($clause)) {
                 // Raw SQL clause with no parameters
                 $builder->where(is_scalar($paramValue) ? (string) $paramValue : '');
-            } elseif (is_string($clause) && !str_contains($clause, ' ')) {
+            } elseif (!str_contains((string)$clause, ' ')) {
                 // Simple 'column' => value equality condition
                 $paramKey = ':cond_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $clause);
                 $colRef = ($tableAlias ? "\"{$tableAlias}\"." : '') . "\"{$clause}\"";

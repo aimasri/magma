@@ -114,6 +114,21 @@ class QueueWorkerDaemon
 
         if (is_string($handlerClass) && class_exists($handlerClass)) {
             $this->logger->info("Received job: " . $handlerClass);
+            
+            $rawPayload = $job[\Magma\queue\JobInterface::PAYLOAD_KEY] ?? [];
+            $payload = [];
+            if (is_array($rawPayload)) {
+                foreach ($rawPayload as $k => $v) {
+                    if (is_string($k)) {
+                        $payload[$k] = $v;
+                    }
+                }
+            }
+            
+            $attemptsVal = $payload['attempts'] ?? 0;
+            $attempts = is_numeric($attemptsVal) ? (int)$attemptsVal : 0;
+            $payload['attempts'] = $attempts + 1;
+
             try {
                 if (function_exists('pcntl_alarm') && function_exists('pcntl_signal')) {
                     pcntl_signal(SIGALRM, function () {
@@ -127,14 +142,6 @@ class QueueWorkerDaemon
                 if (!$handler instanceof \Magma\queue\JobInterface) {
                     throw new \RuntimeException("Job handler does not implement JobInterface");
                 }
-
-                $payload = $job[\Magma\queue\JobInterface::PAYLOAD_KEY] ?? [];
-                if (!is_array($payload)) {
-                    $payload = [];
-                }
-                
-                $attempts = $payload['attempts'] ?? 0;
-                $payload['attempts'] = $attempts + 1;
 
                 $handler->handle($payload);
                 $this->logger->info("Successfully processed job.");

@@ -159,7 +159,7 @@ class ImageProcessingService
      */
     private function createTrueColorCanvas(int $width, int $height): GdImage
     {
-        $dstImage = imagecreatetruecolor($width, $height);
+        $dstImage = imagecreatetruecolor(max(1, $width), max(1, $height));
         if ($dstImage === false) {
             throw new RuntimeException("Failed to create destination GD truecolor image canvas.");
         }

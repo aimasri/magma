@@ -38,6 +38,8 @@ trait BulkInsertTrait
      * Logic behind the logic:
      * - Uses dynamic chunking to avoid exceeding the maximum number of bound parameters allowed by PDO in a single query.
      * - Managing transactions ensures partial inserts are rolled back, maintaining database integrity.
+     * @param array<int, string> $columns
+     * @param array<int, array<int|string, mixed>> $rows
      */
     public function insertBulk(string $table, array $columns, array $rows, int $chunkSize = 500): void
     {
@@ -49,14 +51,17 @@ trait BulkInsertTrait
 
         $txManager->transactional(function () use ($table, $columns, $rows, $chunkSize) {
             $colCount = count($columns);
-            $escapedColumns = array_map(fn($col) => '"' . str_replace('"', '""', $col) . '"', $columns);
+            $escapedColumns = array_map(fn($col) => '"' . str_replace('"', '""', (string)$col) . '"', $columns);
             $columnList = implode(', ', $escapedColumns);
             $escapedTable = '"' . str_replace('"', '""', $table) . '"';
 
-            $dbWrite = $this->getDb(); // Assuming command repository has getDb() representing dbWrite
+            $dbWrite = method_exists($this, 'getDb') ? $this->getDb() : null; // Assuming command repository has getDb() representing dbWrite
+            if ($dbWrite === null) {
+                throw new \RuntimeException("Trait requires getDb() method on host class.");
+            }
             
-            $maxAllowedChunk = (int) floor(65000 / $colCount);
-            $safeChunkSize = min($chunkSize, $maxAllowedChunk);
+            $maxAllowedChunk = (int) floor(65000 / max(1, $colCount));
+            $safeChunkSize = max(1, min($chunkSize, $maxAllowedChunk));
             
             $chunks = array_chunk($rows, $safeChunkSize);
             
@@ -79,4 +84,11 @@ trait BulkInsertTrait
             }
         });
     }
+}
+
+/**
+ * @internal This class exists solely to ensure PHPStan analyzes the trait.
+ */
+abstract class __BulkInsertTrait_Analyzer_Dummy {
+    use BulkInsertTrait;
 }
