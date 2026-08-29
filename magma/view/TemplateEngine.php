@@ -48,6 +48,12 @@ class TemplateEngine
     /** @var array<string, string> Cache for resolved layout paths. */
     private array $resolvedLayoutCache = [];
 
+    /** @var array<string, string> Holds pushed stack content. */
+    private array $stacks = [];
+
+    /** @var array<int, string> Tracks nested push operations. */
+    private array $activeStacks = [];
+
     /**
      * Initializes the template engine with directory paths and optional view loader.
      *
@@ -384,6 +390,47 @@ class TemplateEngine
             }
             throw $e;
         }
+    }
+
+    /**
+     * Starts output buffering for a named stack, allowing child views to push content (like CSS/JS) to a layout.
+     *
+     * @param string $name Stack identifier.
+     */
+    public function push(string $name): void
+    {
+        $this->activeStacks[] = $name;
+        ob_start();
+    }
+
+    /**
+     * Ends the current stack push and stores the buffered content.
+     */
+    public function endPush(): void
+    {
+        $name = array_pop($this->activeStacks);
+        if ($name === null) {
+            throw new \RuntimeException("Cannot endPush without an active push.");
+        }
+
+        $content = ob_get_clean();
+
+        if (!isset($this->stacks[$name])) {
+            $this->stacks[$name] = '';
+        }
+
+        $this->stacks[$name] .= $content;
+    }
+
+    /**
+     * Retrieves the concatenated string content for a specific stack.
+     *
+     * @param string $name Stack identifier.
+     * @return string The stack content, or an empty string if nothing was pushed.
+     */
+    public function stack(string $name): string
+    {
+        return $this->stacks[$name] ?? '';
     }
 
     /**
