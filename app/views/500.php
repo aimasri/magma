@@ -15,7 +15,7 @@
  * @var int|null $code HTTP status code (500).
  * @var string|null $trace Exception stack trace (only if $debug is true).
  * @var bool|null $debug Whether debug diagnostics are active.
- * @var array{theme?: array<string, string|null>, tenant?: object|null} $data View data variables, including theme configuration.
+ * @var array{theme?: array<string, string|null>, tenant?: \Magma\dto\TenantDTO|null} $data View data variables, including theme configuration.
  */
 $errorCode = $code ?? 500;
 $errorMessage = $message ?? 'An unexpected system error occurred. Please try again later.';
@@ -30,7 +30,7 @@ $borderCard = $data['theme']['border_card'] ?? '#e2e8f0';
 $colorPrimary = $data['theme']['primary'] ?? '#622E00';
 
 $tenant = $data['tenant'] ?? null;
-$appName = $tenant?->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+$appName = $tenant->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
 $logoPath = $data['theme']['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: '');
 $logoBgColor = $data['theme']['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
 

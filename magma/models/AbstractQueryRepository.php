@@ -88,7 +88,16 @@ abstract class AbstractQueryRepository
     {
         $stmt = $this->executeQuery($sql, $params);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return is_array($result) ? $result : null;
+        if (is_array($result)) {
+            $row = [];
+            foreach ($result as $k => $v) {
+                if (is_string($k)) {
+                    $row[$k] = $v;
+                }
+            }
+            return $row;
+        }
+        return null;
     }
 
     /**

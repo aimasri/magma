@@ -58,8 +58,10 @@ class RateLimitMiddleware implements MiddlewareInterface
     public function process(Request $request, callable $next): Response
     {
         // Extract IP address; falling back to a default string if unavailable
-        $ip = $request->server('REMOTE_ADDR') ?? '0.0.0.0';
-        $uri = $request->server('REQUEST_URI') ?? '/';
+        $remoteAddr = $request->server('REMOTE_ADDR');
+        $ip = is_scalar($remoteAddr) ? (string)$remoteAddr : '0.0.0.0';
+        $requestUri = $request->server('REQUEST_URI');
+        $uri = is_scalar($requestUri) ? (string)$requestUri : '/';
         $key = $ip . ':' . $uri;
 
         // Record the attempt atomically FIRST to close the race window

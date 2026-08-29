@@ -166,7 +166,7 @@ class RouteDefinition
     {
         if (is_array($param)) {
             $this->parameters = array_merge($this->parameters, $param);
-        } elseif ($regex !== null && is_string($param)) {
+        } elseif ($regex !== null) {
             $this->parameters[$param] = $regex;
         }
         return $this;

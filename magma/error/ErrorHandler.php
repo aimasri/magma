@@ -86,7 +86,7 @@ class ErrorHandler implements ErrorHandlerInterface
         $theme = null;
         $tenantObj = null;
         $container = $this->container;
-        if ($container !== null && method_exists($container, 'has') && $container->has(\Magma\security\TenantContext::class)) {
+        if ($container !== null && $container->has(\Magma\security\TenantContext::class)) {
             try {
                 /** @var \Magma\security\TenantContext $tenantContext */
                 $tenantContext = $container->get(\Magma\security\TenantContext::class);
@@ -161,7 +161,7 @@ class ErrorHandler implements ErrorHandlerInterface
 
         if ($this->debug) {
             $routes = [];
-            if ($e instanceof \Magma\routing\RouteNotFoundException && method_exists($e, 'getAvailableRoutes')) {
+            if ($e instanceof \Magma\routing\RouteNotFoundException) {
                 $routes = $e->getAvailableRoutes();
             }
             return $this->debugPresenter->presentNotFound($request, $routes, $e);
@@ -220,7 +220,7 @@ class ErrorHandler implements ErrorHandlerInterface
 
         // Extract Tenant ID for log correlation
         $tenantId = null;
-        if ($this->container !== null && method_exists($this->container, 'has') && $this->container->has(\Magma\security\TenantContext::class)) {
+        if ($this->container !== null && $this->container->has(\Magma\security\TenantContext::class)) {
             try {
                 /** @var \Magma\security\TenantContext $tenantContext */
                 $tenantContext = $this->container->get(\Magma\security\TenantContext::class);

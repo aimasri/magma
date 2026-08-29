@@ -32,9 +32,9 @@ trait InterpretsEventPayload
      * - The fallback mechanism ensures resilience and broad compatibility with simple DTO-style events 
      *   that may not strictly implement a formal Event interface.
      *
-     * @param object|array $event The incoming event (either an object from the synchronous 
+     * @param object|array<string|int, mixed> $event The incoming event (either an object from the synchronous 
      *                            dispatcher, or a raw array from a queue worker).
-     * @return array The normalized payload data.
+     * @return array<string|int, mixed> The normalized payload data.
      */
     protected function extractPayload(object|array $event): array
     {
@@ -50,4 +50,11 @@ trait InterpretsEventPayload
         // Otherwise, extract public properties as a fallback
         return get_object_vars($event);
     }
+}
+
+/**
+ * @internal This class exists solely to ensure PHPStan analyzes the trait.
+ */
+class __InterpretsEventPayload_Analyzer_Dummy {
+    use InterpretsEventPayload;
 }

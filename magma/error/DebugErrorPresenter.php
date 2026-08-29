@@ -415,8 +415,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             $middlewareList = [];
             foreach ((array)$rawMiddleware as $m) {
                 if (is_array($m)) {
-                    $mClass = is_string($m[0] ?? '') ? basename(str_replace('\\', '/', $m[0])) : 'Middleware';
-                    $mArgs = isset($m[1]) && is_array($m[1]) ? implode('|', $m[1]) : (string)($m[1] ?? '');
+                    $mClass = is_scalar($m[0] ?? '') ? basename(str_replace('\\', '/', (string)($m[0] ?? ''))) : 'Middleware';
+                    $mArgs = isset($m[1]) && is_array($m[1]) ? implode('|', array_map(fn($v) => is_scalar($v) ? (string)$v : '', $m[1])) : (is_scalar($m[1] ?? '') ? (string)($m[1] ?? '') : '');
                     $middlewareList[] = $mArgs ? "{$mClass}({$mArgs})" : $mClass;
                 } elseif (is_string($m)) {
                     $middlewareList[] = basename(str_replace('\\', '/', $m));
@@ -426,8 +426,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
             $handlerStr = '';
             if (is_array($handler)) {
-                $class = is_object($handler[0]) ? get_class($handler[0]) : (string)$handler[0];
-                $methodName = $handler[1] ?? 'index';
+                $class = is_object($handler[0]) ? get_class($handler[0]) : (is_scalar($handler[0] ?? '') ? (string)($handler[0] ?? '') : '');
+                $methodName = is_scalar($handler[1] ?? 'index') ? (string)($handler[1] ?? 'index') : 'index';
                 $handlerStr = "{$class}@{$methodName}";
             } elseif (is_string($handler)) {
                 $handlerStr = $handler;
@@ -436,10 +436,10 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
             }
 
             $formatted[] = [
-                'method'     => strtoupper($method),
-                'uri'        => $uri,
+                'method'     => is_scalar($method) ? strtoupper((string)$method) : 'UNKNOWN',
+                'uri'        => is_scalar($uri) ? (string)$uri : '/',
                 'handler'    => $handlerStr,
-                'name'       => (string)$name,
+                'name'       => is_scalar($name) ? (string)$name : '',
                 'middleware' => $middleware ?: 'None',
             ];
         }
@@ -462,14 +462,14 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $tenant = $data['activeTenant'] ?? null;
         
         // Default Magma Framework Branding
-        $appName = $tenant?->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
-        $logoPath = $tenant?->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
+        $appName = $tenant->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+        $logoPath = $tenant->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
-        $bgCanvas = $tenant?->theme_settings['diagnostic_bg_color'] ?? $tenant?->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
+        $bgCanvas = $tenant->theme_settings['diagnostic_bg_color'] ?? $tenant->theme_settings['primary_color'] ?? (getenv('APP_COLOR_BG_CANVAS') ?: '#380404');
         $colorBgCanvas = is_string($bgCanvas) ? $bgCanvas : '#380404';
         
-        $logoBg = $tenant?->theme_settings['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
+        $logoBg = $tenant->theme_settings['logo_bg_color'] ?? (getenv('APP_COLOR_LOGO_BG') ?: 'transparent');
         $colorLogoBg = is_string($logoBg) ? $logoBg : 'transparent';
         
         $colorCardBg = getenv('APP_COLOR_CARD_BG') ?: '#f4ead5';

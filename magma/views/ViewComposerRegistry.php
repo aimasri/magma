@@ -207,7 +207,7 @@ class ViewComposerRegistry
                 return is_array($result) ? array_merge($data, $result) : $data;
             }
 
-            if (is_string($composer) && class_exists($composer)) {
+            if (class_exists($composer)) {
                 $instance = new $composer();
                 if (method_exists($instance, 'compose')) {
                     $result = $instance->compose($data, $view);

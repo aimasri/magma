@@ -72,7 +72,16 @@ class RoutingServiceProvider implements ServiceProviderInterface
                 $routes = \Magma\routing\RouteDiscoveryEngine::discoverRoutes();
             }
 
-            return new RouteCollection(is_array($routes) ? $routes : []);
+            $validRoutes = [];
+            if (is_array($routes)) {
+                foreach ($routes as $r) {
+                    if ($r instanceof \Magma\routing\Route || $r instanceof \Magma\routing\RouteDefinition) {
+                        $validRoutes[] = $r;
+                    }
+                }
+            }
+
+            return new RouteCollection($validRoutes);
         });
 
         $container->set(RouterInterface::class, function (Container $c) {
