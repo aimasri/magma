@@ -49,9 +49,12 @@ class RoutingServiceProvider implements ServiceProviderInterface
 
         $container->set(RouteCollection::class, function () {
             $cacheFile = ROOT_DIR . '/magma/config/routes.cache.php';
-            $routesFile = ROOT_DIR . '/magma/config/routes.php';
 
-            $routes = file_exists($cacheFile) ? require $cacheFile : require $routesFile;
+            if (file_exists($cacheFile)) {
+                $routes = require $cacheFile;
+            } else {
+                $routes = \Magma\routing\RouteDiscoveryEngine::discoverRoutes();
+            }
 
             return new RouteCollection(is_array($routes) ? $routes : []);
         });

@@ -15,16 +15,11 @@
  * - This array-based configuration is highly cacheable. In production environments, this can be serialized 
  *   or compiled to avoid runtime overhead.
  */
-use App\controllers\HomeController;
-use Modules\Reviews\controllers\ReviewController;
 use Magma\controllers\PasswordResetRequestController;
 use Magma\controllers\PasswordResetCompletionController;
 use Magma\routing\RouteDefinition;
 
 return [
-    RouteDefinition::get('/', [HomeController::class, 'index']),
-    RouteDefinition::get('/syllabus', [HomeController::class, 'syllabus']),
-    RouteDefinition::post('/reviews', [ReviewController::class, 'submitReview']),
     RouteDefinition::get('/forgot-password', [PasswordResetRequestController::class, 'forgotPassword']),
     RouteDefinition::post('/forgot-password', [PasswordResetRequestController::class, 'sendResetLink']),
     RouteDefinition::get('/reset-password', [PasswordResetCompletionController::class, 'resetPasswordForm']),
