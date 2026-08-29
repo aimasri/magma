@@ -21,7 +21,18 @@ namespace Magma\mail;
 
 interface MailableInterface
 {
+    /**
+     * Retrieves the subject line for the email.
+     *
+     * @return string The email subject.
+     */
     public function getSubject(): string;
+
+    /**
+     * Retrieves the template identifier or path for the email body.
+     *
+     * @return string The view template path or identifier.
+     */
     public function getTemplate(): string;
 
     /**

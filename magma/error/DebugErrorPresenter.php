@@ -30,6 +30,12 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 {
     private ?\Magma\container\Container $container;
 
+    /**
+     * Initializes the Debug Error Presenter with an optional dependency container.
+     *
+     * Logic behind the logic:
+     * - Accepts a nullable Container to allow extreme early-boot error handling before the DI graph is even fully built.
+     */
     public function __construct(?\Magma\container\Container $container = null)
     {
         $this->container = $container;

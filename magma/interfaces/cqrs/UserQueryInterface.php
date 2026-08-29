@@ -20,14 +20,28 @@ namespace Magma\interfaces\cqrs;
  */
 interface UserQueryInterface extends \Magma\interfaces\cqrs\QueryInterface
 {
+    /**
+     * Finds a user by their email address, returning a domain entity.
+     *
+     * @param string $email
+     * @return \Magma\domain\AuthUser|null
+     */
     public function findByEmail(string $email): ?\Magma\domain\AuthUser;
     
     /**
+     * Retrieves raw user authentication data (including hashed passwords) for verification.
+     *
      * @param string $email
      * @return array<string, mixed>|null
      */
     public function findForAuth(string $email): ?array;
     
+    /**
+     * Finds a user by their unique ID, returning a domain entity.
+     *
+     * @param int $id
+     * @return \Magma\domain\AuthUser|null
+     */
     public function findById(int $id): ?\Magma\domain\AuthUser;
     
     /**

@@ -18,6 +18,13 @@ use PDO;
 trait BulkInsertTrait
 {
     /**
+     * Retrieves the transaction manager instance to wrap bulk inserts.
+     * 
+     * @return \Magma\database\TransactionManagerInterface
+     */
+    abstract protected function getTransactionManager(): \Magma\database\TransactionManagerInterface;
+
+    /**
      * Executes a single bulk INSERT statement.
      *
      * Execution Flow:
@@ -32,8 +39,6 @@ trait BulkInsertTrait
      * - Uses dynamic chunking to avoid exceeding the maximum number of bound parameters allowed by PDO in a single query.
      * - Managing transactions ensures partial inserts are rolled back, maintaining database integrity.
      */
-    abstract protected function getTransactionManager(): \Magma\database\TransactionManagerInterface;
-
     public function insertBulk(string $table, array $columns, array $rows, int $chunkSize = 500): void
     {
         if (empty($rows) || empty($columns)) {

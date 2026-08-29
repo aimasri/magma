@@ -20,5 +20,15 @@ use DateTimeImmutable;
  */
 interface ClockInterface
 {
+    /**
+     * Retrieves the current system time as an immutable DateTime object.
+     *
+     * Logic behind the logic:
+     * - Enforces immutability by returning a DateTimeImmutable instance. This prevents accidental
+     *   modification of the time object across different layers of the application, eliminating a
+     *   common source of subtle bugs.
+     *
+     * @return DateTimeImmutable
+     */
     public function now(): DateTimeImmutable;
 }

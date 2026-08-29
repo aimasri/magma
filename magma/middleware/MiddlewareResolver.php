@@ -23,6 +23,11 @@ class MiddlewareResolver
 {
     private Container $container;
 
+    /**
+     * Initializes the MiddlewareResolver.
+     *
+     * @param Container $container The dependency injection container used for instantiating middleware.
+     */
     public function __construct(Container $container)
     {
         $this->container = $container;

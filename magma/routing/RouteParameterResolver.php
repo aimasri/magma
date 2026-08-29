@@ -24,6 +24,11 @@ class RouteParameterResolver
     /** @var array<string, array<int, array{name: string, class: ?string, isBuiltin: bool, hasDefault: bool, default: mixed, allowsNull: bool}>> */
     private static array $reflectionCache = [];
 
+    /**
+     * Initializes the resolver with an optional dependency injection container.
+     *
+     * @param Container|null $container
+     */
     public function __construct(?Container $container = null)
     {
         $this->container = $container;

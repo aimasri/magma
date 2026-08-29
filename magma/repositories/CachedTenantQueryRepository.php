@@ -30,6 +30,17 @@ class CachedTenantQueryRepository implements TenantQueryInterface
     private ?Redis $redis;
     private int $primaryTenantId;
 
+    /**
+     * Initializes the cached tenant query repository decorator.
+     *
+     * Logic behind the logic:
+     * - Wraps a concrete TenantQueryInterface implementation, adding an optional Redis caching layer.
+     * - By allowing Redis to be nullable, the application can degrade gracefully if the cache server is unavailable.
+     *
+     * @param TenantQueryInterface $repository The base repository to decorate.
+     * @param Redis|null $redis Optional Redis instance for caching.
+     * @param int $primaryTenantId The default ID used for the primary tenant.
+     */
     public function __construct(
         TenantQueryInterface $repository,
         ?Redis $redis = null,
@@ -48,6 +59,24 @@ class CachedTenantQueryRepository implements TenantQueryInterface
         return $this->repository->getAll($limit, $lastId);
     }
 
+    /**
+     * Finds a tenant by ID, utilizing the Redis cache to reduce database load.
+     *
+     * Execution Flow:
+     * 1. Constructs a unique cache key for the given tenant ID.
+     * 2. Attempts to retrieve and deserialize the tenant data from Redis.
+     * 3. If the cache hits and deserializes successfully into a TenantDTO, returns it immediately.
+     * 4. If the cache misses or contains corrupted data, evicts the invalid key and queries the base repository.
+     * 5. Caches the freshly retrieved TenantDTO in Redis with a 24-hour TTL.
+     * 6. Returns the fetched tenant.
+     *
+     * Logic behind the logic:
+     * - The @unserialize suppression and explicit instanceof check prevent fatal application errors
+     *   caused by stale or corrupted cache data (e.g., after a class structure changes).
+     *
+     * @param int $id The tenant identifier.
+     * @return TenantDTO|null
+     */
     public function find(int $id): ?TenantDTO
     {
         $cacheKey = "tenant:{$id}";

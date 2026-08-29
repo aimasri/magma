@@ -30,6 +30,20 @@ class ViewShareMiddleware implements MiddlewareInterface
     private \Magma\http\Session $session;
     private \Magma\security\TenantContext $tenantContext;
 
+    /**
+     * Initializes the middleware with necessary view, tenant, and session dependencies.
+     *
+     * Execution Flow:
+     * 1. Stores the TemplateEngine, TenantRepository, Session, and TenantContext instances.
+     *
+     * Logic behind the logic:
+     * - Consolidating these distinct dependencies into a single middleware ensures that global view state can be seamlessly hydrated on every request. This approach abstracts complex data gathering out of individual route controllers.
+     *
+     * @param TemplateEngine $templateEngine The engine responsible for rendering views.
+     * @param TenantQueryInterface $tenantRepository Repository to fetch tenant details.
+     * @param \Magma\http\Session $session The HTTP session for flash data.
+     * @param \Magma\security\TenantContext $tenantContext Context providing the current tenant ID.
+     */
     public function __construct(TemplateEngine $templateEngine, TenantQueryInterface $tenantRepository, \Magma\http\Session $session, \Magma\security\TenantContext $tenantContext)
     {
         $this->templateEngine = $templateEngine;

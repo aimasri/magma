@@ -23,6 +23,15 @@ class SendPasswordResetEmailJob implements JobInterface
     private MailerService $mailerService;
     private \Magma\queue\IdempotentProjectionGuard $guard;
 
+    /**
+     * Initializes the background job with required services.
+     *
+     * Logic behind the logic:
+     * - Uses dependency injection to receive the MailerService and idempotency guard, keeping the job entirely decoupled from the framework container.
+     *
+     * @param MailerService $mailerService
+     * @param \Magma\queue\IdempotentProjectionGuard $guard
+     */
     public function __construct(MailerService $mailerService, \Magma\queue\IdempotentProjectionGuard $guard)
     {
         $this->mailerService = $mailerService;

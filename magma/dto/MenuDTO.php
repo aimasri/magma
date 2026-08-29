@@ -15,6 +15,12 @@ namespace Magma\dto;
  */
 class MenuDTO
 {
+    /**
+     * Constructs an immutable Menu Data Transfer Object.
+     *
+     * Logic behind the logic:
+     * - Employs PHP 8+ constructor property promotion with readonly modifiers to ensure the DTO is deeply immutable once instantiated.
+     */
     public function __construct(
         public readonly int $id,
         public readonly int $tenantId,

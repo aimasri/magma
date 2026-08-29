@@ -41,6 +41,18 @@ class ResetPasswordRequest extends FormRequest
         ];
     }
 
+    /**
+     * Converts the validated reset password HTTP payload into a generic DTO.
+     *
+     * Execution Flow:
+     * 1. Extracts the raw array from the request.
+     * 2. Casts the array to a standard object for structural access.
+     *
+     * Logic behind the logic:
+     * - Standardizes data transfer structure, eliminating array index probing in the consuming handlers.
+     *
+     * @return object
+     */
     public function toDTO(): object
     {
         return (object) $this->request->request();

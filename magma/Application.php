@@ -38,6 +38,17 @@ class Application
     /** @var array<int, string|MiddlewareInterface> */
     private array $middleware = [];
 
+    /**
+     * Initializes the application kernel.
+     *
+     * Logic behind the logic:
+     * - Injects the dependency container and error handler upfront to ensure the application
+     *   kernel has the foundational tools needed to resolve dependencies and gracefully handle
+     *   exceptions during the request lifecycle.
+     *
+     * @param Container $container
+     * @param ErrorHandlerInterface $errorHandler
+     */
     public function __construct(Container $container, ErrorHandlerInterface $errorHandler)
     {
         $this->container = $container;

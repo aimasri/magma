@@ -39,6 +39,21 @@ class Router implements RouterInterface
     /** @var array{static: array<string, array<int, string>>, dynamic_regex?: string, dynamic_map?: array<int, array<int, string>>} */
     private array $methodNotAllowedIndex;
 
+    /**
+     * Initializes the router and compiles route data for fast dispatching.
+     *
+     * Execution Flow:
+     * 1. Attempts to retrieve pre-compiled route regexes and method maps from the cache.
+     * 2. If missing, compiles the dynamic routes into mega-regexes and static maps.
+     * 3. Stores the compiled data in the cache for subsequent requests.
+     *
+     * Logic behind the logic:
+     * - Caching compiled routes ensures minimal overhead during the critical path of routing requests, maintaining high throughput.
+     *
+     * @param RouteCollection $collection
+     * @param RouteDispatcher $dispatcher
+     * @param RouteCacheInterface $cache
+     */
     public function __construct(
         RouteCollection $collection,
         RouteDispatcher $dispatcher,
@@ -182,6 +197,22 @@ class Router implements RouterInterface
     }
 
 
+    /**
+     * Inspects static and dynamic routes to throw MethodNotAllowedException if applicable.
+     *
+     * Execution Flow:
+     * 1. Checks the static method-not-allowed index for the exact path.
+     * 2. Checks the dynamic method-not-allowed regex for patterned paths.
+     * 3. Throws a 405 MethodNotAllowedException if the path exists but the method is not allowed.
+     *
+     * Logic behind the logic:
+     * - Offloading 405 checks from the main routing loop to the failure path keeps successful route lookups fast.
+     *
+     * @param string $requestMethod
+     * @param string $requestPath
+     * @return void
+     * @throws MethodNotAllowedException
+     */
     private function handleMethodNotAllowedExceptions(string $requestMethod, string $requestPath): void
     {
         if (isset($this->methodNotAllowedIndex['static'][$requestPath])) {

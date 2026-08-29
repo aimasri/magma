@@ -36,28 +36,58 @@ class Response
         $this->headers = $headers;
     }
 
+    /**
+     * Updates the response body content.
+     *
+     * Logic behind the logic:
+     * - Provides a fluent interface for dynamically altering the payload before the final emission phase.
+     */
     public function setContent(string $content): self
     {
         $this->content = $content;
         return $this;
     }
 
+    /**
+     * Retrieves the current response body content.
+     *
+     * Logic behind the logic:
+     * - Allows downstream middleware (like a minify tool) to inspect and process the buffered payload.
+     */
     public function getContent(): string
     {
         return $this->content;
     }
 
+    /**
+     * Updates the HTTP status code for this response.
+     *
+     * Logic behind the logic:
+     * - Provides fluent setter access, allowing exception handlers or response formatters to upgrade/downgrade status seamlessly.
+     */
     public function setStatusCode(int $statusCode): self
     {
         $this->statusCode = $statusCode;
         return $this;
     }
 
+    /**
+     * Retrieves the current HTTP status code.
+     *
+     * Logic behind the logic:
+     * - Exposes the internal state for assertions during unit testing and middleware inspection.
+     */
     public function getStatusCode(): int
     {
         return $this->statusCode;
     }
 
+    /**
+     * Appends an HTTP header to the response buffering queue.
+     *
+     * Logic behind the logic:
+     * - Defers actual header emission, guaranteeing no "headers already sent" crashes even if logic adds headers deep in the stack.
+     */
     public function addHeader(string $name, string $value): self
     {
         $this->headers[$name] = $value;

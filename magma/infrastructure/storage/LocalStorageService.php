@@ -27,6 +27,15 @@ class LocalStorageService implements StorageInterface
 
 
 
+    /**
+     * Initializes the local storage service.
+     *
+     * Logic behind the logic:
+     * - Accepts base paths and standardizes directory separators to prevent mismatches on different operating systems, enforcing a safe initial state.
+     *
+     * @param string $basePath
+     * @param string $publicBaseUrl
+     */
     public function __construct(string $basePath, string $publicBaseUrl = '/storage')
     {
         $this->basePath = rtrim($basePath, '/\\');

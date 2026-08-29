@@ -27,6 +27,16 @@ class LogoutController
 {
     use \Magma\controllers\traits\AppliesAuthenticationCookiesTrait;
 
+    /**
+     * Initializes the LogoutController with the required authentication service.
+     *
+     * Logic behind the logic:
+     * - Leverages constructor property promotion to inject the AuthenticationService.
+     *   This adheres to the Single Responsibility Principle by delegating the actual 
+     *   logout mechanics to the domain service layer.
+     *
+     * @param AuthenticationService $authService
+     */
     public function __construct(
         private readonly AuthenticationService $authService
     ) {}

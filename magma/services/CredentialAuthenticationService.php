@@ -17,6 +17,9 @@ use Magma\services\AuthenticationResult;
  * Why / Why this design:
  * - Extracted from the monolithic AuthenticationService to enforce SRP.
  * - This service handles standard login logic without coupling to persistent cookies.
+ *
+ * Teaching notes:
+ * - This service encapsulates the password hashing boundary. Never allow plain-text passwords to escape this layer.
  */
 class CredentialAuthenticationService
 {
@@ -25,6 +28,14 @@ class CredentialAuthenticationService
     protected SessionAuthenticationService $sessionAuth;
     protected ClockInterface $clock;
 
+    /**
+     * Initializes the service with dependencies for user retrieval, modification, and session handling.
+     *
+     * @param UserQueryInterface $userRepository
+     * @param UserCommandInterface $userCommandRepository
+     * @param SessionAuthenticationService $sessionAuth
+     * @param ClockInterface $clock
+     */
     public function __construct(
         UserQueryInterface $userRepository,
         UserCommandInterface $userCommandRepository,

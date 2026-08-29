@@ -31,6 +31,12 @@ abstract class AbstractProjectionWorker implements JobInterface
     protected IdempotentProjectionGuard $guard;
     protected DatabaseTransactionManager $transactionManager;
 
+    /**
+     * Initializes the projection worker with guarding and transactional capabilities.
+     * 
+     * @param IdempotentProjectionGuard $guard Guard instance ensuring idempotency of projection runs.
+     * @param DatabaseTransactionManager $transactionManager Manager orchestrating database transactions.
+     */
     public function __construct(
         IdempotentProjectionGuard $guard,
         DatabaseTransactionManager $transactionManager

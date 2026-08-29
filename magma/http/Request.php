@@ -209,26 +209,56 @@ class Request implements RequestInterface
         return self::build($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, self::$cachedRawBody);
     }
 
+    /**
+     * Retrieves the HTTP verb for the request.
+     *
+     * Logic behind the logic:
+     * - Centralizes access to the resolved HTTP method, abstracting away any verb spoofing that occurred during initialization.
+     */
     public function getMethod(): string
     {
         return $this->method;
     }
 
+    /**
+     * Retrieves the full request URI.
+     *
+     * Logic behind the logic:
+     * - Exposes the raw URI to allow precise routing constraints and middleware pattern matching.
+     */
     public function getUri(): string
     {
         return $this->uri;
     }
 
+    /**
+     * Retrieves the parsed URI path without query parameters.
+     *
+     * Logic behind the logic:
+     * - Isolates the strict URL path for clean matching against the application's defined route tree.
+     */
     public function getPath(): string
     {
         return $this->path;
     }
 
+    /**
+     * Retrieves the request path as an array of segments.
+     *
+     * Logic behind the logic:
+     * - Provides a pre-computed array of path elements, optimizing performance for RESTful parameter extraction.
+     */
     public function pathSegments(): array
     {
         return $this->segments;
     }
 
+    /**
+     * Retrieves a specific query parameter from $_GET, or the entire array if no key is provided.
+     *
+     * Logic behind the logic:
+     * - Abstracting $_GET access ensures that controllers do not couple directly to superglobals.
+     */
     public function query(?string $key = null, mixed $default = null): mixed
     {
         if ($key === null) {
@@ -237,6 +267,12 @@ class Request implements RequestInterface
         return $this->get[$key] ?? $default;
     }
 
+    /**
+     * Retrieves a specific parsed payload parameter (JSON or POST), or the entire array if no key is provided.
+     *
+     * Logic behind the logic:
+     * - Unifies JSON body payloads and standard POST arrays, providing a seamless DX regardless of client content type.
+     */
     public function request(?string $key = null, mixed $default = null): mixed
     {
         if ($key === null) {
@@ -245,6 +281,12 @@ class Request implements RequestInterface
         return $this->requestData[$key] ?? $default;
     }
 
+    /**
+     * Retrieves a specific server parameter from $_SERVER, or the entire array if no key is provided.
+     *
+     * Logic behind the logic:
+     * - Wraps server variable access to facilitate mocking during unit and integration tests.
+     */
     public function server(?string $key = null, mixed $default = null): mixed
     {
         if ($key === null) {
@@ -253,6 +295,17 @@ class Request implements RequestInterface
         return $this->server[$key] ?? $default;
     }
 
+    /**
+     * Returns a new Request instance with the specified custom attribute added.
+     *
+     * Execution Flow:
+     * 1. Clones the current request instance.
+     * 2. Sets the attribute on the cloned copy.
+     * 3. Returns the cloned copy.
+     *
+     * Logic behind the logic:
+     * - Employs PSR-7 style immutability. Mutating state across middleware layers is dangerous; cloning guarantees deterministic request states.
+     */
     public function withAttribute(string $key, mixed $value): self
     {
         $clone = clone $this;
@@ -260,11 +313,27 @@ class Request implements RequestInterface
         return $clone;
     }
 
+    /**
+     * Retrieves a custom attribute assigned during middleware processing.
+     *
+     * Logic behind the logic:
+     * - Allows upstream middleware (e.g., authentication) to safely attach resolved context (e.g., User object) for downstream controllers.
+     */
     public function getAttribute(string $key, mixed $default = null): mixed
     {
         return $this->attributes[$key] ?? $default;
     }
 
+    /**
+     * Retrieves a specific HTTP header value.
+     *
+     * Execution Flow:
+     * 1. Normalizes the requested header key to match PHP's standard $_SERVER array formatting.
+     * 2. Extracts and returns the scalar value or the default.
+     *
+     * Logic behind the logic:
+     * - Masks the quirky behavior of PHP's HTTP_ prefixing, providing a predictable API for accessing raw headers.
+     */
     public function header(string $key, ?string $default = null): ?string
     {
         $key = str_replace('-', '_', strtoupper($key));
@@ -275,6 +344,12 @@ class Request implements RequestInterface
         return isset($this->server[$headerKey]) && is_scalar($this->server[$headerKey]) ? (string)$this->server[$headerKey] : $default;
     }
 
+    /**
+     * Retrieves the raw HTTP request body string.
+     *
+     * Logic behind the logic:
+     * - Critical for cryptographic webhook signature verification where exact byte-for-byte matching is required before parsing.
+     */
     public function getRawBody(): string
     {
         return $this->rawBody ?? '';
@@ -305,6 +380,12 @@ class Request implements RequestInterface
         return $this->isJsonExpected();
     }
 
+    /**
+     * Retrieves a specific uploaded file from $_FILES, or the entire array if no key is provided.
+     *
+     * Logic behind the logic:
+     * - Encapsulates file uploads to maintain the Request object's boundaries over PHP's global state.
+     */
     public function file(?string $key = null, mixed $default = null): mixed
     {
         if ($key === null) {
@@ -313,6 +394,12 @@ class Request implements RequestInterface
         return $this->files[$key] ?? $default;
     }
 
+    /**
+     * Retrieves a specific cookie value from $_COOKIE, or the entire array if no key is provided.
+     *
+     * Logic behind the logic:
+     * - Encapsulates cookie data access to prevent direct superglobal dependencies.
+     */
     public function cookie(?string $key = null, mixed $default = null): mixed
     {
         if ($key === null) {
@@ -321,6 +408,17 @@ class Request implements RequestInterface
         return $this->cookies[$key] ?? $default;
     }
 
+    /**
+     * Determines if the request was transmitted securely over HTTPS.
+     *
+     * Execution Flow:
+     * 1. Checks standard $_SERVER variables for HTTPS or port 443.
+     * 2. Validates the incoming request IP against a list of trusted proxies.
+     * 3. If trusted, respects the 'X-Forwarded-Proto' header set by load balancers.
+     *
+     * Logic behind the logic:
+     * - Safely handling 'X-Forwarded-Proto' ensures accurate security context even when deployed behind terminating reverse proxies or CDNs, while rejecting spoofed headers from direct malicious clients.
+     */
     public function isSecure(): bool
     {
         $https = $this->server['HTTPS'] ?? '';

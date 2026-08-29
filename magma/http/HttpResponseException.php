@@ -19,12 +19,24 @@ class HttpResponseException extends \RuntimeException
 {
     private Response $response;
 
+    /**
+     * Constructs an HTTP Response Exception containing a pre-configured Response object.
+     *
+     * Logic behind the logic:
+     * - Binds the prepared HTTP Response directly to the exception payload, circumventing standard execution flow while preserving proper middleware traversal.
+     */
     public function __construct(Response $response)
     {
         parent::__construct("HTTP Response Exception");
         $this->response = $response;
     }
 
+    /**
+     * Retrieves the embedded HTTP Response.
+     *
+     * Logic behind the logic:
+     * - Allows the Router's exception catcher to safely unwrap and emit the aborted response.
+     */
     public function getResponse(): Response
     {
         return $this->response;

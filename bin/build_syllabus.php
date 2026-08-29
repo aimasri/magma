@@ -247,7 +247,7 @@ $curated = [
     12 => ['cat' => 'Workers', 'desc' => 'The Transactional Outbox pattern, preventing dual-writes, and FOR UPDATE SKIP LOCKED concurrency.'],
     13 => ['cat' => 'Testing', 'desc' => 'Testing as a byproduct of design, isolated unit tests, and comprehensive integration testing.'],
     14 => ['cat' => 'Frontend', 'desc' => 'Deeply immutable ObservableStore, defensive garbage collection, and native CSS Cascade Layers.'],
-    15 => ['cat' => 'Security', 'desc' => 'Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.'],
+    15 => ['cat' => 'Security', 'desc' => 'Pluggable Tenant Contexts, Cross-Domain SSO Handoff, AST Auditing, and Keyset Pagination.'],
     16 => ['cat' => 'Hardening', 'desc' => 'Eradication of legacy facades, PHPStan Level 9 mathematical type safety, and cryptographic boundary enforcement.'],
 ];
 

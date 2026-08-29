@@ -24,6 +24,11 @@ class LocalFileStorageService implements StorageInterface
 {
     private string $basePath;
 
+    /**
+     * Initializes the local file storage with a root base path.
+     *
+     * @param string $basePath
+     */
     public function __construct(string $basePath)
     {
         $this->basePath = rtrim($basePath, '/\\');
@@ -197,11 +202,31 @@ class LocalFileStorageService implements StorageInterface
         return $path;
     }
 
+    /**
+     * Returns a web-accessible URL for the given storage path.
+     *
+     * @param string $path
+     * @return string
+     */
     public function url(string $path): string
     {
         return '/storage/' . ltrim($path, '/');
     }
 
+    /**
+     * Determines the MIME type of a stored file.
+     *
+     * Execution Flow:
+     * 1. Verifies that the file exists locally.
+     * 2. Opens finfo to reliably determine the content type from the file's bytes.
+     * 3. Returns the detected MIME type or null if it cannot be determined.
+     *
+     * Logic behind the logic:
+     * - Relying on finfo instead of file extensions provides a much more robust and secure check for file types.
+     *
+     * @param string $path
+     * @return string|null
+     */
     public function mimeType(string $path): ?string
     {
         if ($this->exists($path)) {
@@ -215,6 +240,12 @@ class LocalFileStorageService implements StorageInterface
         return null;
     }
 
+    /**
+     * Retrieves the file size in bytes for a stored file.
+     *
+     * @param string $path
+     * @return int|null
+     */
     public function size(string $path): ?int
     {
         if ($this->exists($path)) {

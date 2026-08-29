@@ -25,6 +25,11 @@ class CsrfManager
     private SessionInterface $session;
     private const GRACE_PERIOD_COUNT = 5;
 
+    /**
+     * Initializes the CSRF manager with a session interface.
+     *
+     * @param SessionInterface $session
+     */
     public function __construct(SessionInterface $session)
     {
         $this->session = $session;

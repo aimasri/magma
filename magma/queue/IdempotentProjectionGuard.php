@@ -30,6 +30,15 @@ class IdempotentProjectionGuard
 {
     private DatabaseConnectionManager $dbManager;
 
+    /**
+     * Initializes the projection guard with the database connection manager.
+     *
+     * Logic behind the logic:
+     * - The DatabaseConnectionManager is required to access the write connection directly,
+     *   ensuring immediate read-after-write consistency for idempotent checks.
+     *
+     * @param DatabaseConnectionManager $dbManager
+     */
     public function __construct(DatabaseConnectionManager $dbManager)
     {
         $this->dbManager = $dbManager;

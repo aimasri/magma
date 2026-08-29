@@ -19,6 +19,9 @@ use Magma\services\AuthenticationResult;
  *   consumption, and rotation into a single PostgreSQL SERIALIZABLE transaction.
  * - This service explicitly adheres to the SRP by extracting persistent cookie 
  *   orchestration away from standard credential authentication.
+ *
+ * Teaching notes:
+ * - Study the "Remember Me" token rotation strategy closely. It is a canonical example of defense-in-depth against token theft.
  */
 class PersistentAuthenticationService
 {
@@ -27,6 +30,22 @@ class PersistentAuthenticationService
     protected UserQueryInterface $userRepository;
     protected TransactionManagerInterface $transactionManager;
 
+    /**
+     * Sets up the PersistentAuthenticationService.
+     *
+     * Execution Flow:
+     * 1. Receives the remember me service, session authentication service, user repository, and transaction manager.
+     * 2. Assigns these dependencies to protected properties for orchestrating the persistent login flow.
+     *
+     * Logic behind the logic:
+     * - Separation of Concerns: Injects specialized services (like RememberMeService and SessionAuthenticationService)
+     *   to delegate specific authentication lifecycle tasks, keeping this class focused on coordination.
+     *
+     * @param RememberMeService $rememberMeService
+     * @param SessionAuthenticationService $sessionAuth
+     * @param UserQueryInterface $userRepository
+     * @param TransactionManagerInterface $transactionManager
+     */
     public function __construct(
         RememberMeService $rememberMeService,
         SessionAuthenticationService $sessionAuth,
@@ -86,6 +105,25 @@ class PersistentAuthenticationService
     public function issueToken(int $userId): array
     {
         return $this->rememberMeService->generateToken($userId);
+    }
+    
+    /**
+     * Issues a short-lived SSO token for cross-domain authentication handoff.
+     * 
+     * Execution Flow:
+     * 1. Delegates to RememberMeService to generate a cryptographically secure token.
+     * 2. Overrides the default TTL to 60 seconds.
+     * 
+     * Logic behind the logic:
+     * - By reusing the existing Selector/Validator token architecture but constraining the TTL,
+     *   we achieve secure cross-domain SSO without introducing a new standalone table or service.
+     *
+     * @param int $userId
+     * @return array{token: string, expiry: int}
+     */
+    public function issueSsoToken(int $userId): array
+    {
+        return $this->rememberMeService->generateToken($userId, 60); // 60 seconds TTL
     }
     
     /**

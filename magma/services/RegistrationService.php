@@ -22,6 +22,9 @@ use Magma\database\TransactionManagerInterface;
  * - Extracting this domain logic from the `AuthController` strictly adheres to the Single 
  *   Responsibility Principle (SRP). It decouples the act of "registering a user" from the 
  *   HTTP request lifecycle.
+ *
+ * Teaching notes:
+ * - If user registration needs to dispatch welcome emails or create default tenant data, those operations should be handled via Domain Events rather than bloating this class further.
  */
 class RegistrationService
 {
@@ -29,6 +32,21 @@ class RegistrationService
     protected EventDispatcherInterface $dispatcher;
     protected TransactionManagerInterface $transactionManager;
 
+    /**
+     * Constructs the RegistrationService.
+     *
+     * Execution Flow:
+     * 1. Injects the user command repository, event dispatcher, and transaction manager.
+     * 2. Stores them in protected properties to handle user registration workflows.
+     *
+     * Logic behind the logic:
+     * - Dependency Injection: Ensures that side effects (like database changes or events)
+     *   can be safely mocked in tests by abstracting concrete implementations.
+     *
+     * @param UserCommandInterface $userCommandRepository
+     * @param EventDispatcherInterface $dispatcher
+     * @param TransactionManagerInterface $transactionManager
+     */
     public function __construct(
         UserCommandInterface $userCommandRepository,
         EventDispatcherInterface $dispatcher,

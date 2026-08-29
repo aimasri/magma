@@ -19,7 +19,30 @@ namespace Magma\config;
  */
 interface ConfigInterface
 {
+    /**
+     * Retrieves a configuration value by its key, returning a default if not found.
+     *
+     * Logic behind the logic:
+     * - Provides a safe way to access configuration values without triggering errors for missing keys.
+     *   This prevents application crashes during deployments when new, non-critical config keys are introduced.
+     *
+     * @param string $key The configuration key.
+     * @param mixed $default The fallback value if the key does not exist.
+     * @return mixed
+     */
     public function get(string $key, mixed $default = null): mixed;
+
+    /**
+     * Retrieves a configuration value by its key, throwing an exception if the key is missing.
+     *
+     * Logic behind the logic:
+     * - Enforces a strict contract for critical application settings (e.g., database credentials).
+     *   Failing fast on startup or request initialization prevents unpredictable behavior downstream.
+     *
+     * @param string $key The required configuration key.
+     * @return string
+     * @throws \RuntimeException If the key is not found or is empty.
+     */
     public function getRequired(string $key): string;
     /**
      * @return array{driver: string, host: string, port: string, dbname: string, user: string, password: string}

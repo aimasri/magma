@@ -27,6 +27,11 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
 {
     private DatabaseConnectionManager $dbManager;
 
+    /**
+     * Initializes the provider with a database connection manager.
+     *
+     * @param DatabaseConnectionManager $dbManager
+     */
     public function __construct(DatabaseConnectionManager $dbManager)
     {
         $this->dbManager = $dbManager;
@@ -72,5 +77,37 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
     public function resolveVenueId(RequestInterface $request): ?int
     {
         return null;
+    }
+
+    /**
+     * Resolves the primary domain for a given tenant ID.
+     *
+     * Execution Flow:
+     * 1. Retrieves the read-replica database connection.
+     * 2. Prepares and executes a query against `tenant_domains` filtering by `tenant_id`.
+     * 3. Fetches the corresponding domain string or returns null.
+     *
+     * Logic behind the logic:
+     * - Provides reverse-resolution capability (ID to Domain) necessary for secure cross-domain SSO handoffs,
+     *   ensuring users are redirected to the canonical domain for their active workspace.
+     *
+     * @param int $tenantId
+     * @return string|null
+     */
+    public function resolveDomainByTenantId(int $tenantId): ?string
+    {
+        try {
+            $db = $this->dbManager->getReadConnection();
+            $sql = "SELECT domain FROM tenant_domains WHERE tenant_id = :tenant_id LIMIT 1";
+            $stmt = $db->prepare($sql);
+            $stmt->execute(['tenant_id' => $tenantId]);
+            
+            $result = $stmt->fetchColumn();
+            
+            return $result !== false ? (string)$result : null;
+        } catch (Throwable $e) {
+            error_log("Failed to resolve domain for tenant ID: " . $e->getMessage());
+            return null;
+        }
     }
 }

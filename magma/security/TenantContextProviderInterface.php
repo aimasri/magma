@@ -36,4 +36,12 @@ interface TenantContextProviderInterface
      * @return int|null
      */
     public function resolveVenueId(RequestInterface $request): ?int;
+
+    /**
+     * Resolves the primary domain for a given tenant ID.
+     *
+     * @param int $tenantId
+     * @return string|null
+     */
+    public function resolveDomainByTenantId(int $tenantId): ?string;
 }

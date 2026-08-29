@@ -146,6 +146,25 @@ class RedisCache implements CacheInterface
         }
     }
 
+    /**
+     * Adds an item to the cache only if the key does not already exist.
+     *
+     * Execution Flow:
+     * 1. Prefixes the key and calculates the expiration in seconds.
+     * 2. If the TTL is invalid (<= 0), returns false.
+     * 3. Serializes the value and executes the Redis `set` command with `NX` (Not eXists) and `EX` (Expire) options.
+     * 4. Catches any exceptions, logs the error, and returns false on failure.
+     *
+     * Logic behind the logic:
+     * - Utilizing the `NX` flag delegates the existence check to Redis itself, guaranteeing true 
+     *   atomicity. This prevents race conditions in highly concurrent environments where multiple 
+     *   processes might attempt to set the same key simultaneously.
+     *
+     * @param string $key Cache key.
+     * @param mixed $value Value to store.
+     * @param null|int|DateInterval $ttl Expiration duration.
+     * @return bool True if added successfully, false if the key already exists or an error occurred.
+     */
     public function add(string $key, mixed $value, null|int|DateInterval $ttl = null): bool
     {
         $prefixedKey = $this->prefixKey($key);

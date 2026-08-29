@@ -28,6 +28,12 @@ class AuthMiddleware implements MiddlewareInterface
     private SessionInterface $session;
     private \Magma\interfaces\cqrs\UserQueryInterface $userRepository;
 
+    /**
+     * Initializes the AuthMiddleware.
+     *
+     * @param SessionInterface $session The session service for retrieving user data.
+     * @param \Magma\interfaces\cqrs\UserQueryInterface $userRepository Repository to query user specific data, such as password changes.
+     */
     public function __construct(
         SessionInterface $session,
         \Magma\interfaces\cqrs\UserQueryInterface $userRepository
@@ -76,6 +82,20 @@ class AuthMiddleware implements MiddlewareInterface
         return $next($request);
     }
     
+    /**
+     * Handles unauthorized access attempts.
+     *
+     * Execution Flow:
+     * 1. Checks if the incoming request expects a JSON response via headers.
+     * 2. If JSON is expected, returns a 401 Unauthorized JSON response payload.
+     * 3. Otherwise, returns a 302 RedirectResponse to the login page.
+     *
+     * Logic behind the logic:
+     * - Providing content negotiation ensures API consumers receive proper HTTP status codes and payloads, preventing SPA/AJAX fetch calls from failing due to unexpected HTML redirects or CORS issues.
+     *
+     * @param RequestInterface $request The incoming HTTP request.
+     * @return Response The structured error response or redirection.
+     */
     private function handleUnauthorized(RequestInterface $request): Response
     {
         if ($request->isJsonExpected() || $request->expectsJson()) {

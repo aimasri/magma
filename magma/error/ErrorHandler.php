@@ -34,6 +34,17 @@ class ErrorHandler implements ErrorHandlerInterface
     private bool $debug;
     private ?\Magma\container\Container $container;
 
+    /**
+     * Initializes the application Error Handler.
+     *
+     * Execution Flow:
+     * 1. Injects required template engines and presenters for multiple response formats.
+     * 2. Evaluates the provided debug flag explicitly.
+     * 3. If no debug flag is passed, dynamically resolves the debug state from configuration or environment variables.
+     *
+     * Logic behind the logic:
+     * - Segregating JSON and Debug presentation logic into injected dependencies adheres to the Single Responsibility Principle, keeping the main ErrorHandler slim.
+     */
     public function __construct(
         TemplateEngine $templateEngine, 
         \Magma\config\ConfigInterface $config, 

@@ -25,6 +25,14 @@ class RedisQueue implements QueueInterface
     private Redis $redis;
     private string $prefix = 'queue:';
 
+    /**
+     * Initializes the Redis queue driver.
+     *
+     * Logic behind the logic:
+     * - Injects a connected Redis instance to handle fast, memory-efficient push/pop operations.
+     *
+     * @param Redis $redis
+     */
     public function __construct(Redis $redis)
     {
         $this->redis = $redis;

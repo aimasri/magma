@@ -30,6 +30,22 @@ use Magma\repositories\RememberTokenRepository;
  */
 class PasswordResetCompletionService
 {
+    /**
+     * Constructs the PasswordResetCompletionService.
+     *
+     * Execution Flow:
+     * 1. Injects dependencies for user commands, token repositories, and transaction management.
+     * 2. Assigns them to private readonly properties (via constructor property promotion).
+     *
+     * Logic behind the logic:
+     * - DI and SRP: Injects everything needed for a safe, transactional password reset
+     *   without creating dependencies internally, maintaining loose coupling.
+     *
+     * @param UserCommandInterface $userCommandRepository
+     * @param PasswordResetTokenRepository $userTokenRepository
+     * @param RememberTokenRepository $rememberTokenRepository
+     * @param TransactionManagerInterface $transactionManager
+     */
     public function __construct(
         private UserCommandInterface $userCommandRepository,
         private PasswordResetTokenRepository $userTokenRepository,

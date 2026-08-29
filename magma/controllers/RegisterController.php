@@ -36,6 +36,15 @@ class RegisterController
     private \Magma\interfaces\cqrs\UserQueryInterface $userQuery;
     private \Magma\http\SessionInterface $session;
 
+    /**
+     * Initializes the controller with required dependencies.
+     * 
+     * @param \Magma\view\HtmlResponseBuilderInterface $html HTML response builder.
+     * @param RegistrationService $registrationService Service for handling user registration.
+     * @param AuthenticationService $authService Service for authenticating users.
+     * @param \Magma\interfaces\cqrs\UserQueryInterface $userQuery Read model for querying user data.
+     * @param \Magma\http\SessionInterface $session Session interface for managing session data.
+     */
     public function __construct(
         \Magma\view\HtmlResponseBuilderInterface $html,
         RegistrationService $registrationService,

@@ -7,6 +7,9 @@
  * - Defines the global directory constants needed by the application.
  * - Registers a manual PSR-4 compliant autoloader.
  *
+ * Why this design:
+ * - Manual autoloading removes the dependency on Composer for the core system architecture, allowing full control over how and when classes are instantiated.
+ *
  * Teaching notes:
  * - Keeping autoloading logic in its own file ensures that scripts (like CLI tools) 
  *   can bootstrap the autoloader without inadvertently firing HTTP-specific DI bindings.

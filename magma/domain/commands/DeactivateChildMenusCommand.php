@@ -21,6 +21,12 @@ class DeactivateChildMenusCommand
     public readonly int $tenantId;
     public readonly string $action;
 
+    /**
+     * Initializes the command payload with target parent and tenant details.
+     * 
+     * @param int $parentId The ID of the parent menu whose children should be deactivated.
+     * @param int $tenantId The ID of the tenant owning the menus.
+     */
     public function __construct(int $parentId, int $tenantId)
     {
         $this->parentId = $parentId;

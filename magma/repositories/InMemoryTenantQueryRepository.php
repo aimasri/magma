@@ -26,6 +26,16 @@ class InMemoryTenantQueryRepository implements TenantQueryInterface
     private ?int $primaryTenantId = null;
     private int $cacheLimit;
 
+    /**
+     * Initializes the in-memory tenant query repository decorator.
+     *
+     * Logic behind the logic:
+     * - Wraps an existing TenantQueryInterface implementation to provide a fast L1 cache.
+     * - The cache limit prevents out-of-memory errors in long-running processes like queue workers.
+     *
+     * @param TenantQueryInterface $repository The base repository to decorate.
+     * @param int $cacheLimit Maximum number of entities to store in memory.
+     */
     public function __construct(TenantQueryInterface $repository, int $cacheLimit = 500)
     {
         $this->repository = $repository;

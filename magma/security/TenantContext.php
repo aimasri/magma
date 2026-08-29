@@ -26,6 +26,11 @@ class TenantContext
     private ?int $venueId = null;
     private ?TenantContextProviderInterface $provider;
 
+    /**
+     * Initializes the context with an optional provider for dynamic tenant resolution.
+     *
+     * @param TenantContextProviderInterface|null $provider
+     */
     public function __construct(?TenantContextProviderInterface $provider = null)
     {
         $this->provider = $provider;

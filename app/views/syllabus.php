@@ -2245,6 +2245,13 @@ Magma utilizes <strong>Keyset Seeking</strong> (<code>WHERE id &gt; :cursor_last
 <p>
 Repositories returning large collections do not load the resulting array into memory. Instead, Magma streams the records directly from the database driver using PHP generators (<code>yield</code>). This keeps RAM consumption entirely flat, preventing OOM crashes during heavy analytical workloads.
 </p>
+<h3>Chapter 15.4: Zero-Trust Cross-Domain SSO Handoff</h3>
+<p>
+In a multi-tenant platform where each tenant has its own domain (e.g. <code>urbansugar.uk</code> vs <code>fussybaby.uk</code>), a critical vulnerability arises if global session cookies leak authentication state across boundaries.
+</p>
+<p>
+Magma solves this natively using <strong>Zero-Trust Cross-Domain SSO</strong>. When the <code>TenantSecurityMiddleware</code> detects that a logged-in user does not belong to the active domain's <code>tenant_id</code>, it immediately destroys the erroneous session. It then delegates to the <code>PersistentAuthenticationService</code> to securely generate a short-lived (60-second) SSO token, resolves the user's correct domain via a read-replica lookup, and seamlessly redirects them to their correct dashboard—achieving multi-tenant isolation without throwing abrasive 403 errors to the user.
+</p>
 </div>
 <div class="chapter-module" id="module-16-the-lava-hardening-phase-enterprise-quality-control"><h2 class="chapter-title">Module 16: The Lava Hardening Phase - Enterprise Quality Control</h2>
 <h3>Chapter 16.1: The Eradication of Legacy Facades and "Magic"</h3>

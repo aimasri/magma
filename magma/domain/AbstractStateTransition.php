@@ -50,22 +50,39 @@ abstract class AbstractStateTransition implements JsonSerializable
         $this->occurredAt = $occurredAt ?? new DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
+    /**
+     * Retrieves the source state of the transition.
+     * 
+     * @return string The originating state identifier.
+     */
     public function getFromState(): string
     {
         return $this->fromState;
     }
 
+    /**
+     * Retrieves the destination state of the transition.
+     * 
+     * @return string The target state identifier.
+     */
     public function getToState(): string
     {
         return $this->toState;
     }
 
+    /**
+     * Retrieves the timestamp when the transition occurred.
+     * 
+     * @return DateTimeImmutable The transition timestamp.
+     */
     public function getOccurredAt(): DateTimeImmutable
     {
         return $this->occurredAt;
     }
 
     /**
+     * Retrieves the transition context metadata.
+     * 
      * @return array<string, mixed>
      */
     public function getContext(): array
@@ -73,11 +90,24 @@ abstract class AbstractStateTransition implements JsonSerializable
         return $this->context;
     }
 
+    /**
+     * Checks if a specific key exists within the transition context.
+     * 
+     * @param string $key The key to look for.
+     * @return bool True if context contains the key, false otherwise.
+     */
     public function hasContext(string $key): bool
     {
         return array_key_exists($key, $this->context);
     }
 
+    /**
+     * Retrieves a specific value from the transition context by its key.
+     * 
+     * @param string $key The context key to retrieve.
+     * @param mixed $default The fallback value if key does not exist.
+     * @return mixed The context value or the default fallback.
+     */
     public function getContextValue(string $key, mixed $default = null): mixed
     {
         return $this->context[$key] ?? $default;

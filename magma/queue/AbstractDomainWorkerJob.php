@@ -32,6 +32,15 @@ abstract class AbstractDomainWorkerJob implements JobInterface
 {
     protected ?TenantContext $tenantContext;
 
+    /**
+     * Initializes the worker job with an optional tenant context.
+     *
+     * Logic behind the logic:
+     * - Injecting the TenantContext allows the job to automatically bind to the correct tenant
+     *   before executing domain logic, ensuring multi-tenant data isolation.
+     *
+     * @param TenantContext|null $tenantContext
+     */
     public function __construct(?TenantContext $tenantContext = null)
     {
         $this->tenantContext = $tenantContext;

@@ -33,6 +33,22 @@ use Magma\http\RequestInterface;
  */
 class RoutingServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Registers routing dependencies into the container.
+     *
+     * 1. Resolves the MiddlewareResolver for processing route middleware.
+     * 2. Sets up the RouteCacheInterface to handle compiled routes.
+     * 3. Configures the RouteCollection by loading from cache or triggering route discovery.
+     * 4. Assembles the RouterInterface using the dispatcher and route cache.
+     * 5. Configures the UrlGenerator for reverse routing using the current request and application URL.
+     *
+     * Logic behind the logic:
+     * - The container bindings ensure that routing components are lazily instantiated only when needed.
+     * - Using a cached route collection in production significantly reduces route registration overhead.
+     *
+     * @param Container $container
+     * @return void
+     */
     public function register(Container $container): void
     {
         $container->set(MiddlewareResolver::class, function (Container $c) {

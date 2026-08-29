@@ -203,11 +203,21 @@ class RouteDefinition
         );
     }
 
+    /**
+     * Gets the declared HTTP method.
+     *
+     * @return string
+     */
     public function getMethod(): string
     {
         return $this->method;
     }
 
+    /**
+     * Gets the declared URI pattern.
+     *
+     * @return string
+     */
     public function getUri(): string
     {
         return $this->uri;
@@ -219,6 +229,11 @@ class RouteDefinition
         return $this->handler;
     }
 
+    /**
+     * Gets the action method explicitly extracted from the handler.
+     *
+     * @return ?string
+     */
     public function getAction(): ?string
     {
         return $this->action;
@@ -230,6 +245,11 @@ class RouteDefinition
         return $this->middleware;
     }
 
+    /**
+     * Gets the assigned alias name.
+     *
+     * @return ?string
+     */
     public function getName(): ?string
     {
         return $this->name;
@@ -241,6 +261,11 @@ class RouteDefinition
         return $this->parameters;
     }
 
+    /**
+     * Gets the configured fallback redirection path.
+     *
+     * @return ?string
+     */
     public function getRedirectOnFail(): ?string
     {
         return $this->redirectOnFail;

@@ -10,6 +10,9 @@ declare(strict_types=1);
  *
  * Why / Why this design:
  * - Separates application-specific routes from Magma core routes, maintaining core framework purity.
+ * 
+ * Teaching notes:
+ * - When adding new domains/features, map routes to specific action-based controllers. Avoid adding excessive middleware directly here; leverage route groups instead.
  */
 
 use App\controllers\HomeController;

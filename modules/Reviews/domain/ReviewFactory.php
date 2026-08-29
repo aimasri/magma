@@ -13,6 +13,9 @@ namespace Modules\Reviews\domain;
  * Why / Why this design:
  * - A factory avoids instantiating domain models directly using the `new` keyword 
  *   within services, complying with strict Dependency Inversion Principles.
+ *
+ * Teaching notes:
+ * - Domain entity factories are excellent places to hook in standard domain events (e.g. `ReviewCreatedEvent`) without cluttering your core entity logic.
  */
 class ReviewFactory implements \Modules\Reviews\interfaces\ReviewFactoryInterface
 {

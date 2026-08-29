@@ -21,6 +21,20 @@ use Magma\container\ServiceProviderInterface;
  */
 class AppServiceProvider implements ServiceProviderInterface
 {
+    /**
+     * Registers application-specific services and dependencies into the DI container.
+     *
+     * Execution Flow:
+     * 1. Binds the SystemInfoProviderInterface to its concrete implementation.
+     * 2. Binds the SystemDiagnosticsServiceInterface to SystemDiagnosticsService.
+     *
+     * Logic behind the logic:
+     * - Centralizing these bindings ensures that the container is fully aware of application-specific
+     *   contracts, promoting the Dependency Inversion Principle and making swapping implementations trivial.
+     *
+     * @param Container $container The dependency injection container.
+     * @return void
+     */
     public function register(Container $container): void
     {
         $container->set(SystemInfoProviderInterface::class, function () {

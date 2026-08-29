@@ -26,6 +26,20 @@ use Modules\Reviews\dto\ReviewDTO;
  */
 class ReviewSubmissionService implements ReviewSubmissionServiceInterface
 {
+    /**
+     * Initializes the ReviewSubmissionService.
+     *
+     * Execution Flow:
+     * 1. Injects the SiteReviewCommandInterface and ReviewFactoryInterface.
+     * 2. Binds these dependencies via constructor property promotion to manage review creation and persistence.
+     *
+     * Logic behind the logic:
+     * - Abstract Factory and Repository Patterns: Offloads object creation to a factory and
+     *   persistence to a repository, keeping the service focused on workflow orchestration.
+     *
+     * @param SiteReviewCommandInterface $siteReviewRepository
+     * @param \Modules\Reviews\interfaces\ReviewFactoryInterface $reviewFactory
+     */
     public function __construct(
         private readonly SiteReviewCommandInterface $siteReviewRepository,
         private readonly \Modules\Reviews\interfaces\ReviewFactoryInterface $reviewFactory

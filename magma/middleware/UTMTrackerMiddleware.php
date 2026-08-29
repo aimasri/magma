@@ -25,6 +25,17 @@ class UTMTrackerMiddleware implements MiddlewareInterface
 {
     private \Magma\http\Session $session;
 
+    /**
+     * Initializes the middleware with the required session instance.
+     *
+     * Execution Flow:
+     * 1. Stores the session instance to persist extracted tracking parameters.
+     *
+     * Logic behind the logic:
+     * - Injecting the session explicitly makes testing straightforward and strictly binds the middleware's reliance on the HTTP state to an abstract dependency, respecting Dependency Inversion.
+     *
+     * @param \Magma\http\Session $session The HTTP session instance.
+     */
     public function __construct(\Magma\http\Session $session)
     {
         $this->session = $session;

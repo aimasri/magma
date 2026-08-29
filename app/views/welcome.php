@@ -259,7 +259,7 @@ $serverOs = $diag->serverOs;
                 <a href="/syllabus#module-15-security-big-o-analytics" class="module-card">
                     <div class="module-card__header"><span class="module-card__num">Chapter 15</span><span class="badge badge--neutral">Security</span></div>
                     <h3 class="module-card__title">Security &amp; Big-O Analytics</h3>
-                    <p class="module-card__desc">Pluggable Tenant Contexts, Static AST Boundary Auditing, and O(1) B-Tree Keyset Pagination.</p>
+                    <p class="module-card__desc">Pluggable Tenant Contexts, Cross-Domain SSO Handoff, AST Auditing, and Keyset Pagination.</p>
                 </a>
                 <!-- Chapter 16 -->
                 <a href="/syllabus#module-16-the-lava-hardening-phase-enterprise-quality-control" class="module-card">

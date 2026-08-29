@@ -30,6 +30,20 @@ class S3StorageService implements StorageInterface
 
 
 
+    /**
+     * Initializes the S3 storage service.
+     *
+     * Logic behind the logic:
+     * - Configures the S3 endpoint and falls back to a mock mode when credentials are missing, allowing tests to run smoothly without network calls.
+     *
+     * @param string $bucket
+     * @param string $region
+     * @param string $key
+     * @param string $secret
+     * @param string|null $endpoint
+     * @param string|null $publicBaseUrl
+     * @param bool $mockMode
+     */
     public function __construct(
         string $bucket,
         string $region = 'us-east-1',
@@ -44,6 +58,21 @@ class S3StorageService implements StorageInterface
         $this->mockMode = $mockMode || empty($key) || empty($secret);
     }
 
+    /**
+     * Stores contents into S3 via a HTTP PUT request.
+     *
+     * Execution Flow:
+     * 1. Normalizes the cloud object key.
+     * 2. Checks mock mode and writes to memory if enabled.
+     * 3. Evaluates MIME type and executes a cURL REST PUT request.
+     *
+     * Logic behind the logic:
+     * - Directly utilizing cURL prevents the need for large SDK dependencies while still handling S3 network interactions cleanly.
+     *
+     * @param string $path
+     * @param mixed $contents
+     * @return bool
+     */
     public function put(string $path, mixed $contents): bool
     {
         $normalizedKey = ltrim(str_replace('\\', '/', $path), '/');
@@ -85,6 +114,15 @@ class S3StorageService implements StorageInterface
         return true;
     }
 
+    /**
+     * Retrieves file contents from S3 via HTTP GET.
+     *
+     * Logic behind the logic:
+     * - Relies on simple HTTP fetching, falling back to mock storage for reliable local testing without networking.
+     *
+     * @param string $path
+     * @return string|null
+     */
     public function get(string $path): ?string
     {
         $normalizedKey = ltrim(str_replace('\\', '/', $path), '/');
@@ -113,6 +151,15 @@ class S3StorageService implements StorageInterface
         return ($status === 200 && is_string($res)) ? $res : null;
     }
 
+    /**
+     * Checks if a file exists in S3 via HTTP HEAD.
+     *
+     * Logic behind the logic:
+     * - A HEAD request is explicitly used instead of GET to minimize bandwidth and latency when we only care about existence.
+     *
+     * @param string $path
+     * @return bool
+     */
     public function exists(string $path): bool
     {
         $normalizedKey = ltrim(str_replace('\\', '/', $path), '/');
@@ -142,6 +189,12 @@ class S3StorageService implements StorageInterface
         return $status === 200;
     }
 
+    /**
+     * Deletes a file from S3 via HTTP DELETE.
+     *
+     * @param string $path
+     * @return bool
+     */
     public function delete(string $path): bool
     {
         $normalizedKey = ltrim(str_replace('\\', '/', $path), '/');
@@ -173,6 +226,17 @@ class S3StorageService implements StorageInterface
     }
 
     /**
+     * Stores an uploaded file payload directly to S3.
+     *
+     * Execution Flow:
+     * 1. Validates upload size and extension allowlists.
+     * 2. Generates a randomized cryptographic key to prevent collisions.
+     * 3. Moves the file to temporary local storage to stream its payload.
+     * 4. Pushes the stream to S3 and cleans up the temporary file.
+     *
+     * Logic behind the logic:
+     * - Generating completely random paths protects the platform against enumeration attacks and prevents malicious file execution.
+     *
      * @param \Magma\interfaces\UploadedFileInterface $file
      * @param string $directory
      * @param string[]|null $allowedExtensions
@@ -229,11 +293,23 @@ class S3StorageService implements StorageInterface
         return $key;
     }
 
+    /**
+     * Resolves the public accessible URL for a stored asset.
+     *
+     * @param string $path
+     * @return string
+     */
     public function url(string $path): string
     {
         return $this->publicBaseUrl . '/' . ltrim(str_replace('\\', '/', $path), '/');
     }
 
+    /**
+     * Inspects and returns the binary MIME type of a stored file in S3.
+     *
+     * @param string $path
+     * @return string|null
+     */
     public function mimeType(string $path): ?string
     {
         $content = $this->get($path);
@@ -243,6 +319,12 @@ class S3StorageService implements StorageInterface
         return $this->detectMimeFromContent($content);
     }
 
+    /**
+     * Retrieves the size in bytes of a stored file in S3.
+     *
+     * @param string $path
+     * @return int|null
+     */
     public function size(string $path): ?int
     {
         $content = $this->get($path);
@@ -252,6 +334,15 @@ class S3StorageService implements StorageInterface
         return strlen($content);
     }
 
+    /**
+     * Detects MIME type from raw binary content.
+     *
+     * Logic behind the logic:
+     * - Bypasses client-provided headers and ensures content validity using libmagic.
+     *
+     * @param string $content
+     * @return string|null
+     */
     private function detectMimeFromContent(string $content): ?string
     {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);

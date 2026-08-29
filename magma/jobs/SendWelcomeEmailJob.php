@@ -23,6 +23,12 @@ class SendWelcomeEmailJob implements JobInterface
     private MailerService $mailerService;
     private \Magma\queue\IdempotentProjectionGuard $guard;
 
+    /**
+     * Initializes the SendWelcomeEmailJob.
+     *
+     * @param MailerService $mailerService The mailer service used for sending emails.
+     * @param \Magma\queue\IdempotentProjectionGuard $guard Guard used to ensure idempotency when dispatching.
+     */
     public function __construct(MailerService $mailerService, \Magma\queue\IdempotentProjectionGuard $guard)
     {
         $this->mailerService = $mailerService;
