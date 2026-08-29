@@ -1916,7 +1916,7 @@ Repositories returning large collections do not load the resulting array into me
 
 ### Chapter 15.4: Zero-Trust Cross-Domain SSO Handoff
 
-In a multi-tenant platform where each tenant has its own domain (e.g. `urbansugar.uk` vs `fussybaby.uk`), a critical vulnerability arises if global session cookies leak authentication state across boundaries. 
+In a multi-tenant platform where each tenant has its own domain (e.g. `tenant-a.com` vs `tenant-b.com`), a critical vulnerability arises if global session cookies leak authentication state across boundaries.
 
 Magma solves this natively using **Zero-Trust Cross-Domain SSO**. When the `TenantSecurityMiddleware` detects that a logged-in user does not belong to the active domain's `tenant_id`, it immediately destroys the erroneous session. It then delegates to the `PersistentAuthenticationService` to securely generate a short-lived (60-second) SSO token, resolves the user's correct domain via a read-replica lookup, and seamlessly redirects them to their correct dashboard—achieving multi-tenant isolation without throwing abrasive 403 errors to the user.
 
