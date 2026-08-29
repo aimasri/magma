@@ -41,10 +41,11 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      * Creates a new user record from a UserRegistration domain entity.
      *
      * Execution Flow:
-     * 1. Delegate to insertAndGetId() with table 'users'.
-     * 2. Catch PDOException and translate unique constraint violations (codes '23000'/'23505') 
+     * 1. Retrieve the deterministic current time from the injected ClockInterface.
+     * 2. Delegate to insertAndGetId() with table 'users' and explicit creation/update timestamps.
+     * 3. Catch PDOException and translate unique constraint violations (codes '23000'/'23505') 
      *    into DuplicateResourceException.
-     * 3. Return the generated user ID.
+     * 4. Return the generated user ID.
      *
      * @param UserRegistration $registration
      * @return int
@@ -105,9 +106,10 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      * Provisions an administrator user account idempotently for CLI seeders and bootstrap routines.
      *
      * Execution Flow:
-     * 1. Check if a user with the provided email already exists.
-     * 2. If existing, update the name, password, and role to ensure administrative access, and return existing ID.
-     * 3. If new, insert the administrator record and return the generated ID.
+     * 1. Retrieve the deterministic current time from the injected ClockInterface.
+     * 2. Check if a user with the provided email already exists.
+     * 3. If existing, update the name, password, role, and updated_at to ensure administrative access, and return existing ID.
+     * 4. If new, insert the administrator record including explicit creation timestamps and return the generated ID.
      *
      * @param string $name
      * @param string $email
