@@ -94,7 +94,7 @@ class TenantSecurityMiddleware implements MiddlewareInterface
             if ($authResult->isSuccessful()) {
                 $uri = $request->getUri();
                 $parsedUrl = parse_url($uri);
-                $cleanUrl = ($parsedUrl['scheme'] ?? 'https') . '://' . ($parsedUrl['host'] ?? '') . ($parsedUrl['path'] ?? '/');
+                $cleanUrl = $parsedUrl['path'] ?? '/';
                 
                 $query = $request->query();
                 if (is_array($query)) {
