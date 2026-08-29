@@ -45,7 +45,7 @@ class SuperglobalBanRule implements Rule
     /**
      * @param Variable $node
      * @param Scope $scope
-     * @return array<string>
+     * @return array<\PHPStan\Rules\IdentifierRuleError>
      */
     public function processNode(Node $node, Scope $scope): array
     {
@@ -55,7 +55,9 @@ class SuperglobalBanRule implements Rule
 
         if (isset($this->bannedSuperglobals[$node->name])) {
             return [
-                sprintf('Direct access to superglobal $%s is banned. Use the core HTTP abstractions instead.', $node->name)
+                \PHPStan\Rules\RuleErrorBuilder::message(
+                    sprintf('Direct access to superglobal $%s is banned. Use the core HTTP abstractions instead.', $node->name)
+                )->identifier('magma.superglobal')->build()
             ];
         }
 
