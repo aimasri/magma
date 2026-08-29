@@ -164,7 +164,7 @@ class ErrorHandler implements ErrorHandlerInterface
             if ($e instanceof \Magma\routing\RouteNotFoundException && method_exists($e, 'getAvailableRoutes')) {
                 $routes = $e->getAvailableRoutes();
             }
-            return $this->debugPresenter->presentNotFound($request, $routes);
+            return $this->debugPresenter->presentNotFound($request, $routes, $e);
         }
 
         return $this->renderError(404, "Page Not Found", null, $request);
