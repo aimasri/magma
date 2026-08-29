@@ -104,21 +104,24 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         $container->set(UserCommandInterface::class, function ($c) {
             return new UserCommandRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
+                $c->get(\Magma\security\TenantContext::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
         $container->set(\Magma\interfaces\repositories\RememberTokenRepositoryInterface::class, function ($c) {
             return new RememberTokenRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
+                $c->get(\Magma\security\TenantContext::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
         $container->set(\Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface::class, function ($c) {
             return new PasswordResetTokenRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
+                $c->get(\Magma\security\TenantContext::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
