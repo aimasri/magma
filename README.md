@@ -154,6 +154,7 @@ Before an incoming request reaches a Controller, it passes through the `Pipeline
 The `Router` (`magma/routing/Router.php`) compiles and maps URI patterns to Controller actions.
 
 ### Key Architectural Concepts:
+* **Dynamic Route Discovery Engine:** Dynamically traverses and merges `magma/config/routes.php`, `app/routes.php`, and `modules/*/routes.php` using deterministic `scandir()` resolution. This ensures strict isolation between core framework routes and downstream application routes while maintaining the production OPcache pipeline.
 * **Immutable Route Value Objects:** Numeric route tuple arrays are replaced with strongly-typed, immutable [`Route.php`](./magma/routing/Route.php) and [`RouteDefinition.php`](./magma/routing/RouteDefinition.php) Value Objects (`getMethod()`, `getUri()`, `getHandler()`, `getMiddleware()`, `getName()`).
 * **FastRoute-Style PCRE Compiler:** [`RouteCompiler.php`](./magma/routing/RouteCompiler.php) compiles dynamic route parameter patterns (`/users/{id:\d+}`) into chunked regular expression trees, enabling $O(1)$ route resolution.
 * **OPcache Manifest Pre-Compilation (`bin/cache_routes.php`):** Compiles all application route definitions into an OPcache-cached PHP manifest (`magma/config/routes.cache.php`), eliminating regex compilation overhead on production requests.

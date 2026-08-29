@@ -29,23 +29,17 @@ echo "====================================================\n";
 echo " Magma Framework: Route Manifest Pre-Compiler\n";
 echo "====================================================\n\n";
 
-$routesFile = ROOT_DIR . '/magma/config/routes.php';
 $cacheFile = ROOT_DIR . '/magma/config/routes.cache.php';
 
-if (!file_exists($routesFile)) {
-    fwrite(STDERR, "Error: Routes configuration file not found at [{$routesFile}].\n");
-    exit(1);
-}
+echo "Discovering route definitions dynamically...\n";
 
 /** @var array $rawRoutes */
-$rawRoutes = require $routesFile;
+$rawRoutes = \Magma\routing\RouteDiscoveryEngine::discoverRoutes();
 
 if (!is_array($rawRoutes)) {
-    fwrite(STDERR, "Error: Routes configuration file must return an array.\n");
+    fwrite(STDERR, "Error: Routes discovery engine must return an array.\n");
     exit(1);
 }
-
-echo "Discovering route definitions from: {$routesFile}\n";
 
 $collection = new RouteCollection($rawRoutes);
 $allRoutes = $collection->all();

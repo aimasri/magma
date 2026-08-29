@@ -1129,6 +1129,26 @@ Instead of checking routes one by one, Magma compiles all registered routes into
 <strong class="alert-tag">Tip:</strong><br>
 <strong>Performance Note:</strong> If you add a new route, you MUST run <code>php bin/cache_routes.php</code>. Because Magma reads from the compiled cache rather than the raw file, this ensures absolute maximum performance in production environments.<br>
 </blockquote>
+<h3>Chapter 4.5: The Dynamic Route Discovery Engine</h3>
+<p>
+As applications scale, dumping hundreds of application routes alongside core framework routes inside <code>magma/config/routes.php</code> creates severe architectural pollution. The framework's core configuration files should be treated as pristine, untouched infrastructure, completely agnostic of the downstream application's features (e.g. <code>HomeController</code> or <code>ReviewController</code>).
+</p>
+<p>
+To solve this, Magma implements the <strong>Dynamic Route Discovery Engine</strong>. Instead of hardcoding all application logic into a single central file, the engine dynamically discovers, loads, and merges routes from across the project:
+</p>
+<ol class="syllabus-list">
+<li><strong>Core Framework Routes:</strong> (<code>magma/config/routes.php</code>) - e.g., default authentication scaffolding or health checks.</li>
+<li><strong>Application Routes:</strong> (<code>app/routes.php</code>) - Primary downstream app controllers.</li>
+<li><strong>Module Routes:</strong> (<code>modules/*/routes.php</code>) - Discovering fully decoupled module routes via deterministic <code>scandir()</code> traversal.</li>
+</ol>
+<p>
+<strong>Why <code>scandir()</code> instead of <code>glob()</code>?</strong>
+<br>
+In enterprise systems, functions like <code>glob()</code> can behave inconsistently across different OS environments or specific filesystem configurations. By utilizing standard <code>scandir()</code> loops, Magma ensures highly predictable, cross-platform deterministic directory traversals.
+</p>
+<p>
+Crucially, because this Route Discovery Engine executes _before_ the O(1) Route Compiler runs (<code>bin/cache_routes.php</code>), the dynamic discovery overhead never impacts HTTP runtime. In production, the application still executes against the lightning-fast <code>routes.cache.php</code> manifest!
+</p>
 </div>
 <div class="chapter-module" id="module-5-controllers-services-the-business-logic"><h2 class="chapter-title">Module 5: Controllers & Services (The Business Logic)</h2>
 <h3>Chapter 5.1: The Controller - The Traffic Cop (Redux)</h3>

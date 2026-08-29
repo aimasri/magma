@@ -965,6 +965,21 @@ Instead of checking routes one by one, Magma compiles all registered routes into
 
 > [!TIP]
 > **Performance Note:** If you add a new route, you MUST run `php bin/cache_routes.php`. Because Magma reads from the compiled cache rather than the raw file, this ensures absolute maximum performance in production environments.
+
+### Chapter 4.5: The Dynamic Route Discovery Engine
+
+As applications scale, dumping hundreds of application routes alongside core framework routes inside `magma/config/routes.php` creates severe architectural pollution. The framework's core configuration files should be treated as pristine, untouched infrastructure, completely agnostic of the downstream application's features (e.g. `HomeController` or `ReviewController`).
+
+To solve this, Magma implements the **Dynamic Route Discovery Engine**. Instead of hardcoding all application logic into a single central file, the engine dynamically discovers, loads, and merges routes from across the project:
+1. **Core Framework Routes:** (`magma/config/routes.php`) - e.g., default authentication scaffolding or health checks.
+2. **Application Routes:** (`app/routes.php`) - Primary downstream app controllers.
+3. **Module Routes:** (`modules/*/routes.php`) - Discovering fully decoupled module routes via deterministic `scandir()` traversal.
+
+**Why `scandir()` instead of `glob()`?**
+In enterprise systems, functions like `glob()` can behave inconsistently across different OS environments or specific filesystem configurations. By utilizing standard `scandir()` loops, Magma ensures highly predictable, cross-platform deterministic directory traversals. 
+
+Crucially, because this Route Discovery Engine executes _before_ the O(1) Route Compiler runs (`bin/cache_routes.php`), the dynamic discovery overhead never impacts HTTP runtime. In production, the application still executes against the lightning-fast `routes.cache.php` manifest!
+
 ## Module 5: Controllers & Services (The Business Logic)
 
 ### Chapter 5.1: The Controller - The Traffic Cop (Redux)
