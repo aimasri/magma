@@ -175,7 +175,7 @@ class ErrorHandler implements ErrorHandlerInterface
      *
      * Execution Flow:
      * 1. Clears all active output buffering layers.
-     * 2. Inspects exception type: handles `ValidationException` (422 status).
+     * 2. Inspects exception type: handles `ValidationException` (422 status). Logs the error, returns JSON if expected, or flashes errors and old input to the session and redirects to the referer.
      * 3. Logs detailed exception message and stack trace to server error logs.
      * 4. Normalizes HTTP status code (400-599, defaulting to 500).
      * 5. If client expects JSON or request is `/api/*`, delegates to `JsonErrorPresenter`.
@@ -209,6 +209,18 @@ class ErrorHandler implements ErrorHandlerInterface
 
             if ($isJson) {
                 return $this->jsonPresenter->presentValidation($e->getErrors(), $message);
+            }
+
+            if ($this->container !== null && $this->container->has(\Magma\http\SessionInterface::class)) {
+                /** @var \Magma\http\SessionInterface $session */
+                $session = $this->container->get(\Magma\http\SessionInterface::class);
+                $session->set('errors', $e->getErrors());
+                if ($request !== null) {
+                    $session->set('old', $request->request());
+                }
+
+                $referer = $request !== null ? $request->server('HTTP_REFERER', '/') : '/';
+                return new \Magma\http\RedirectResponse((string) $referer);
             }
 
             if ($this->debug) {
