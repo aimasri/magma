@@ -35,7 +35,7 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      *
      * Execution Flow:
      * 1. Prepares an INSERT statement for the user_tokens table with type 'remember_me'.
-     * 2. Binds the user ID, public selector, hashed validator, and expiration time.
+     * 2. Binds the user ID, public selector, hashed validator, expiration time, and explicitly injects created_at via ClockInterface.
      * 3. Executes the query on the write database connection.
      *
      * Logic behind the logic:

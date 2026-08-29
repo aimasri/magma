@@ -35,7 +35,7 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      *
      * Execution Flow:
      * 1. Prepares an INSERT statement targeting the user_tokens table.
-     * 2. Binds the user ID, the securely hashed token, and its expiration timestamp.
+     * 2. Binds the user ID, the securely hashed token, its expiration timestamp, and explicitly injects created_at via ClockInterface.
      * 3. Executes the statement on the write connection.
      *
      * Logic behind the logic:
