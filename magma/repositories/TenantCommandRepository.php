@@ -32,7 +32,7 @@ class TenantCommandRepository extends AbstractCommandRepository implements Tenan
 
     public function create(\Magma\dto\TenantDTO $tenantDTO): bool
     {
-        $bindings = [
+        $id = $this->insertAndGetId('tenants', [
             'name' => $tenantDTO->name,
             'tagline' => $tenantDTO->tagline,
             'email' => $tenantDTO->email,
@@ -41,24 +41,13 @@ class TenantCommandRepository extends AbstractCommandRepository implements Tenan
             'billing_cycle_anchor' => $tenantDTO->billing_cycle_anchor,
             'payment_gateway_customer_id' => $tenantDTO->payment_gateway_customer_id,
             'theme_settings' => json_encode($tenantDTO->theme_settings),
-        ];
-
-        $fields = array_keys($bindings);
-        $placeholders = array_map(fn($f) => ":$f", $fields);
-
-        $sql = sprintf(
-            "INSERT INTO tenants (%s) VALUES (%s)",
-            implode(', ', $fields),
-            implode(', ', $placeholders)
-        );
-
-        $stmt = $this->getDb()->prepare($sql);
-        return $stmt->execute($bindings);
+        ]);
+        return $id > 0;
     }
 
     public function update(int $id, \Magma\dto\TenantDTO $tenantDTO): bool
     {
-        $bindings = [
+        $affected = $this->executeUpdate('tenants', [
             'name' => $tenantDTO->name,
             'tagline' => $tenantDTO->tagline,
             'email' => $tenantDTO->email,
@@ -67,29 +56,13 @@ class TenantCommandRepository extends AbstractCommandRepository implements Tenan
             'billing_cycle_anchor' => $tenantDTO->billing_cycle_anchor,
             'payment_gateway_customer_id' => $tenantDTO->payment_gateway_customer_id,
             'theme_settings' => json_encode($tenantDTO->theme_settings),
-        ];
-
-        $setClauses = [];
-        foreach (array_keys($bindings) as $column) {
-            $setClauses[] = "$column = :$column";
-        }
-
-        $bindings['id'] = $id;
-
-        $sql = sprintf(
-            "UPDATE tenants SET %s WHERE id = :id",
-            implode(', ', $setClauses)
-        );
-
-        $stmt = $this->getDb()->prepare($sql);
-        return $stmt->execute($bindings);
+        ], '"id" = :id', [':id' => $id]);
+        return $affected > 0;
     }
 
     public function delete(int $id): bool
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM tenants WHERE id = :id");
-        return $stmt->execute([
-            'id' => $id
-        ]);
+        $affected = $this->executeDelete('tenants', '"id" = :id', [':id' => $id]);
+        return $affected > 0;
     }
 }

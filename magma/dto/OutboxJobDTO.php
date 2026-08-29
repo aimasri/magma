@@ -25,6 +25,7 @@ class OutboxJobDTO
         public readonly string $queue,
         public readonly string $handlerClass,
         public readonly array $payload,
-        public readonly array $headers = []
+        public readonly array $headers = [],
+        public readonly ?int $tenantId = null
     ) {}
 }

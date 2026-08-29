@@ -14,6 +14,7 @@
 
 CREATE TABLE IF NOT EXISTS site_reviews (
     id SERIAL PRIMARY KEY,
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     author VARCHAR(255) NOT NULL,
     comment TEXT NOT NULL,
     rating INTEGER CHECK (rating >= 1 AND rating <= 5),
@@ -23,5 +24,5 @@ CREATE TABLE IF NOT EXISTS site_reviews (
 
 -- Section: Indexes
 
-CREATE INDEX IF NOT EXISTS idx_reviews_status_id ON site_reviews(status, id DESC);
+CREATE INDEX IF NOT EXISTS idx_site_reviews_tenant_status ON site_reviews(tenant_id, status, id DESC);
 CREATE INDEX IF NOT EXISTS idx_reviews_pending_created ON site_reviews(created_at DESC) WHERE status = 'pending';

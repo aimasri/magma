@@ -40,15 +40,13 @@ class SiteReviewCommandRepository extends AbstractCommandRepository implements S
      */
     public function addReview(Review $review): bool
     {
-        $sql = 'INSERT INTO "' . self::TABLE_NAME . '" ("tenant_id", "author", "comment", "rating", "status", "created_at") '
-             . 'VALUES (:tenant_id, :author, :comment, :rating, :status, NOW()) RETURNING "id"';
-        
-        $id = $this->insertAndGetId($sql, [
+        $id = $this->insertAndGetId(self::TABLE_NAME, [
             'tenant_id' => $review->getTenantId(),
             'author'  => $review->getAuthor(),
             'comment' => $review->getComment(),
             'rating'  => $review->getRating(),
-            'status'  => $review->getStatus()
+            'status'  => $review->getStatus(),
+            'created_at' => date('Y-m-d H:i:s')
         ]);
         
         return $id > 0;
