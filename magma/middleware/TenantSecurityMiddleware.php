@@ -129,7 +129,16 @@ class TenantSecurityMiddleware implements MiddlewareInterface
                         if ($correctDomain !== null) {
                             $ssoData = $this->authService->issueSsoToken($user->getId());
                             $this->authService->logout();
-                            $redirectUrl = "https://{$correctDomain}/admin?sso=" . urlencode($ssoData['token']);
+                            $path = $request->getPath();
+                            $query = $request->query();
+                            if (!is_array($query)) {
+                                $query = [];
+                            }
+                            $query['sso'] = $ssoData['token'];
+                            $queryString = http_build_query($query);
+                            $scheme = $request->isSecure() ? 'https' : 'http';
+                            
+                            $redirectUrl = "{$scheme}://{$correctDomain}{$path}?{$queryString}";
                             return new Response('', 302, ['Location' => $redirectUrl]);
                         }
                     }
