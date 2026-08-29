@@ -50,8 +50,8 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function saveRememberToken(int $userId, string $selector, string $hashedValidator, string $expiresAt): void
     {
-        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, selector, token_hash, expires_at) VALUES (?, 'remember_me', ?, ?, ?)");
-        $stmt->execute([$userId, $selector, $hashedValidator, $expiresAt]);
+        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, selector, token_hash, expires_at, created_at) VALUES (?, 'remember_me', ?, ?, ?, ?)");
+        $stmt->execute([$userId, $selector, $hashedValidator, $expiresAt, $this->clock->now()->format('Y-m-d H:i:s')]);
     }
 
     /**

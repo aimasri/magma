@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
     tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
     role VARCHAR(50) DEFAULT 'user',
     password_changed_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS user_tokens (
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS user_tokens (
     selector CHAR(24) UNIQUE,  -- Used only by 'remember_me'
     token_hash VARCHAR(255) NOT NULL, -- Stores the hashed validator or reset token
     expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL
 );
 
 -- Section: 2. Subscriptions & Feature Flags
@@ -140,9 +140,5 @@ CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_tenant ON projection_check
 
 -- Section: Triggers
 
-DROP TRIGGER IF EXISTS set_users_updated_at ON users;
-CREATE TRIGGER set_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
-
 DROP TRIGGER IF EXISTS set_tenants_updated_at ON tenants;
 CREATE TRIGGER set_tenants_updated_at BEFORE UPDATE ON tenants FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
-
