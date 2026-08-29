@@ -46,5 +46,5 @@ interface ErrorHandlerInterface
      * @param RequestInterface|null $request Optional request for content-negotiation.
      * @return Response
      */
-    public function renderNotFound(?RequestInterface $request = null): Response;
+    public function renderNotFound(?RequestInterface $request = null, ?\Throwable $e = null): Response;
 }
