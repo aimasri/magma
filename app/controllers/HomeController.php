@@ -43,7 +43,7 @@ class HomeController
         return $html->render('welcome', [
             'title'       => \App\constants\AppConstants::HOME_TITLE,
             'diagnostics' => $diagnostics,
-        ], null);
+        ]);
     }
 
     /**
@@ -56,6 +56,6 @@ class HomeController
     ): \Magma\http\Response {
         return $html->render('syllabus', [
             'title' => \App\constants\AppConstants::SYLLABUS_TITLE
-        ], null);
+        ]);
     }
 }

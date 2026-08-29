@@ -4,7 +4,7 @@
  *
  * Purpose:
  * - Beautifully renders the comprehensive developer syllabus and architecture dashboard for the Magma framework.
- * - Extracts and presents all 12 core architectural modules and engineering philosophies from README.md in a highly structured layout.
+ * - Extracts and presents all 16 core architectural modules and engineering philosophies from README.md in a highly structured layout.
  * - Perfectly matches the visual design system, dark canvas, and typography of the developer diagnostic viewer.
  *
  * Teaching notes:
@@ -159,7 +159,7 @@ $serverOs = $diag->serverOs;
             </script>
         </section>
 
-        <!-- 12-Module Architectural Syllabus (Direct from README.md) -->
+        <!-- 16-Module Architectural Syllabus (Direct from README.md) -->
         <section id="modules">
             <div class="section-header">
                 <h2 class="section-header__title">Architectural syllabus & module catalog</h2>
@@ -211,7 +211,7 @@ $serverOs = $diag->serverOs;
                 <a href="/syllabus#module-7-views-and-the-template-engine" class="module-card">
                     <div class="module-card__header"><span class="module-card__num">Chapter 07</span><span class="badge badge--neutral">UI</span></div>
                     <h3 class="module-card__title">Views and the Template Engine</h3>
-                    <p class="module-card__desc">Logic-less views, multi-directory fallback, resolution caching, and O(N) DOM interpolation.</p>
+                    <p class="module-card__desc">Logic-less views, explicit multi-tenant layouts, resolution caching, and O(N) DOM interpolation.</p>
                 </a>
                 <!-- Chapter 08 -->
                 <a href="/syllabus#module-8-error-handling-logging" class="module-card">
