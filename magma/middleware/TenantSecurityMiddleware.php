@@ -141,7 +141,11 @@ class TenantSecurityMiddleware implements MiddlewareInterface
                             $scheme = $request->isSecure() ? 'https' : 'http';
                             
                             $redirectUrl = "{$scheme}://{$correctDomain}{$path}?{$queryString}";
-                            return new Response('', 302, ['Location' => $redirectUrl]);
+                            $html = sprintf(
+                                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=%1$s"></head><body><script>window.location.href="%1$s";</script></body></html>',
+                                htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8')
+                            );
+                            return new Response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
                         }
                     }
                 }
