@@ -200,11 +200,11 @@ class TemplateEngine
      *
      * @param string $template The view file name or namespaced identifier (e.g., 'welcome' or 'Services::index').
      * @param array<string, mixed> $data Variables to pass to the view.
-     * @param string|null $layout The layout wrapper template name (defaults to 'default', null for standalone).
+     * @param string|null $layout The layout wrapper template name (defaults to null for standalone).
      * @return string The rendered HTML markup.
      * @throws \RuntimeException If the view or layout file cannot be found.
      */
-    public function render(string $template, array $data = [], ?string $layout = 'default'): string
+    public function render(string $template, array $data = [], ?string $layout = null): string
     {
         $data = array_merge($this->sharedData, $data);
         $data['engine'] = $this;

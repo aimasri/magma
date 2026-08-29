@@ -50,7 +50,7 @@ class HtmlResponseBuilder implements HtmlResponseBuilderInterface
      * @param string|null $layout Layout wrapper
      * @return Response
      */
-    public function render(string $template, array $data = [], ?string $layout = 'default'): Response
+    public function render(string $template, array $data = [], ?string $layout = null): Response
     {
         $data['csrfField'] = $this->csrfManager->csrfField();
         $data['csrfToken'] = $this->csrfManager->getToken();
