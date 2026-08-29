@@ -1727,7 +1727,17 @@ Magma's <code>TemplateEngine</code> intelligently falls back across these direct
 <p>
 To prevent this, the resolution paths are cached in-memory. The engine guarantees that the disk is only queried once per layout or partial per request lifecycle.
 </p>
-<h3>Chapter 7.3: Big-O DOM Interpolation Optimization</h3>
+<p>
+Furthermore, to support fully decoupled, multi-tenant components without relying on legacy assumptions, Magma forces explicit layout rendering. The framework does not default to searching for a <code>&#039;default&#039;</code> layout wrapper; components render completely standalone unless a layout is specifically requested in the controller.
+</p>
+<h3>Chapter 7.3: Native PHP Stacks for Modular Assets</h3>
+<p>
+Large applications require child views to inject their own specific assets (like unique CSS files or JavaScript modules) up into the master layout's <code>&lt;head&gt;</code> or before the closing <code>&lt;/body&gt;</code> tag.
+</p>
+<p>
+Magma's <code>TemplateEngine</code> provides native PHP stacks (similar to Laravel's <code>@push</code> and <code>@stack</code>) using <code>push(string $name)</code> and <code>stack(string $name)</code>. This uses nested output buffering to seamlessly capture and bubble these modular assets up to the master layout without polluting global variables.
+</p>
+<h3>Chapter 7.4: Big-O DOM Interpolation Optimization</h3>
 <p>
 When parsing highly nested templates or loops, standard DOM interpolation suffers from O(N*M) Big-O time complexity as the engine redundantly scans child nodes.
 </p>

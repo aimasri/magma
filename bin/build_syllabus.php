@@ -239,7 +239,7 @@ $curated = [
     4 => ['cat' => 'Network', 'desc' => 'O(1) PCRE Regex compiled routing, the Middleware Onion architecture, and dual-mode compatibility.'],
     5 => ['cat' => 'Logic', 'desc' => 'Declarative FormRequests, method injection, and enforcing the "Traffic Cop" rules for thin controllers.'],
     6 => ['cat' => 'Database', 'desc' => 'The Repository Pattern, strict CQRS segregation, SERIALIZABLE ACID compliance, and the LSP firewall.'],
-    7 => ['cat' => 'UI', 'desc' => 'Logic-less views, multi-directory fallback, resolution caching, and O(N) DOM interpolation.'],
+    7 => ['cat' => 'UI', 'desc' => 'Logic-less views, explicit layouts, native PHP stacks, and O(N) DOM interpolation.'],
     8 => ['cat' => 'Diagnostics', 'desc' => 'Catching everything gracefully, logging infrastructure, and the Interactive Diagnostics Boundary.'],
     9 => ['cat' => 'Data', 'desc' => 'Crossing boundaries safely and Engine-Enforced Immutability via PHP 8.2 readonly modifiers.'],
     10 => ['cat' => 'Domain', 'desc' => 'Transaction scripts vs rich models, and enforcing 100% pure domain entities with zero framework coupling.'],
