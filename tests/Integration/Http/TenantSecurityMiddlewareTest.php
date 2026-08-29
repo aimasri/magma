@@ -27,6 +27,11 @@ class TenantSecurityMiddlewareTest extends HttpIntegrationTestCase
             {
                 return 10;
             }
+
+            public function resolveDomainByTenantId(int $tenantId, ?string $currentHost = null): ?string
+            {
+                return null;
+            }
         };
 
         // Register the middleware with our custom provider
