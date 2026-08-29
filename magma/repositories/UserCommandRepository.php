@@ -54,10 +54,13 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
     public function create(UserRegistration $registration): int
     {
         try {
+            $now = $this->clock->now()->format('Y-m-d H:i:s');
             return $this->insertAndGetId('users', [
                 'name' => $registration->getName(),
                 'email' => $registration->getEmail(),
                 'password' => $registration->getHashedPassword(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
         } catch (PDOException $e) {
             $code = (string) $e->getCode();
@@ -114,8 +117,9 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function provisionAdminUser(string $name, string $email, string $hashedPassword, string $role = 'admin'): int
     {
-        $sql = "INSERT INTO \"users\" (\"name\", \"email\", \"password\", \"role\") 
-                VALUES (:name, :email, :password, :role) 
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $sql = "INSERT INTO \"users\" (\"name\", \"email\", \"password\", \"role\", \"created_at\", \"updated_at\") 
+                VALUES (:name, :email, :password, :role, :now, :now) 
                 ON CONFLICT (\"email\") DO UPDATE 
                 SET \"name\" = EXCLUDED.\"name\", 
                     \"password\" = EXCLUDED.\"password\", 
@@ -129,7 +133,7 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
             'email' => $email,
             'password' => $hashedPassword,
             'role' => $role,
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'now' => $now,
         ]);
         
         return (int) $stmt->fetchColumn();

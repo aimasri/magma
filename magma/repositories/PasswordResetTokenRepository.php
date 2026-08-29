@@ -48,8 +48,8 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function createPasswordResetToken(int $userId, \Magma\domain\PasswordResetToken $token): void
     {
-        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, token_hash, expires_at) VALUES (?, 'password_reset', ?, ?)");
-        $stmt->execute([$userId, $token->getHashedToken(), $token->getExpiresAt()]);
+        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, token_hash, expires_at, created_at) VALUES (?, 'password_reset', ?, ?, ?)");
+        $stmt->execute([$userId, $token->getHashedToken(), $token->getExpiresAt(), $this->clock->now()->format('Y-m-d H:i:s')]);
     }
 
     /**
