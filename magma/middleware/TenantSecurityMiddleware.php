@@ -87,6 +87,37 @@ class TenantSecurityMiddleware implements MiddlewareInterface
             }
         }
 
+        // Consume incoming SSO token if present
+        $ssoToken = $request->query('sso');
+        if (is_string($ssoToken) && $this->authService !== null) {
+            $authResult = $this->authService->attemptAutoLogin($ssoToken);
+            if ($authResult->isSuccessful()) {
+                $uri = $request->getUri();
+                $parsedUrl = parse_url($uri);
+                $cleanUrl = ($parsedUrl['scheme'] ?? 'https') . '://' . ($parsedUrl['host'] ?? '') . ($parsedUrl['path'] ?? '/');
+                
+                $query = $request->query();
+                if (is_array($query)) {
+                    unset($query['sso']);
+                    if (!empty($query)) {
+                        $cleanUrl .= '?' . http_build_query($query);
+                    }
+                }
+
+                $response = new Response('', 302, ['Location' => $cleanUrl]);
+                
+                foreach ($authResult->getCookiesToSet() as $cookieData) {
+                    $response->withCookie(
+                        $cookieData['name'],
+                        $cookieData['value'],
+                        $cookieData['expiry']
+                    );
+                }
+                
+                return $response;
+            }
+        }
+
         // Cross-domain mismatch check & SSO redirect
         if ($this->tenantContext->hasTenantId() && $this->authService !== null) {
             $user = $this->authService->getAuthenticatedUser();
