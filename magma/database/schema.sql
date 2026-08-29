@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS countries (
 
 CREATE TABLE IF NOT EXISTS outbox_jobs (
     id BIGSERIAL PRIMARY KEY,
+    tenant_id INTEGER,
     queue VARCHAR(255) NOT NULL,
     handler VARCHAR(255) NOT NULL,
     payload JSONB NOT NULL,
@@ -133,6 +134,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tokens_lookup ON user_tokens(type, expires_a
 CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash) WHERE type = 'password_reset';
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_tenant ON projection_checkpoints(tenant_id);
 
 -- Section: Triggers

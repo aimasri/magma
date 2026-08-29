@@ -69,7 +69,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
              . '    ORDER BY "id" ASC '
              . '    LIMIT :limit '
              . '    FOR UPDATE SKIP LOCKED'
-             . ') RETURNING "id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
+             . ') RETURNING "id", "tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
 
         try {
             $stmt = $pdo->prepare($sql);
@@ -91,6 +91,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 
             $results[] = [
                 'id' => (int) $row['id'],
+                'tenant_id' => isset($row['tenant_id']) ? (int) $row['tenant_id'] : null,
                 'queue' => (string) $row['queue'],
                 'handler' => (string) $row['handler'],
                 'payload' => is_array($payload) ? $payload : [],
@@ -156,11 +157,12 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $pdo = $this->dbManager->getWriteConnection();
 
-        $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") '
-             . 'VALUES (:queue, :handler, :payload, :headers, 0, NOW()) RETURNING "id"';
+        $sql = 'INSERT INTO "outbox_jobs" ("tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at") '
+             . 'VALUES (:tenant_id, :queue, :handler, :payload, :headers, 0, NOW()) RETURNING "id"';
 
         try {
             $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':tenant_id', $job->tenantId !== null ? $job->tenantId : null, PDO::PARAM_INT);
             $stmt->bindValue(':queue', trim($job->queue));
             $stmt->bindValue(':handler', trim($job->handlerClass));
             $stmt->bindValue(':payload', json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
@@ -190,22 +192,27 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 
             $chunks = array_chunk($jobs, 1000);
             foreach ($chunks as $chunk) {
-                $placeholders = implode(',', array_fill(0, count($chunk), '(?, ?, ?, ?, 0, NOW())'));
-                $sql = 'INSERT INTO "outbox_jobs" ("queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . $placeholders;
+                $placeholders = [];
+                $bindings = [];
 
-                $stmt = $pdo->prepare($sql);
-                
-                $i = 1;
-                /** @var \Magma\dto\OutboxJobDTO $job */
+                $i = 0;
                 foreach ($chunk as $job) {
-                    $stmt->bindValue($i++, trim($job->queue));
-                    $stmt->bindValue($i++, trim($job->handlerClass));
-                    $stmt->bindValue($i++, json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-                    $stmt->bindValue($i++, json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+                    $placeholders[] = "(:tenant_id_{$i}, :queue_{$i}, :handler_{$i}, :payload_{$i}, :headers_{$i}, 0, NOW())";
+                    
+                    $bindings[":tenant_id_{$i}"] = $job->tenantId !== null ? $job->tenantId : null;
+                    $bindings[":queue_{$i}"] = trim($job->queue);
+                    $bindings[":handler_{$i}"] = trim($job->handlerClass);
+                    $bindings[":payload_{$i}"] = json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+                    $bindings[":headers_{$i}"] = json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+                    
+                    $i++;
                 }
 
+                $sql = 'INSERT INTO "outbox_jobs" ("tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at") VALUES ' . implode(',', $placeholders);
+                $stmt = $pdo->prepare($sql);
+
                 try {
-                    $stmt->execute();
+                    $stmt->execute($bindings);
                 } catch (\PDOException $e) {
                     throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox bulk record failed.", 0, $e);
                 }

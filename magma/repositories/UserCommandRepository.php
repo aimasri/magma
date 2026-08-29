@@ -104,24 +104,23 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function provisionAdminUser(string $name, string $email, string $hashedPassword, string $role = 'admin'): int
     {
-        $stmt = $this->getDb()->prepare("SELECT \"id\" FROM \"users\" WHERE \"email\" = ?");
-        $stmt->execute([$email]);
-        $existingId = $stmt->fetchColumn();
-
-        if ($existingId !== false && $existingId !== null) {
-            $userId = (int) $existingId;
-            $updateStmt = $this->getDb()->prepare(
-                "UPDATE \"users\" SET \"name\" = ?, \"password\" = ?, \"role\" = ?, \"updated_at\" = NOW() WHERE \"id\" = ?"
-            );
-            $updateStmt->execute([$name, $hashedPassword, $role, $userId]);
-            return $userId;
-        }
-
-        return $this->insertAndGetId('users', [
+        $sql = "INSERT INTO \"users\" (\"name\", \"email\", \"password\", \"role\") 
+                VALUES (:name, :email, :password, :role) 
+                ON CONFLICT (\"email\") DO UPDATE 
+                SET \"name\" = EXCLUDED.\"name\", 
+                    \"password\" = EXCLUDED.\"password\", 
+                    \"role\" = EXCLUDED.\"role\", 
+                    \"updated_at\" = NOW() 
+                RETURNING \"id\"";
+                
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute([
             'name' => $name,
             'email' => $email,
             'password' => $hashedPassword,
             'role' => $role,
         ]);
+        
+        return (int) $stmt->fetchColumn();
     }
 }
