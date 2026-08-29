@@ -1503,6 +1503,8 @@ Magma's `TemplateEngine` intelligently falls back across these directories to re
 
 To prevent this, the resolution paths are cached in-memory. The engine guarantees that the disk is only queried once per layout or partial per request lifecycle.
 
+Furthermore, to support fully decoupled, multi-tenant components without relying on legacy assumptions, Magma forces explicit layout rendering. The framework does not default to searching for a `'default'` layout wrapper; components render completely standalone unless a layout is specifically requested in the controller.
+
 ### Chapter 7.3: Big-O DOM Interpolation Optimization
 
 When parsing highly nested templates or loops, standard DOM interpolation suffers from O(N*M) Big-O time complexity as the engine redundantly scans child nodes. 
