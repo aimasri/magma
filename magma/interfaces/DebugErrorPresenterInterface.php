@@ -43,7 +43,8 @@ interface DebugErrorPresenterInterface
      *
      * @param RequestInterface|null $request The HTTP request context (optional).
      * @param array<int|string, mixed> $availableRoutes An array of registered routes to display as suggestions.
+     * @param Throwable|null $e The underlying exception (optional).
      * @return Response
      */
-    public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = []): Response;
+    public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = [], ?Throwable $e = null): Response;
 }

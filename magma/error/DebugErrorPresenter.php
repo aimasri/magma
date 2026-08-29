@@ -130,7 +130,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
      * @param array<int|string, mixed> $availableRoutes
      * @return Response
      */
-    public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = []): Response
+    public function presentNotFound(?RequestInterface $request = null, array $availableRoutes = [], ?Throwable $e = null): Response
     {
         $requestData = self::gatherRequestContext($request);
         $environmentData = self::gatherEnvironmentMetrics();
@@ -139,22 +139,34 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         $path = $request !== null ? $request->getPath() : '/';
         $method = $request !== null ? $request->getMethod() : 'GET';
 
-        // Generate a stack trace to show execution context
-        $dummyException = new \Exception("Route not found for path: {$path}");
-        $frames = self::formatTraceFrames($dummyException);
-        array_shift($frames); // Remove the DebugErrorPresenter wrapper frame
-        $codeSnippet = self::extractCodeSnippet($dummyException->getFile(), $dummyException->getLine());
+        if ($e !== null) {
+            $frames = self::formatTraceFrames($e);
+            $codeSnippet = self::extractCodeSnippet($e->getFile(), $e->getLine());
+            $rawTrace = $e->getTraceAsString();
+            $file = $e->getFile();
+            $line = $e->getLine();
+            $message = $e->getMessage();
+            $exceptionClass = basename(str_replace('\\', '/', get_class($e)));
+        } else {
+            $frames = [];
+            $codeSnippet = [];
+            $rawTrace = '';
+            $file = 'Magma/routing/Router.php';
+            $line = 101;
+            $message = "Route not found for path: {$path}";
+            $exceptionClass = 'RouteNotFoundException';
+        }
 
         $html = self::renderHtml([
             'mode'            => 'not_found',
             'statusCode'      => 404,
-            'exceptionClass'  => 'RouteNotFoundException',
-            'message'         => "No matching route found for [{$method}] '{$path}'",
-            'file'            => 'magma/routing/Router.php',
-            'line'            => 101,
+            'exceptionClass'  => $exceptionClass,
+            'message'         => $message,
+            'file'            => $file,
+            'line'            => $line,
             'codeSnippet'     => $codeSnippet,
             'frames'          => $frames,
-            'rawTrace'        => $dummyException->getTraceAsString(),
+            'rawTrace'        => $rawTrace,
             'availableRoutes' => $formattedRoutes,
             'requestData'     => $requestData,
             'environmentData' => $environmentData,
