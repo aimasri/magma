@@ -33,5 +33,5 @@ interface HtmlResponseBuilderInterface
      * @param string|null $layout Layout wrapper
      * @return Response
      */
-    public function render(string $template, array $data = [], ?string $layout = 'default'): Response;
+    public function render(string $template, array $data = [], ?string $layout = null): Response;
 }
