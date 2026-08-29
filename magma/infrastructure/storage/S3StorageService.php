@@ -22,7 +22,6 @@ use RuntimeException;
  */
 class S3StorageService implements StorageInterface
 {
-    private string $bucket;
     private string $endpoint;
     private string $publicBaseUrl;
     /** @var array<string, string> In-memory simulated storage for tests */
@@ -40,7 +39,6 @@ class S3StorageService implements StorageInterface
         ?string $publicBaseUrl = null,
         bool $mockMode = false
     ) {
-        $this->bucket = $bucket;
         $this->endpoint = $endpoint ?? "https://{$bucket}.s3.{$region}.amazonaws.com";
         $this->publicBaseUrl = $publicBaseUrl ?? rtrim($this->endpoint, '/');
         $this->mockMode = $mockMode || empty($key) || empty($secret);
