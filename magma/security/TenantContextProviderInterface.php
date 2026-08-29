@@ -41,7 +41,8 @@ interface TenantContextProviderInterface
      * Resolves the primary domain for a given tenant ID.
      *
      * @param int $tenantId
+     * @param string|null $currentHost
      * @return string|null
      */
-    public function resolveDomainByTenantId(int $tenantId): ?string;
+    public function resolveDomainByTenantId(int $tenantId, ?string $currentHost = null): ?string;
 }

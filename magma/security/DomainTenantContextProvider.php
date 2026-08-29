@@ -94,17 +94,35 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
      * @param int $tenantId
      * @return string|null
      */
-    public function resolveDomainByTenantId(int $tenantId): ?string
+    public function resolveDomainByTenantId(int $tenantId, ?string $currentHost = null): ?string
     {
         try {
             $db = $this->dbManager->getReadConnection();
-            $sql = "SELECT domain FROM tenant_domains WHERE tenant_id = :tenant_id LIMIT 1";
+            $sql = "SELECT domain FROM tenant_domains WHERE tenant_id = :tenant_id";
             $stmt = $db->prepare($sql);
             $stmt->execute(['tenant_id' => $tenantId]);
             
-            $result = $stmt->fetchColumn();
+            $domains = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
-            return $result !== false ? (string)$result : null;
+            if (empty($domains)) {
+                return null;
+            }
+            
+            if ($currentHost !== null) {
+                // Clean port if present
+                $currentHost = explode(':', $currentHost)[0];
+                $parts = explode('.', $currentHost, 2);
+                if (count($parts) === 2) {
+                    $tld = '.' . $parts[1];
+                    foreach ($domains as $domain) {
+                        if (str_ends_with($domain, $tld)) {
+                            return $domain;
+                        }
+                    }
+                }
+            }
+            
+            return (string)$domains[0];
         } catch (Throwable $e) {
             error_log("Failed to resolve domain for tenant ID: " . $e->getMessage());
             return null;

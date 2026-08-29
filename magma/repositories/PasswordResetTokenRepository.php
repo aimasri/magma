@@ -4,6 +4,9 @@ namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
 use Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface;
+use Magma\contracts\ClockInterface;
+use Magma\database\DatabaseConnectionManager;
+use Magma\security\TenantContext;
 
 /**
  * Title: Password Reset Token Repository
@@ -19,7 +22,13 @@ use Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface;
  */
 class PasswordResetTokenRepository extends AbstractCommandRepository implements PasswordResetTokenRepositoryInterface
 {
+    protected ClockInterface $clock;
 
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext, ClockInterface $clock)
+    {
+        parent::__construct($dbManager, $tenantContext);
+        $this->clock = $clock;
+    }
 
     /**
      * Creates and persists a new password reset token for a user.
@@ -50,9 +59,9 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
     {
         $stmt = $this->getDb()->prepare("
             SELECT user_id FROM user_tokens 
-            WHERE token_hash = ? AND type = 'password_reset' AND expires_at > NOW()
+            WHERE token_hash = ? AND type = 'password_reset' AND expires_at > ?
         ");
-        $stmt->execute([$tokenHash]);
+        $stmt->execute([$tokenHash, $this->clock->now()->format('Y-m-d H:i:s')]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return is_array($result) ? $result : null;
     }
@@ -112,8 +121,8 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function deleteExpiredTokens(): int
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < NOW() AND type = 'password_reset'");
-        $stmt->execute();
+        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'password_reset'");
+        $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
         return $stmt->rowCount();
     }
 }
