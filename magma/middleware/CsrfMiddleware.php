@@ -28,6 +28,11 @@ class CsrfMiddleware implements MiddlewareInterface
 
     private CsrfManager $csrfManager;
 
+    /**
+     * Initializes the CsrfMiddleware.
+     *
+     * @param CsrfManager $csrfManager The CSRF manager used for token validation and generation.
+     */
     public function __construct(CsrfManager $csrfManager)
     {
         $this->csrfManager = $csrfManager;

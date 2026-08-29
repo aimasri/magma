@@ -61,31 +61,61 @@ readonly class AuthUser
         }
     }
 
+    /**
+     * Checks whether the user is associated with a tenant.
+     * 
+     * @return bool True if tenant ID exists, false otherwise.
+     */
     public function hasTenantId(): bool
     {
         return $this->tenantId !== null;
     }
 
+    /**
+     * Retrieves the tenant identifier for the user.
+     * 
+     * @return int|null The tenant ID, or null if unassociated.
+     */
     public function getTenantId(): ?int
     {
         return $this->tenantId;
     }
 
+    /**
+     * Retrieves the primary identifier of the user.
+     * 
+     * @return int The user ID.
+     */
     public function getId(): int
     {
         return $this->id;
     }
 
+    /**
+     * Retrieves the name of the user.
+     * 
+     * @return string The user's name.
+     */
     public function getName(): string
     {
         return $this->name;
     }
 
+    /**
+     * Retrieves the assigned role of the user.
+     * 
+     * @return string The user's role.
+     */
     public function getRole(): string
     {
         return $this->role;
     }
 
+    /**
+     * Retrieves the email address of the user.
+     * 
+     * @return string The user's email.
+     */
     public function getEmail(): string
     {
         return $this->email;

@@ -10,6 +10,9 @@ declare(strict_types=1);
  *
  * Why / Why this design:
  * - Enforces strict module boundaries. Routes are self-contained within the module.
+ *
+ * Teaching notes:
+ * - By encapsulating routes in the module directory, we allow modules to be dropped in or removed without touching the core routing registry.
  */
 
 use Modules\Reviews\controllers\ReviewController;

@@ -19,9 +19,19 @@ use Magma\enums\PasswordResetStatus;
  *
  * Why this design:
  * - Split from PasswordResetController to adhere to SRP (distinct workflow from completion).
+ *
+ * Teaching notes:
+ * - Emitting identical responses for both found and missing emails is a crucial architectural defense against User Enumeration attacks.
  */
 class PasswordResetRequestController
 {
+    /**
+     * Initializes the controller with required dependencies.
+     * 
+     * @param \Magma\view\HtmlResponseBuilderInterface $html Response builder for HTML pages.
+     * @param \Magma\http\SessionInterface $session Session manager for flashing messages.
+     * @param PasswordResetRequestService $passwordResetRequestService Service handling password reset requests.
+     */
     public function __construct(
         private readonly \Magma\view\HtmlResponseBuilderInterface $html,
         private readonly \Magma\http\SessionInterface $session,

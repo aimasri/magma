@@ -16,6 +16,9 @@ use Magma\domain\AuthUser;
  *   credential verification, session states, and persistent cookies, violating SRP 
  *   and exceeding the 3-dependency limit. By acting as a Facade, it maintains 
  *   exactly 3 dependencies while cleanly separating the domain logic.
+ * 
+ * Teaching notes:
+ * - Facade services like this should ONLY delegate and orchestrate. If you find yourself writing complex `if/else` business rules here, you are likely violating the boundaries. Move that logic into one of the specialized sub-services.
  */
 class AuthenticationService
 {
@@ -23,6 +26,13 @@ class AuthenticationService
     protected PersistentAuthenticationService $persistentAuth;
     protected SessionAuthenticationService $sessionAuth;
 
+    /**
+     * Initializes the service with its constituent authentication handlers.
+     *
+     * @param CredentialAuthenticationService $credentialAuth
+     * @param PersistentAuthenticationService $persistentAuth
+     * @param SessionAuthenticationService $sessionAuth
+     */
     public function __construct(
         CredentialAuthenticationService $credentialAuth,
         PersistentAuthenticationService $persistentAuth,
@@ -70,5 +80,35 @@ class AuthenticationService
         
         $this->sessionAuth->logout();
         return AuthenticationResult::failure()->clearCookie('remember_user');
+    }
+
+    /**
+     * Delegates issuing a short-lived SSO token.
+     * 
+     * Execution Flow:
+     * 1. Forwards the request to the PersistentAuthenticationService.
+     * 2. Returns the generated short-lived token and its expiry.
+     */
+    public function issueSsoToken(int $userId): array
+    {
+        return $this->persistentAuth->issueSsoToken($userId);
+    }
+
+    /**
+     * Delegates session login for an authenticated user.
+     */
+    public function login(AuthUser $authUser): void
+    {
+        $this->sessionAuth->login($authUser);
+    }
+
+    /**
+     * Delegates fetching the currently authenticated user from the session.
+     * 
+     * @return AuthUser|null
+     */
+    public function getAuthenticatedUser(): ?AuthUser
+    {
+        return $this->sessionAuth->getAuthenticatedUser();
     }
 }

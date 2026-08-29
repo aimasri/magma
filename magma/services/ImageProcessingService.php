@@ -61,6 +61,21 @@ class ImageProcessingService
         }
     }
 
+    /**
+     * Decodes binary source data into a GD image resource.
+     *
+     * Execution Flow:
+     * 1. Temporarily overrides the error handler to catch warnings from `imagecreatefromstring`.
+     * 2. Attempts to decode the binary image payload.
+     * 3. Restores the error handler and checks for valid GD resource creation.
+     *
+     * Logic behind the logic:
+     * - Malformed image data triggers E_WARNING in PHP GD, which cannot be caught by try/catch directly unless converted to Exceptions via set_error_handler.
+     *
+     * @param string $sourceData
+     * @return GdImage
+     * @throws RuntimeException
+     */
     private function createImageFromSource(string $sourceData): GdImage
     {
         set_error_handler(function ($severity, $message, $file, $line) {
@@ -79,6 +94,23 @@ class ImageProcessingService
         return $srcImage;
     }
 
+    /**
+     * Crops and resizes an image to fit a target dimension proportionally.
+     *
+     * Execution Flow:
+     * 1. Compares source aspect ratio with target aspect ratio.
+     * 2. Calculates coordinates to perform a center crop based on which dimension needs clipping.
+     * 3. Creates a truecolor canvas of the target dimensions.
+     * 4. Copies and resamples the source image onto the canvas using the calculated coordinates.
+     *
+     * Logic behind the logic:
+     * - Center-cropping ensures that thumbnail proportions strictly match the requested sizes without squashing or stretching the source imagery.
+     *
+     * @param GdImage $srcImage
+     * @param int $targetWidth
+     * @param int $targetHeight
+     * @return GdImage
+     */
     private function cropAndResize(GdImage $srcImage, int $targetWidth, int $targetHeight): GdImage
     {
         $srcWidth = imagesx($srcImage);
@@ -109,6 +141,22 @@ class ImageProcessingService
         return $dstImage;
     }
 
+    /**
+     * Creates a new truecolor image canvas with full alpha transparency support.
+     *
+     * Execution Flow:
+     * 1. Initializes a truecolor image via GD.
+     * 2. Disables alpha blending and enables alpha saving to retain transparency.
+     * 3. Fills the canvas with a transparent background.
+     *
+     * Logic behind the logic:
+     * - Explicitly allocating and filling with transparency ensures PNGs and WebPs do not render with black backgrounds when resized.
+     *
+     * @param int $width
+     * @param int $height
+     * @return GdImage
+     * @throws RuntimeException
+     */
     private function createTrueColorCanvas(int $width, int $height): GdImage
     {
         $dstImage = imagecreatetruecolor($width, $height);
@@ -126,6 +174,22 @@ class ImageProcessingService
         return $dstImage;
     }
 
+    /**
+     * Encodes a GD image resource into WebP binary format.
+     *
+     * Execution Flow:
+     * 1. Starts output buffering to intercept GD's direct output.
+     * 2. Writes the WebP image stream with the specified quality factor.
+     * 3. Captures and cleans the buffer, throwing an exception if it failed.
+     *
+     * Logic behind the logic:
+     * - GD outputs directly to stdout or a file path by default; using output buffering allows capturing the binary data entirely in memory.
+     *
+     * @param GdImage $dstImage
+     * @param int $quality
+     * @return string
+     * @throws RuntimeException
+     */
     private function encodeToWebp(GdImage $dstImage, int $quality): string
     {
         ob_start();

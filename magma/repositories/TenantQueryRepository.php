@@ -29,6 +29,17 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
     private int $primaryTenantId;
     private TenantMapper $mapper;
 
+    /**
+     * Constructs the TenantQueryRepository with required dependencies.
+     *
+     * Execution Flow:
+     * 1. Calls the parent constructor to initialize the database read connection.
+     * 2. Injects the TenantMapper for transforming database rows into DTOs.
+     * 3. Sets the primaryTenantId to identify the main tenant configuration.
+     *
+     * Logic behind the logic:
+     * - Configures mapping dependencies required for safely translating query results into strongly typed DTOs.
+     */
     public function __construct(
         DatabaseConnectionManager $dbManager,
         TenantContext $tenantContext,
@@ -42,6 +53,16 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
 
 
     /**
+     * Retrieves a paginated list of tenants from the database.
+     *
+     * Execution Flow:
+     * 1. Builds a SELECT query for tenant fields with optional pagination based on lastId.
+     * 2. Binds the necessary limit and ID parameters to the query statement.
+     * 3. Executes the query and yields TenantDTO objects generated via the TenantMapper.
+     *
+     * Logic behind the logic:
+     * - Utilizes PHP generators to yield DTOs one at a time, conserving memory for large datasets instead of returning a massive array.
+     *
      * @return iterable<int, TenantDTO>
      */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable
@@ -69,6 +90,17 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
         }
     }
 
+    /**
+     * Fetches a specific tenant by its ID.
+     *
+     * Execution Flow:
+     * 1. Prepares and executes a SELECT statement targeting the specified tenant ID.
+     * 2. Fetches the first matching row as an associative array.
+     * 3. Maps the raw array to a TenantDTO or returns null if not found.
+     *
+     * Logic behind the logic:
+     * - Returns DTOs strictly to maintain separation of concerns and avoid leaky abstractions into the business or presentation layers.
+     */
     public function find(int $id): ?TenantDTO
     {
         $stmt = $this->getDb()->prepare("SELECT id, name, tagline, email, plan_id, subscription_status, billing_cycle_anchor, payment_gateway_customer_id, theme_settings FROM tenants WHERE id = :id");
@@ -77,6 +109,16 @@ class TenantQueryRepository extends AbstractQueryRepository implements TenantQue
         return is_array($tenant) ? $this->mapper->toDomain($tenant) : null;
     }
 
+    /**
+     * Retrieves the primary system tenant configuration.
+     *
+     * Execution Flow:
+     * 1. Invokes the internal find method using the configured primaryTenantId.
+     * 2. Returns the corresponding TenantDTO or null if it does not exist.
+     *
+     * Logic behind the logic:
+     * - Ensures applications have a reliable way of fetching the default or root tenant without needing hardcoded identifiers scattered throughout the codebase.
+     */
     public function getPrimaryTenant(): ?TenantDTO
     {
         return $this->find($this->primaryTenantId);

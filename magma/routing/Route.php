@@ -155,11 +155,21 @@ class Route implements \JsonSerializable
         );
     }
 
+    /**
+     * Gets the HTTP method constraint for the route.
+     *
+     * @return string
+     */
     public function getMethod(): string
     {
         return $this->method;
     }
 
+    /**
+     * Gets the URI pattern for the route.
+     *
+     * @return string
+     */
     public function getUri(): string
     {
         return $this->uri;
@@ -171,6 +181,11 @@ class Route implements \JsonSerializable
         return $this->handler;
     }
 
+    /**
+     * Gets the controller action method name if specified.
+     *
+     * @return ?string
+     */
     public function getAction(): ?string
     {
         return $this->action;
@@ -182,6 +197,11 @@ class Route implements \JsonSerializable
         return $this->middleware;
     }
 
+    /**
+     * Gets the alias name assigned to the route.
+     *
+     * @return ?string
+     */
     public function getName(): ?string
     {
         return $this->name;
@@ -199,11 +219,21 @@ class Route implements \JsonSerializable
         return $this->parameters;
     }
 
+    /**
+     * Gets the fallback redirection path used on constraint mismatch.
+     *
+     * @return ?string
+     */
     public function getRedirectOnFail(): ?string
     {
         return $this->redirectOnFail;
     }
 
+    /**
+     * Gets the pre-compiled PCRE regular expression for this route.
+     *
+     * @return ?string
+     */
     public function getCompiledRegex(): ?string
     {
         return $this->compiledRegex;
@@ -233,11 +263,30 @@ class Route implements \JsonSerializable
     // ArrayAccess Implementation (Backward Compatibility Bridge)
     // --------------------------------------------------------------------------
 
+    /**
+     * Determines if a specific legacy offset exists in the route structure.
+     *
+     * @param mixed $offset
+     * @return bool
+     */
     public function offsetExists(mixed $offset): bool
     {
         return in_array($offset, [0, 1, 2, 3, 4, 5, 6, 'method', 'uri', 'handler', 'action', 'middleware', 'name', 'parameters', 'constraints', 'redirectOnFail', 'compiledRegex'], true);
     }
 
+    /**
+     * Retrieves a route property via legacy array offset.
+     *
+     * Execution Flow:
+     * 1. Matches the requested offset string or integer against mapped internal properties.
+     * 2. Returns the corresponding property value or null.
+     *
+     * Logic behind the logic:
+     * - Provides seamless backward compatibility for older router implementations that expect routes to be primitive numeric arrays.
+     *
+     * @param mixed $offset
+     * @return mixed
+     */
     public function offsetGet(mixed $offset): mixed
     {
         return match ($offset) {
@@ -255,11 +304,26 @@ class Route implements \JsonSerializable
         };
     }
 
+    /**
+     * Prevents modifying route properties via array access.
+     *
+     * @param mixed $offset
+     * @param mixed $value
+     * @return void
+     * @throws \LogicException
+     */
     public function offsetSet(mixed $offset, mixed $value): void
     {
         throw new \LogicException('Route value object is immutable.');
     }
 
+    /**
+     * Prevents removing route properties via array access.
+     *
+     * @param mixed $offset
+     * @return void
+     * @throws \LogicException
+     */
     public function offsetUnset(mixed $offset): void
     {
         throw new \LogicException('Route value object is immutable.');

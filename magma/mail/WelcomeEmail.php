@@ -28,6 +28,11 @@ class WelcomeEmail implements MailableInterface
 
     private string $toName;
 
+    /**
+     * Initializes the WelcomeEmail mailable.
+     *
+     * @param string $toName The recipient's name.
+     */
     public function __construct(string $toName)
     {
         $this->toName = $toName;

@@ -30,6 +30,17 @@ class QueueWorkerDaemon
 
     private bool $running = true;
 
+    /**
+     * Initializes the queue worker daemon with its required dependencies.
+     *
+     * Logic behind the logic:
+     * - Injects the DI container to instantiate job handlers dynamically.
+     * - Uses the QueueInterface for polling jobs and the LoggerInterface for robust daemon telemetry.
+     *
+     * @param Container $container
+     * @param QueueInterface $queue
+     * @param \Magma\logging\LoggerInterface $logger
+     */
     public function __construct(Container $container, QueueInterface $queue, \Magma\logging\LoggerInterface $logger)
     {
         $this->container = $container;
@@ -65,6 +76,26 @@ class QueueWorkerDaemon
         }
     }
 
+    /**
+     * Processes a single job popped from the queue.
+     *
+     * Execution Flow:
+     * 1. Decodes the JSON payload to extract the job handler class and its parameters.
+     * 2. Validates the handler class existence and ensures it implements JobInterface.
+     * 3. Registers a PCNTL alarm to enforce a strict execution timeout (e.g., 120 seconds).
+     * 4. Resolves the handler from the container and invokes its handle() method.
+     * 5. Catches any exceptions, logs the error, and either re-queues the job or routes it to the dead-letter queue (failed_jobs) based on the attempt count.
+     * 6. Cleans up by disabling the PCNTL alarm and disconnecting the database to prevent connection drops on long idle periods.
+     *
+     * Logic behind the logic:
+     * - Disconnecting the database at the end of each job prevents "MySQL server has gone away" errors
+     *   during idle periods when the daemon is waiting for new jobs.
+     * - The PCNTL alarm prevents hanging jobs (e.g., infinite loops or stuck network calls) from permanently blocking the worker.
+     *
+     * @param string $jobString The JSON-encoded job payload.
+     * @param string $queueName The name of the queue being processed.
+     * @return void
+     */
     private function processJob(string $jobString, string $queueName): void
     {
         $job = json_decode($jobString, true);

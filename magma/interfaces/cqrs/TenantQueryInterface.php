@@ -16,11 +16,26 @@ namespace Magma\interfaces\cqrs;
 interface TenantQueryInterface
 {
     /**
+     * Retrieves a paginated list of tenants.
+     *
      * @param int $limit
      * @param int|null $lastId
      * @return iterable<int, \Magma\dto\TenantDTO>
      */
     public function getAll(int $limit = 100, ?int $lastId = null): iterable;
+
+    /**
+     * Finds a single tenant by their ID.
+     *
+     * @param int $id
+     * @return \Magma\dto\TenantDTO|null
+     */
     public function find(int $id): ?\Magma\dto\TenantDTO;
+
+    /**
+     * Retrieves the primary/default system tenant.
+     *
+     * @return \Magma\dto\TenantDTO|null
+     */
     public function getPrimaryTenant(): ?\Magma\dto\TenantDTO;
 }

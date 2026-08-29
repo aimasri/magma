@@ -29,6 +29,17 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
     private int $standardTimeout = 1800; // 30 minutes
     private int $adminTimeout = 7200; // 2 hours
 
+    /**
+     * Initializes the middleware with the required session handler.
+     *
+     * Execution Flow:
+     * 1. Stores the provided Session instance for state management.
+     *
+     * Logic behind the logic:
+     * - Passing the Session instance via constructor injection complies with the Dependency Inversion Principle, decoupling the middleware from global session state or static helpers.
+     *
+     * @param Session $session The HTTP session instance.
+     */
     public function __construct(Session $session)
     {
         $this->session = $session;

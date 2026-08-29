@@ -31,6 +31,17 @@ class RoleMiddleware implements MiddlewareInterface
     private string $redirectPath = '/';
     private \Magma\services\AuthenticationService $authService;
 
+    /**
+     * Initializes the middleware with the required authentication service.
+     *
+     * Execution Flow:
+     * 1. Stores the provided AuthenticationService instance for later use during request processing.
+     *
+     * Logic behind the logic:
+     * - Dependency Injection of the authentication service ensures this middleware remains purely focused on role validation, relying on the injected service to resolve the user entity.
+     *
+     * @param \Magma\services\AuthenticationService $authService The service used to fetch the authenticated user.
+     */
     public function __construct(\Magma\services\AuthenticationService $authService)
     {
         $this->authService = $authService;

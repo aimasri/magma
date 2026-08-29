@@ -30,6 +30,20 @@ class TenantSecurityMiddleware implements MiddlewareInterface
     private ?AuthenticationService $authService;
     private ?TenantContextProviderInterface $provider;
 
+    /**
+     * Initializes the middleware with tenant context and optional resolution dependencies.
+     *
+     * Execution Flow:
+     * 1. Stores the primary TenantContext where resolved tenant IDs will be bound.
+     * 2. Stores the optional AuthenticationService and TenantContextProviderInterface for fallback resolution strategies.
+     *
+     * Logic behind the logic:
+     * - Accepting optional dependencies allows the middleware to be flexible. It can attempt to resolve tenants based on the environment (e.g., custom headers via provider or session state via authentication), supporting different architectural needs seamlessly.
+     *
+     * @param TenantContext $tenantContext The global tenant context store.
+     * @param AuthenticationService|null $authService The service to retrieve authenticated domain users.
+     * @param TenantContextProviderInterface|null $provider A custom strategy for resolving tenant identifiers from requests.
+     */
     public function __construct(
         TenantContext $tenantContext,
         ?AuthenticationService $authService = null,
@@ -45,11 +59,12 @@ class TenantSecurityMiddleware implements MiddlewareInterface
      *
      * Execution Flow:
      * 1. Attempts resolution via custom `TenantContextProviderInterface` or `TenantContext::resolveFromRequest()`.
-     * 2. If unresolved, inspects authenticated user domain entity via `AuthenticationService`.
-     * 3. If a valid tenant ID is located, sets `$tenantContext->setTenantId($tenantId)`.
-     * 4. If venue ID is present, sets `$tenantContext->setVenueId($venueId)`.
-     * 5. Attaches `'tenant_id'` and `'venue_id'` to Request attributes.
-     * 6. Passes execution to `$next($request)`.
+     * 2. Checks for cross-domain mismatches: If a tenant ID is active from the URL domain, but the authenticated user belongs to a different tenant, it automatically kills the session, generates a short-lived SSO token, and redirects them to their correct tenant domain.
+     * 3. If unresolved, inspects authenticated user domain entity via `AuthenticationService`.
+     * 4. If a valid tenant ID is located, sets `$tenantContext->setTenantId($tenantId)`.
+     * 5. If venue ID is present, sets `$tenantContext->setVenueId($venueId)`.
+     * 6. Attaches `'tenant_id'` and `'venue_id'` to Request attributes.
+     * 7. Passes execution to `$next($request)`.
      *
      * Logic behind the logic:
      * - Extracting context from verified domain authentication entities (rather than untrusted client inputs) ensures cross-tenant privilege escalation is impossible.
@@ -69,6 +84,25 @@ class TenantSecurityMiddleware implements MiddlewareInterface
             $venueId = $this->provider->resolveVenueId($request);
             if ($venueId !== null) {
                 $this->tenantContext->setVenueId($venueId);
+            }
+        }
+
+        // Cross-domain mismatch check & SSO redirect
+        if ($this->tenantContext->hasTenantId() && $this->authService !== null) {
+            $user = $this->authService->getAuthenticatedUser();
+            if ($user !== null && method_exists($user, 'hasTenantId') && $user->hasTenantId()) {
+                $userTenantId = (int)$user->getTenantId();
+                if ($userTenantId !== $this->tenantContext->getTenantId()) {
+                    if ($this->provider !== null && method_exists($this->provider, 'resolveDomainByTenantId')) {
+                        $correctDomain = $this->provider->resolveDomainByTenantId($userTenantId);
+                        if ($correctDomain !== null) {
+                            $ssoData = $this->authService->issueSsoToken($user->getId());
+                            $this->authService->logout();
+                            $redirectUrl = "https://{$correctDomain}/admin?sso=" . urlencode($ssoData['token']);
+                            return new Response('', 302, ['Location' => $redirectUrl]);
+                        }
+                    }
+                }
             }
         }
 

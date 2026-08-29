@@ -29,6 +29,22 @@ use Magma\interfaces\EventDispatcherInterface;
  */
 class PasswordResetRequestService
 {
+    /**
+     * Initializes the PasswordResetRequestService with its required dependencies.
+     *
+     * Execution Flow:
+     * 1. Injects repositories, transaction manager, and event dispatcher.
+     * 2. Binds them to the class properties to coordinate the password reset request phase.
+     *
+     * Logic behind the logic:
+     * - Orchestration via DI: Coordinates distinct bounded context tools (DB, Event Dispatcher)
+     *   via constructor injection to test them in isolation.
+     *
+     * @param UserQueryInterface $userQueryRepository
+     * @param PasswordResetTokenRepository $userTokenRepository
+     * @param TransactionManagerInterface $transactionManager
+     * @param EventDispatcherInterface $eventDispatcher
+     */
     public function __construct(
         private UserQueryInterface $userQueryRepository,
         private PasswordResetTokenRepository $userTokenRepository,

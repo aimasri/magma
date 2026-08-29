@@ -21,6 +21,14 @@ use Magma\contracts\ClockInterface;
  */
 class SystemClock implements ClockInterface
 {
+    /**
+     * Returns the current real-world time.
+     *
+     * Logic behind the logic:
+     * - Abstracts the native `DateTimeImmutable` instantiation so consumers don't hardcode system time dependencies, enabling testability via the MockClock.
+     *
+     * @return DateTimeImmutable
+     */
     public function now(): DateTimeImmutable
     {
         return new DateTimeImmutable();

@@ -38,6 +38,12 @@ class EventDispatcher implements EventDispatcherInterface
 
     private Container $container;
 
+    /**
+     * Initializes the Event Dispatcher with the dependency injection container.
+     *
+     * Logic behind the logic:
+     * - Injecting the container enables lazy instantiation of event listener classes, significantly reducing memory footprint during request bootstrapping.
+     */
     public function __construct(Container $container)
     {
         $this->container = $container;

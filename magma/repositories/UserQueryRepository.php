@@ -18,9 +18,20 @@ use Magma\domain\AuthUser;
  */
 class UserQueryRepository extends AbstractQueryRepository implements UserQueryInterface
 {
+    /**
+     * Retrieves a user entity by their email address.
+     *
+     * Execution Flow:
+     * 1. Prepares a SELECT statement for the 'users' table filtering by email.
+     * 2. Executes the query and fetches the resulting associative array.
+     * 3. Instantiates and returns an AuthUser object or null if no user is found.
+     *
+     * Logic behind the logic:
+     * - Maps raw query data immediately into the AuthUser domain model to provide strongly typed domain access across the application.
+     */
     public function findByEmail(string $email): ?AuthUser
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role FROM users WHERE email = ?");
+        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, tenant_id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         
@@ -28,25 +39,57 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
     }
 
     /**
+     * Fetches a user's complete authentication details by email.
+     *
+     * Execution Flow:
+     * 1. Prepares a query to retrieve user details including the hashed password.
+     * 2. Executes and fetches the raw associative array.
+     * 3. Returns the array directly without domain mapping.
+     *
+     * Logic behind the logic:
+     * - Intentionally returns a raw array to expose the password hash, which is normally hidden by AuthUser. Used strictly during authentication processes to verify credentials.
+     *
      * @return array<string, mixed>|null
      */
     public function findForAuth(string $email): ?array
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, password FROM users WHERE email = ?");
+        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, password, tenant_id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return is_array($result) ? $result : null;
     }
 
+    /**
+     * Retrieves a user entity by their unique identifier.
+     *
+     * Execution Flow:
+     * 1. Prepares a SELECT statement targeting the given user ID.
+     * 2. Executes the query and maps the resulting row to an AuthUser object.
+     * 3. Returns null if the user does not exist.
+     *
+     * Logic behind the logic:
+     * - Simple lookup by primary key encapsulating the read operation away from application logic.
+     */
     public function findById(int $id): ?AuthUser
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role FROM users WHERE id = ?");
+        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, tenant_id FROM users WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         
         return is_array($row) ? new AuthUser($row) : null;
     }
 
+    /**
+     * Retrieves the timestamp of when the user's password was last modified.
+     *
+     * Execution Flow:
+     * 1. Prepares and executes a query fetching only the password_changed_at column for the given ID.
+     * 2. Checks if a value exists, returning null otherwise.
+     * 3. Converts the stored date string into a UNIX timestamp and returns it.
+     *
+     * Logic behind the logic:
+     * - Allows efficient checking of password modification times (useful for invalidating active sessions) without loading the entire user model into memory.
+     */
     public function getPasswordChangedAt(int $id): ?int
     {
         $stmt = $this->getDb()->prepare("SELECT password_changed_at FROM users WHERE id = ?");

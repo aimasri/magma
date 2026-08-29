@@ -33,6 +33,16 @@ class RouteDispatcher
     private Container $container;
     private MiddlewareResolver $middlewareResolver;
 
+    /**
+     * Initializes the RouteDispatcher with required dependencies.
+     *
+     * Execution Flow:
+     * 1. Assigns the IoC Container for auto-wiring controller dependencies.
+     * 2. Assigns the MiddlewareResolver for instantiating middleware classes.
+     *
+     * Logic behind the logic:
+     * - Injects the container instead of relying on a global singleton (Service Locator anti-pattern), ensuring the dispatcher is independently testable and adheres to the Dependency Inversion Principle.
+     */
     public function __construct(Container $container, MiddlewareResolver $middlewareResolver)
     {
         $this->container = $container;

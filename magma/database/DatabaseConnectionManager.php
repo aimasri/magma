@@ -50,6 +50,11 @@ class DatabaseConnectionManager
         $this->emulatePrepares = $emulatePrepares;
     }
 
+    /**
+     * Forces the read connection to use the write instance.
+     * 
+     * @param bool $force True to force write connection for reads, false otherwise.
+     */
     public function forceWriteForReads(bool $force): void
     {
         $this->forceWrite = $force;

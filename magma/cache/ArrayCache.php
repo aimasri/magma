@@ -85,6 +85,24 @@ class ArrayCache implements CacheInterface
         return true;
     }
 
+    /**
+     * Adds an item to the cache only if it does not already exist.
+     *
+     * Execution Flow:
+     * 1. Checks if the key exists using the `has()` method.
+     * 2. If it exists, returns false immediately to avoid overwriting.
+     * 3. If it doesn't exist, delegates to `set()` to store the value with the optional TTL.
+     *
+     * Logic behind the logic:
+     * - Simulates an atomic `add` operation in memory. While true atomicity isn't required in a 
+     *   single-threaded PHP script, this matches the semantic expectations of the CacheInterface 
+     *   and ensures consistent behavior when substituting for distributed cache drivers.
+     *
+     * @param string $key Cache key.
+     * @param mixed $value Value to store.
+     * @param null|int|DateInterval $ttl Expiration duration.
+     * @return bool True if added successfully, false if the key already exists.
+     */
     public function add(string $key, mixed $value, null|int|DateInterval $ttl = null): bool
     {
         if ($this->has($key)) {

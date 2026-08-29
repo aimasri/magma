@@ -26,6 +26,19 @@ class RememberMeService
 {
     protected RememberTokenRepository $userTokenRepository;
 
+    /**
+     * Initializes the RememberMeService.
+     *
+     * Execution Flow:
+     * 1. Injects the RememberTokenRepository.
+     * 2. Assigns it to the protected property to interact with the persistent token data store.
+     *
+     * Logic behind the logic:
+     * - Repository Pattern: Separates the domain logic of generating/validating tokens
+     *   from the data persistence details.
+     *
+     * @param RememberTokenRepository $userTokenRepository
+     */
     public function __construct(RememberTokenRepository $userTokenRepository)
     {
         $this->userTokenRepository = $userTokenRepository;
@@ -71,13 +84,14 @@ class RememberMeService
      *   string generation, preventing attackers from predicting session tokens.
      * 
      * @param int $userId The user ID to issue the token for
+     * @param int $ttlSeconds Time to live in seconds (default 30 days)
      * @return array{token: string, expiry: int}
      */
-    public function generateToken(int $userId): array
+    public function generateToken(int $userId, int $ttlSeconds = 2592000): array
     {
         $selector = bin2hex(random_bytes(12));
         $validator = bin2hex(random_bytes(32));
-        $expiry = time() + (86400 * 30); // 30 days
+        $expiry = time() + $ttlSeconds;
 
         $this->userTokenRepository->saveRememberToken(
             $userId, 

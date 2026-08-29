@@ -26,6 +26,13 @@ class UrlGenerator
     protected string $appUrl;
     protected ?RouteCollection $routes;
 
+    /**
+     * Initializes the URL generator with the request context and base URL.
+     *
+     * @param RequestInterface $request
+     * @param string $appUrl
+     * @param RouteCollection|null $routes
+     */
     public function __construct(RequestInterface $request, string $appUrl, ?RouteCollection $routes = null)
     {
         $this->request = $request;

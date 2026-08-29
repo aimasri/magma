@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
     role VARCHAR(50) DEFAULT 'user',
     password_changed_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -42,6 +42,19 @@ class RegisterRequest extends FormRequest
         ];
     }
 
+    /**
+     * Converts the validated registration HTTP payload into a RegistrationDTO.
+     *
+     * Execution Flow:
+     * 1. Extracts raw request array.
+     * 2. Safely pulls 'name', 'email', and 'password' fields with type verification.
+     * 3. Constructs and returns an immutable RegistrationDTO.
+     *
+     * Logic behind the logic:
+     * - Abstracts HTTP artifacts away from domain services, keeping user creation logic protocol-agnostic.
+     *
+     * @return \Magma\dto\RegistrationDTO
+     */
     public function toDTO(): \Magma\dto\RegistrationDTO
     {
         $data = $this->request->request();

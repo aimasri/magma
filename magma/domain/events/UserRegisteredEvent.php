@@ -21,6 +21,13 @@ use Magma\domain\UserRegistration;
  */
 class UserRegisteredEvent implements EventInterface
 {
+    /**
+     * Initializes the User Registered Event with required domain context.
+     *
+     * Logic behind the logic:
+     * - Exposing the UserRegistration aggregate and user ID provides listeners with immediate context without requiring additional database lookups.
+     * - Readonly properties guarantee immutability throughout the synchronous dispatch cycle.
+     */
     public function __construct(
         public readonly UserRegistration $registration,
         public readonly int $userId

@@ -32,6 +32,12 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     private DatabaseConnectionManager $dbManager;
     private ?TransactionManagerInterface $transactionManager;
 
+    /**
+     * Initializes the repository with database connection management.
+     * 
+     * @param DatabaseConnectionManager $dbManager Manager supplying specific read/write PDO instances.
+     * @param TransactionManagerInterface|null $transactionManager Optional transaction manager for bulk operations.
+     */
     public function __construct(DatabaseConnectionManager $dbManager, ?TransactionManagerInterface $transactionManager = null)
     {
         $this->dbManager = $dbManager;

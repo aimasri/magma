@@ -19,6 +19,11 @@ use Magma\view\TemplateEngine;
  */
 class PolicyController
 {
+    /**
+     * Initializes the controller with required dependencies.
+     * 
+     * @param \Magma\view\HtmlResponseBuilderInterface $html Response builder for rendering HTML templates.
+     */
     public function __construct(
         private readonly \Magma\view\HtmlResponseBuilderInterface $html
     ) {}

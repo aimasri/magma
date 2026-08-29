@@ -19,9 +19,19 @@ use Magma\enums\PasswordResetStatus;
  *
  * Why this design:
  * - Split from PasswordResetController to adhere to SRP (distinct workflow from request).
+ *
+ * Teaching notes:
+ * - Timing attacks can be an issue in password reset verification. Notice how token validation always consumes constant or predictable time, even for failures.
  */
 class PasswordResetCompletionController
 {
+    /**
+     * Initializes the controller with required dependencies.
+     * 
+     * @param \Magma\view\HtmlResponseBuilderInterface $html Response builder for HTML pages.
+     * @param \Magma\http\SessionInterface $session Session manager for flashing messages.
+     * @param PasswordResetCompletionService $passwordResetCompletionService Service handling password reset completion logic.
+     */
     public function __construct(
         private readonly \Magma\view\HtmlResponseBuilderInterface $html,
         private readonly \Magma\http\SessionInterface $session,

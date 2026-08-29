@@ -15,6 +15,12 @@ namespace Magma\dto;
  */
 class TenantDTO
 {
+    /**
+     * Constructs an immutable Tenant Data Transfer Object.
+     *
+     * Logic behind the logic:
+     * - Binds all scalar properties and JSON-like arrays via readonly promotion to guarantee thread-safe state during cross-layer transport.
+     */
     public function __construct(
         public readonly int $id,
         public readonly string $name,

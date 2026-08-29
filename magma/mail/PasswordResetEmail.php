@@ -29,6 +29,12 @@ class PasswordResetEmail implements MailableInterface
     private string $toName;
     private string $resetLink;
 
+    /**
+     * Initializes the PasswordResetEmail mailable.
+     *
+     * @param string $toName The recipient's name.
+     * @param string $resetLink The generated password reset URL.
+     */
     public function __construct(string $toName, string $resetLink)
     {
         $this->toName = $toName;

@@ -33,6 +33,18 @@ class LoginController
     private \Magma\view\HtmlResponseBuilderInterface $html;
     private \Magma\http\SessionInterface $session;
 
+    /**
+     * Initializes the LoginController with required dependencies.
+     *
+     * Logic behind the logic:
+     * - Injects the authentication service, HTML response builder, and session interface. 
+     *   This explicitly outlines the controller's dependencies, ensuring it doesn't rely on 
+     *   hidden global state for managing authentication or rendering views.
+     *
+     * @param AuthenticationService $authService
+     * @param \Magma\view\HtmlResponseBuilderInterface $html
+     * @param \Magma\http\SessionInterface $session
+     */
     public function __construct(
         AuthenticationService $authService,
         \Magma\view\HtmlResponseBuilderInterface $html,

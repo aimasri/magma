@@ -26,11 +26,29 @@ class SendWelcomeEmailListener
 {
     private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
 
+    /**
+     * Initializes the SendWelcomeEmailListener.
+     *
+     * @param \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository Used to record the outbox job reliably.
+     */
     public function __construct(\Magma\database\OutboxJobRepositoryInterface $outboxJobRepository)
     {
         $this->outboxJobRepository = $outboxJobRepository;
     }
 
+    /**
+     * Handles the user registered event.
+     *
+     * Execution Flow:
+     * 1. Extracts the user's email and name from the event payload.
+     * 2. Constructs an OutboxJobDTO intended for the emails queue.
+     * 3. Records the job in the database outbox.
+     *
+     * Logic behind the logic:
+     * - Using the outbox pattern guarantees that the email job is recorded reliably and avoids data loss if the queue system is temporarily down.
+     *
+     * @param UserRegisteredEvent $event The domain event triggered upon user registration.
+     */
     public function handle(UserRegisteredEvent $event): void
     {
         $jobDto = new \Magma\dto\OutboxJobDTO(

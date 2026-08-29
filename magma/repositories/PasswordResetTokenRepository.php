@@ -21,6 +21,22 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
 {
 
 
+    /**
+     * Creates and persists a new password reset token for a user.
+     *
+     * Execution Flow:
+     * 1. Prepares an INSERT statement targeting the user_tokens table.
+     * 2. Binds the user ID, the securely hashed token, and its expiration timestamp.
+     * 3. Executes the statement on the write connection.
+     *
+     * Logic behind the logic:
+     * - Using the write connection ensures the token is immediately available for subsequent
+     *   validation checks, avoiding issues with database replication lag.
+     *
+     * @param int $userId The ID of the user requesting a password reset.
+     * @param \Magma\domain\PasswordResetToken $token The token domain object containing the hash and expiry.
+     * @return void
+     */
     public function createPasswordResetToken(int $userId, \Magma\domain\PasswordResetToken $token): void
     {
         $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, token_hash, expires_at) VALUES (?, 'password_reset', ?, ?)");
@@ -41,18 +57,59 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
         return is_array($result) ? $result : null;
     }
 
+    /**
+     * Deletes all existing password reset tokens for a specific user.
+     *
+     * Execution Flow:
+     * 1. Prepares a DELETE statement for the user_tokens table filtering by user ID and token type.
+     * 2. Executes the deletion to invalidate any prior password reset requests.
+     *
+     * Logic behind the logic:
+     * - This ensures that issuing a new password reset automatically invalidates any previously
+     *   issued, unused tokens, reducing the window of opportunity for token interception.
+     *
+     * @param int $userId The ID of the user whose tokens should be deleted.
+     * @return void
+     */
     public function deleteAllPasswordResetTokensForUser(int $userId): void
     {
         $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE user_id = ? AND type = 'password_reset'");
         $stmt->execute([$userId]);
     }
 
+    /**
+     * Deletes a specific password reset token using its hash.
+     *
+     * Execution Flow:
+     * 1. Prepares a DELETE statement targeting the specific token hash and type.
+     * 2. Executes the statement to permanently remove the token.
+     *
+     * Logic behind the logic:
+     * - Tokens are single-use. This method is called immediately after a successful password
+     *   reset to prevent the token from being reused in a replay attack.
+     *
+     * @param string $tokenHash The hashed token to delete.
+     * @return void
+     */
     public function deletePasswordResetToken(string $tokenHash): void
     {
         $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE token_hash = ? AND type = 'password_reset'");
         $stmt->execute([$tokenHash]);
     }
 
+    /**
+     * Cleans up all expired password reset tokens from the database.
+     *
+     * Execution Flow:
+     * 1. Prepares a DELETE statement for tokens whose expiration timestamp is in the past.
+     * 2. Executes the statement and returns the number of affected rows.
+     *
+     * Logic behind the logic:
+     * - This acts as a garbage collection routine to keep the user_tokens table lean and performant.
+     *   It is typically executed via a scheduled cron job or maintenance worker.
+     *
+     * @return int The number of expired tokens deleted.
+     */
     public function deleteExpiredTokens(): int
     {
         $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < NOW() AND type = 'password_reset'");

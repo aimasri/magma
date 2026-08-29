@@ -30,37 +30,77 @@ class AuthenticationResult
     /** @var array<int, string> */
     private array $cookiesToClear = [];
 
+    /**
+     * Initializes a new authentication result encapsulating the authenticated user.
+     *
+     * @param \Magma\domain\AuthUser|null $user
+     */
     public function __construct(?\Magma\domain\AuthUser $user = null)
     {
         $this->user = $user;
     }
 
+    /**
+     * Factory method to create a successful authentication result.
+     *
+     * @param \Magma\domain\AuthUser $user
+     * @return self
+     */
     public static function success(\Magma\domain\AuthUser $user): self
     {
         return new self($user);
     }
 
+    /**
+     * Factory method to create a failed authentication result.
+     *
+     * @return self
+     */
     public static function failure(): self
     {
         return new self(null);
     }
 
+    /**
+     * Determines whether the authentication attempt was successful.
+     *
+     * @return bool
+     */
     public function isSuccessful(): bool
     {
         return $this->user !== null;
     }
 
+    /**
+     * Retrieves the authenticated user, if available.
+     *
+     * @return \Magma\domain\AuthUser|null
+     */
     public function getUser(): ?\Magma\domain\AuthUser
     {
         return $this->user;
     }
 
+    /**
+     * Queues a cookie to be set in the HTTP response.
+     *
+     * @param string $name
+     * @param string $value
+     * @param int $expiry
+     * @return self
+     */
     public function withCookie(string $name, string $value, int $expiry): self
     {
         $this->cookiesToSet[] = compact('name', 'value', 'expiry');
         return $this;
     }
 
+    /**
+     * Queues a cookie to be cleared in the HTTP response.
+     *
+     * @param string $name
+     * @return self
+     */
     public function clearCookie(string $name): self
     {
         $this->cookiesToClear[] = $name;

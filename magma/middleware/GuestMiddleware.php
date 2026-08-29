@@ -24,6 +24,11 @@ class GuestMiddleware implements MiddlewareInterface
 {
     private \Magma\http\Session $session;
 
+    /**
+     * Initializes the GuestMiddleware.
+     *
+     * @param \Magma\http\Session $session The HTTP session used to evaluate user state.
+     */
     public function __construct(\Magma\http\Session $session)
     {
         $this->session = $session;

@@ -18,17 +18,27 @@ namespace Magma\interfaces\cqrs;
 interface TenantCommandInterface extends \Magma\interfaces\cqrs\CommandInterface
 {
     /**
+     * Creates a new tenant entity in the storage system.
+     *
      * @param \Magma\dto\TenantDTO $tenantDTO
      * @return bool
      */
     public function create(\Magma\dto\TenantDTO $tenantDTO): bool;
 
     /**
+     * Updates an existing tenant entity.
+     *
      * @param int $id
      * @param \Magma\dto\TenantDTO $tenantDTO
      * @return bool
      */
     public function update(int $id, \Magma\dto\TenantDTO $tenantDTO): bool;
 
+    /**
+     * Deletes a tenant entity by its ID.
+     *
+     * @param int $id
+     * @return bool
+     */
     public function delete(int $id): bool;
 }

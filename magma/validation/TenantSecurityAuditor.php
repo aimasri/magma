@@ -37,6 +37,20 @@ class TenantSecurityAuditor
         'outbox_jobs',
     ];
 
+    /**
+     * Initializes the TenantSecurityAuditor.
+     *
+     * Execution Flow:
+     * 1. Accepts an optional PDO instance and an optional project root directory path.
+     * 2. Assigns the PDO connection and resolves the root directory fallback (using `ROOT_DIR` or relative path).
+     *
+     * Logic behind the logic:
+     * - Flexibility: Allows the auditor to run in different environments (like CI/CD scripts or normal app lifecycle)
+     *   by keeping the database connection and root path optional/configurable.
+     *
+     * @param PDO|null $pdo
+     * @param string|null $projectRoot
+     */
     public function __construct(?PDO $pdo = null, ?string $projectRoot = null)
     {
         $this->pdo = $pdo;
@@ -275,8 +289,20 @@ class TenantSecurityAuditor
     }
 
     /**
-     * @param string $dir
-     * @param array<int, string> $results
+     * Recursively collects PHP file paths from a given directory.
+     *
+     * Execution Flow:
+     * 1. Scans the provided directory using `scandir`.
+     * 2. Iterates over each item, skipping '.' and '..'.
+     * 3. If the item is a directory, recursively calls itself.
+     * 4. If the item is a file ending in `.php`, appends it to the reference array.
+     *
+     * Logic behind the logic:
+     * - In-memory Aggregation: Passes the `$results` array by reference to avoid the overhead
+     *   of array merging at each recursive step, which is critical for large codebases.
+     *
+     * @param string $dir The directory to scan.
+     * @param array<int, string> &$results The reference array to store collected file paths.
      */
     private function collectPhpFiles(string $dir, array &$results): void
     {

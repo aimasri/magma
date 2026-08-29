@@ -27,6 +27,19 @@ class MenuPropagationService
 {
     private CommandBusInterface $commandBus;
 
+    /**
+     * Initializes the MenuPropagationService with the required command bus.
+     *
+     * Execution Flow:
+     * 1. Injects the CommandBusInterface dependency.
+     * 2. Assigns it to the class property for later dispatching of commands.
+     *
+     * Logic behind the logic:
+     * - Dependency Injection (DI): Passing the command bus allows for loose coupling
+     *   and easier unit testing by mocking the command bus.
+     *
+     * @param CommandBusInterface $commandBus
+     */
     public function __construct(CommandBusInterface $commandBus)
     {
         $this->commandBus = $commandBus;

@@ -24,6 +24,16 @@ class SystemDiagnosticsService implements SystemDiagnosticsServiceInterface
     private ConfigInterface $config;
     private SystemInfoProviderInterface $systemInfoProvider;
 
+    /**
+     * Initializes the SystemDiagnosticsService with required dependencies.
+     *
+     * Logic behind the logic:
+     * - Uses constructor injection to enforce that the service cannot be instantiated without
+     *   its required configuration and system info provider, adhering to the Dependency Inversion Principle.
+     *
+     * @param ConfigInterface $config
+     * @param SystemInfoProviderInterface $systemInfoProvider
+     */
     public function __construct(ConfigInterface $config, SystemInfoProviderInterface $systemInfoProvider)
     {
         $this->config = $config;
