@@ -211,7 +211,7 @@ $serverOs = $diag->serverOs;
                 <a href="/syllabus#module-7-views-and-the-template-engine" class="module-card">
                     <div class="module-card__header"><span class="module-card__num">Chapter 07</span><span class="badge badge--neutral">UI</span></div>
                     <h3 class="module-card__title">Views and the Template Engine</h3>
-                    <p class="module-card__desc">Logic-less views, explicit multi-tenant layouts, resolution caching, and O(N) DOM interpolation.</p>
+                    <p class="module-card__desc">Logic-less views, explicit layouts, native PHP stacks, and O(N) DOM interpolation.</p>
                 </a>
                 <!-- Chapter 08 -->
                 <a href="/syllabus#module-8-error-handling-logging" class="module-card">

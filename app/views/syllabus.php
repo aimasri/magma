@@ -1,14 +1,7 @@
 <?php
 /**
  * Title: Syllabus View
- *
- * Purpose:
- * - Renders the textbook / syllabus page.
- *
- * Teaching notes:
- * - This view is largely static HTML serving as documentation.
- *
- * @var array{title?: string} $data The view data payload.
+ * Purpose: Renders the textbook / syllabus page.
  */
 $pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
 ?>
@@ -1734,7 +1727,17 @@ Magma's <code>TemplateEngine</code> intelligently falls back across these direct
 <p>
 To prevent this, the resolution paths are cached in-memory. The engine guarantees that the disk is only queried once per layout or partial per request lifecycle.
 </p>
-<h3>Chapter 7.3: Big-O DOM Interpolation Optimization</h3>
+<p>
+Furthermore, to support fully decoupled, multi-tenant components without relying on legacy assumptions, Magma forces explicit layout rendering. The framework does not default to searching for a <code>&#039;default&#039;</code> layout wrapper; components render completely standalone unless a layout is specifically requested in the controller.
+</p>
+<h3>Chapter 7.3: Native PHP Stacks for Modular Assets</h3>
+<p>
+Large applications require child views to inject their own specific assets (like unique CSS files or JavaScript modules) up into the master layout's <code>&lt;head&gt;</code> or before the closing <code>&lt;/body&gt;</code> tag.
+</p>
+<p>
+Magma's <code>TemplateEngine</code> provides native PHP stacks (similar to Laravel's <code>@push</code> and <code>@stack</code>) using <code>push(string $name)</code> and <code>stack(string $name)</code>. This uses nested output buffering to seamlessly capture and bubble these modular assets up to the master layout without polluting global variables.
+</p>
+<h3>Chapter 7.4: Big-O DOM Interpolation Optimization</h3>
 <p>
 When parsing highly nested templates or loops, standard DOM interpolation suffers from O(N*M) Big-O time complexity as the engine redundantly scans child nodes.
 </p>
@@ -2131,6 +2134,18 @@ Because we built the Magma framework using strict <strong>Dependency Injection (
 <h4>The Theory: Mocks and Fakes</h4>
 <p>
 If you want to test the <code>OrderService</code>, you do not need a database. You simply write a test script that injects a fake <code>InMemoryOrderRepository</code> into the service. You can instantly verify the logic is flawless without ever booting up PostgreSQL. This is the ultimate validation of our architectural choices!
+</p>
+<h3>Chapter 13.2: Deterministic Time (The Clock Interface)</h3>
+<h4>Subject & Intent: Eradicating Hidden Global State</h4>
+<p>
+Time is inherently non-deterministic. Every time you call <code>time()</code>, <code>new DateTime()</code>, or SQL's <code>NOW()</code>, the output changes. If your application logic relies on these native functions (for instance, checking if a session token has expired), it becomes a hidden global dependency. This makes testing time-sensitive features incredibly flaky.
+</p>
+<p>
+To resolve this, Magma implements a strict <strong><code>ClockInterface</code></strong>. Rather than calling native time functions, services inject the <code>ClockInterface</code>.
+<br>
+In production, the DI container binds this to a <code>SystemClock</code> that returns real time.
+<br>
+In testing (our <code>lava</code> testing infrastructure), we bind it to a <code>MockClock</code>. This allows test suites to instantly "freeze", "advance", or "rewind" the flow of time deterministically without ever pausing the CPU!
 </p>
 </div>
 <div class="chapter-module" id="module-14-frontend-architecture-deep-freeze-css-layers"><h2 class="chapter-title">Module 14: Frontend Architecture: Deep Freeze & CSS Layers</h2>
