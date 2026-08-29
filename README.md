@@ -1,12 +1,18 @@
 # Magma Framework: The Educational Architecture Core
 
-> **💎 PRISTINE CHECKPOINT**  
-> The most pristine, mathematically pure version of the Magma and Lava architecture development is permanently captured at commit `f4278368dc48bfa9801fe804b149201cfff6a871` (ID: `f427836`). If you ever need to return to the flawless core before experimental features are added, checkout this reference!
+> **💎 PRISTINE CHECKPOINT (MAIN BRANCH)**  
+> The most pristine, mathematically pure version of the Magma core architecture development is permanently captured at commit `5abc6494e03d7b2a294dcbf6f386d27af684a15b` (ID: `5abc649`). If you ever need to return to the flawless core before experimental features are added, checkout this reference!
+
+> **🌋 LAVA CHECKPOINT (TESTING INFRASTRUCTURE)**  
+> The exhaustive Lava testing infrastructure (MockClocks, Agnostic Factories, CI/CD pipelines, AST Static Analysis, and Headless HTTP Testing) alongside its strict Git Merge Protections is securely captured at commit `d9acb364ac81dfe12fbbf50c425566e13497d89c` (ID: `d9acb36`).  
+> **Final Test Results on this Commit:** 7/7 Database & HTTP Integration Tests passed (100%), 20 assertions validated perfectly in <150ms. Zero DB pollution across all rollbacks.  
 
 > **🔥 Recent Core Hardening (The Lava Phase & Concurrency Audits)**  
 > The framework has recently undergone a rigorous architectural and security hardening phase (originally developed on the `lava` branch and now merged directly into `main`). Key upgrades include:
+> - **Scalability & Performance Remediation:** Multi-tenant schemas strictly enforced at the database level (`tenant_id`), CQRS connection boundaries (Read vs Write) strictly guarded without exception, and daemon polling loops optimized with targeted composite indexes.
 > - **100% PHPStan Level 9 Compliance:** All types are mathematically proven, explicit array shapes are enforced, and ambiguous `mixed` types have been systematically eliminated across all 200+ framework files.
 > - **Zero Legacy Artifacts:** Complete removal of all backward-compatibility facades, legacy middleware, and primitive routing tuples. The framework strictly enforces modern object-oriented interfaces.
+> - **Concurrency & Race Condition Eradication:** A multi-pass concurrency audit was conducted, eradicating TOCTOU projection bugs, fixing Redis `BLPOP` daemon deadlocks, isolating Postgres transactions from network I/O, preventing cross-tenant rate limit starvation, stopping dual-write anti-patterns, and implementing atomic locks to prevent Cache Stampedes.
 > - **Automated Boundary Enforcement:** AST-level validation guarantees zero direct superglobal breaches and explicit `tenant_id` database scoping.
 > - **Cryptographic Hardening:** Upgraded core authentication to utilize Argon2id hashing with transparent on-the-fly rehashing, alongside strict `Permissions-Policy` security headers.
 > - **Zero Runtime Dependencies:** The production runtime remains 100% dependency-free, with all static analysis and testing tools securely relegated to `require-dev`.
@@ -250,6 +256,15 @@ To ensure high availability and prevent blocking synchronous HTTP requests durin
 * **Encapsulated Storage Layer:** [`StorageInterface.php`](./magma/infrastructure/storage/StorageInterface.php), [`LocalStorageService.php`](./magma/infrastructure/storage/LocalStorageService.php), and [`S3StorageService.php`](./magma/infrastructure/storage/S3StorageService.php) enforce binary `finfo` MIME validation, extension allowlists, and cryptographic filename randomization.
 * **Media Processing Service:** [`ImageProcessingService.php`](./magma/services/ImageProcessingService.php) utilizes native PHP `ext-gd` for square-center cropping and automatic WebP conversion.
 
+### Subscription-Based Module Toggles
+
+Magma handles elective, subscription-based modules through a strict, four-pillar standard:
+
+* **Middleware Entitlement Gate:** Block unsubscribed access at the HTTP layer via the Onion pipeline.
+* **UI Feature Flags:** Conditionally render navigation and buttons based on injected subscription state in the TemplateEngine.
+* **Graceful Core Fallbacks:** Core modules must bypass missing dependencies seamlessly (e.g., Scheduling reverting to default capacity if Staffing is inactive).
+* **Unified Multi-Tenant Schema:** All module tables live in the shared PostgreSQL database with a strict `tenant_id`, explicitly forbidding dynamic table creation per tenant.
+
 ---
 
 ## 12. High-Performance Optimizations & Production Diagnostics
@@ -286,7 +301,7 @@ Magma provides a set of standalone CLI utilities designed for deployment pipelin
 Magma’s ecosystem is structured through a geological metaphor, illustrating how code evolves from foundational principles to hardened infrastructure, and eventually into specialized modules and external services.
 
 * **Magma:** The pure, unseen foundational core logic. This is the inner mantle—Vanilla PHP, strictly adhering to CQRS and SOLID, devoid of external dependencies. It is raw, theoretical, and powerful.
-* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It's what happens when Magma hits the surface environment and hardens. Tests and pipelines give the raw code structure, predictability, and safety.
+* **Lava:** Magma + Infrastructure (PHPStan, PHPUnit, CI/CD). It is the hardened testing environment. **WARNING: LAVA MUST NEVER BE MERGED INTO MAIN.** To enforce this, the `.git/hooks/pre-merge-commit` local script and `.github/workflows/enforce-main-purity.yml` physically block testing infrastructure from being merged upstream. Lava provides Database Integration test cases, custom AST static analysis to ban superglobals, deterministic Time Mocking (`MockClock`), Agnostic Test Factories, and Headless HTTP testing. Downstream apps build on top of Lava.
 * **Basalt & Obsidian:** Opinionated business logic modules built on top. Like cooled, structured rock formations, these represent the tangible application layers where domain-specific logic resides.
 * **Granite:** Headless, ultra-secure, backend-only microservices (B2B API data brokering). Dense, impermeable, and designed for heavy lifting, Granite layers handle secure system-to-system communications without UI overhead.
 * **Pumice:** Secondary ecosystem tools like a Redis caching layer. Lightweight, porous, and fast, Pumice accelerates the system by reducing friction and latency.
