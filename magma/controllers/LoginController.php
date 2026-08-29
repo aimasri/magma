@@ -125,4 +125,20 @@ class LoginController
     {
         return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole()));
     }
+
+    /**
+     * Handles the GET request to log the user out.
+     * 1. Retrieves the 'remember_user' cookie if present.
+     * 2. Delegates the logout process to the AuthenticationService.
+     * 3. Applies the auth result to clear cookies and redirects to /login.
+     */
+    public function logout(Request $request): Response
+    {
+        $token = $request->cookie('remember_user');
+        $token = is_string($token) ? $token : null;
+
+        $result = $this->authService->logout($token);
+
+        return $this->applyAuthResult($result, new RedirectResponse('/login'), $request);
+    }
 }

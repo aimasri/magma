@@ -17,6 +17,7 @@
  */
 use Magma\controllers\PasswordResetRequestController;
 use Magma\controllers\PasswordResetCompletionController;
+use Magma\controllers\LoginController;
 use Magma\routing\RouteDefinition;
 
 return [
@@ -24,4 +25,5 @@ return [
     RouteDefinition::post('/forgot-password', [PasswordResetRequestController::class, 'sendResetLink']),
     RouteDefinition::get('/reset-password', [PasswordResetCompletionController::class, 'resetPasswordForm']),
     RouteDefinition::post('/reset-password', [PasswordResetCompletionController::class, 'resetPassword']),
+    RouteDefinition::get('/logout', [LoginController::class, 'logout']),
 ];
