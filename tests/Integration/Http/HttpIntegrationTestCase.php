@@ -30,7 +30,7 @@ abstract class HttpIntegrationTestCase extends DatabaseIntegrationTestCase
                 public function renderError(int $code, string $message, ?string $trace = null, ?\Magma\http\RequestInterface $request = null): Response {
                     return new Response($message, $code);
                 }
-                public function renderNotFound(?\Magma\http\RequestInterface $request = null): Response {
+                public function renderNotFound(?\Magma\http\RequestInterface $request = null, ?\Throwable $e = null): Response {
                     return new Response('Not Found', 404);
                 }
             };
