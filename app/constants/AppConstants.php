@@ -24,7 +24,7 @@ class AppConstants
     public const ENV_DEFAULT_DEVELOPMENT = 'development';
     public const ENV_DEFAULT_DEBUG = true;
     public const DB_DEFAULT_PGSQL = 'pgsql';
-    public const HOME_TITLE = 'Magma Framework Core';
-    public const SYLLABUS_TITLE = 'Architectural Syllabus | Magma Framework';
+    public const HOME_TITLE = 'Core Engine';
+    public const SYLLABUS_TITLE = 'Architectural Syllabus';
     public const MEGABYTE_IN_BYTES = 1024 * 1024;
 }

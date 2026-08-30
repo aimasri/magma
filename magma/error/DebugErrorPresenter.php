@@ -461,8 +461,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         /** @var \Magma\dto\TenantDTO|null $tenant */
         $tenant = $data['activeTenant'] ?? null;
         
-        // Default Magma Framework Branding
-        $appName = $tenant->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+        // Default Branding
+        $appName = $tenant->name ?? (getenv('APP_NAME') ?: 'Core Platform');
         $logoPath = $tenant->theme_settings['logo_path'] ?? (getenv('APP_LOGO_PATH') ?: ''); // Leave empty if no logo
         
         // Upstream Framework Defaults (Magma theme) overridden by Platform .env defaults
@@ -575,7 +575,7 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$statusCode} | {$exceptionClass} — Magma Framework</title>
+    <title>{$statusCode} | {$exceptionClass} — {$appName}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..900,100&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">

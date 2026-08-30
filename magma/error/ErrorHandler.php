@@ -220,7 +220,8 @@ class ErrorHandler implements ErrorHandlerInterface
                 }
 
                 $referer = $request !== null ? $request->server('HTTP_REFERER', '/') : '/';
-                return new \Magma\http\RedirectResponse((string) $referer);
+                $target = is_string($referer) ? $referer : '/';
+                return new \Magma\http\RedirectResponse($target);
             }
 
             if ($this->debug) {
