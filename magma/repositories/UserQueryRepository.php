@@ -1,10 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\repositories;
 
 use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\models\AbstractQueryRepository;
 use Magma\domain\AuthUser;
+use DateTimeImmutable;
+use DateTimeZone;
+use Exception;
+use PDO;
 
 /**
  * Title: User Query Repository
@@ -88,10 +94,11 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      * Execution Flow:
      * 1. Prepares and executes a query fetching only the password_changed_at column for the given ID.
      * 2. Checks if a value exists, returning null otherwise.
-     * 3. Converts the stored date string into a UNIX timestamp and returns it.
+     * 3. Parses the database date string explicitly in the UTC timezone context and converts it to a UNIX timestamp.
      *
      * Logic behind the logic:
      * - Allows efficient checking of password modification times (useful for invalidating active sessions) without loading the entire user model into memory.
+     * - Explicitly parsing the date string with a UTC DateTimeZone ensures deterministic timestamp resolution regardless of the PHP runtime's default timezone.
      */
     public function getPasswordChangedAt(int $id): ?int
     {
@@ -101,7 +108,12 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
         if (!$val) {
             return null;
         }
-        $time = strtotime((string)$val);
-        return $time !== false ? $time : null;
+
+        try {
+            $date = new DateTimeImmutable((string) $val, new DateTimeZone('UTC'));
+            return $date->getTimestamp();
+        } catch (Exception) {
+            return null;
+        }
     }
 }

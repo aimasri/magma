@@ -1,9 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\listeners;
 
 use Magma\domain\events\UserRegisteredEvent;
+use Magma\events\EventListenerInterface;
 use Magma\jobs\SendWelcomeEmailJob;
+use Magma\database\OutboxJobRepositoryInterface;
+use Magma\dto\OutboxJobDTO;
 
 /**
  * Title: Send Welcome Email Listener
@@ -22,16 +27,16 @@ use Magma\jobs\SendWelcomeEmailJob;
  *   to an event, it still pushes the actual email sending to a background job to keep
  *   the HTTP response fast for the user. By writing to the Outbox, we guarantee at-least-once delivery.
  */
-class SendWelcomeEmailListener
+class SendWelcomeEmailListener implements EventListenerInterface
 {
-    private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
+    private OutboxJobRepositoryInterface $outboxJobRepository;
 
     /**
      * Initializes the SendWelcomeEmailListener.
      *
-     * @param \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository Used to record the outbox job reliably.
+     * @param OutboxJobRepositoryInterface $outboxJobRepository Used to record the outbox job reliably.
      */
-    public function __construct(\Magma\database\OutboxJobRepositoryInterface $outboxJobRepository)
+    public function __construct(OutboxJobRepositoryInterface $outboxJobRepository)
     {
         $this->outboxJobRepository = $outboxJobRepository;
     }
@@ -44,14 +49,12 @@ class SendWelcomeEmailListener
      * 2. Constructs an OutboxJobDTO intended for the emails queue.
      * 3. Records the job in the database outbox.
      *
-     * Logic behind the logic:
-     * - Using the outbox pattern guarantees that the email job is recorded reliably and avoids data loss if the queue system is temporarily down.
-     *
-     * @param UserRegisteredEvent $event The domain event triggered upon user registration.
+     * @param mixed $event The domain event triggered upon user registration.
      */
-    public function handle(UserRegisteredEvent $event): void
+    public function handle(mixed $event): void
     {
-        $jobDto = new \Magma\dto\OutboxJobDTO(
+        assert($event instanceof UserRegisteredEvent);
+        $jobDto = new OutboxJobDTO(
             'emails',
             SendWelcomeEmailJob::class,
             [

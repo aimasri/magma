@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Magma\listeners;
 
 use Magma\domain\events\PasswordResetRequestedEvent;
-use Magma\queue\QueueInterface;
+use Magma\events\EventListenerInterface;
+use Magma\database\OutboxJobRepositoryInterface;
 use Magma\routing\UrlGenerator;
 use Magma\jobs\SendPasswordResetEmailJob;
+use Magma\dto\OutboxJobDTO;
 
 /**
  * Title: Send Password Reset Email Listener
@@ -22,12 +24,12 @@ use Magma\jobs\SendPasswordResetEmailJob;
  * Teaching notes:
  * - Listeners should strictly avoid heavy domain logic. Their role is to translate domain events into infrastructure side-effects (like queue jobs).
  */
-class SendPasswordResetEmailListener
+class SendPasswordResetEmailListener implements EventListenerInterface
 {
-    private \Magma\database\OutboxJobRepositoryInterface $outboxJobRepository;
+    private OutboxJobRepositoryInterface $outboxJobRepository;
     private UrlGenerator $urlGenerator;
 
-    public function __construct(\Magma\database\OutboxJobRepositoryInterface $outboxJobRepository, UrlGenerator $urlGenerator)
+    public function __construct(OutboxJobRepositoryInterface $outboxJobRepository, UrlGenerator $urlGenerator)
     {
         $this->outboxJobRepository = $outboxJobRepository;
         $this->urlGenerator = $urlGenerator;
@@ -38,24 +40,26 @@ class SendPasswordResetEmailListener
      *
      * Execution Flow:
      * 1. Generates an absolute URL for the reset link using the provided token.
-     * 2. Packages the email intent and URL into a DTO payload.
+     * 2. Packages the email intent and URL into an OutboxJobDTO payload.
      * 3. Records the job in the database outbox to guarantee delivery.
+     *
+     * @param mixed $event The dispatched event object.
      */
-    public function handle(PasswordResetRequestedEvent $event): void
+    public function handle(mixed $event): void
     {
+        assert($event instanceof PasswordResetRequestedEvent);
         $resetLink = $this->urlGenerator->generateAbsolute('/reset-password', ['token' => $event->token]);
         
-        $payload = [
-            'to_email' => $event->email,
-            'to_name' => $event->name,
-            'reset_link' => $resetLink
-        ];
-
-        $jobDto = new \Magma\dto\OutboxJobDTO(
+        $jobDto = new OutboxJobDTO(
             'emails',
             SendPasswordResetEmailJob::class,
-            $payload
+            [
+                'to_email' => $event->email,
+                'to_name' => $event->name,
+                'reset_link' => $resetLink
+            ]
         );
+
         $this->outboxJobRepository->record($jobDto);
     }
 }

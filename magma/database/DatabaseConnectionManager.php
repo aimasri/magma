@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\database;
 
 use PDO;
@@ -11,7 +13,7 @@ use RuntimeException;
  *
  * Purpose:
  * - Provide lazily-initialized PDO connection instances for Read/Write splitting.
- * - Enforce safe connection defaults (exceptions, associative fetches).
+ * - Enforce safe connection defaults (exceptions, associative fetches, strict UTC session timezone).
  *
  * Why / Why this design:
  * - Implements the Dependency Injection pattern specifically for the database connection. This ensures 
@@ -24,6 +26,8 @@ use RuntimeException;
  *   "prepared statement does not exist" errors. Therefore, we explicitly set 
  *   `PDO::ATTR_EMULATE_PREPARES => true` so PHP handles the preparation safely 
  *   before sending the raw SQL string over the socket.
+ * - Enforcing `SET TIME ZONE 'UTC'` on PostgreSQL connections guarantees that all date and timestamp
+ *   operations remain completely deterministic regardless of the host server's local system timezone.
  */
 class DatabaseConnectionManager
 {
@@ -117,11 +121,14 @@ class DatabaseConnectionManager
      * Execution Flow:
      * 1. Construct the Data Source Name (DSN) string from the provided settings.
      * 2. Instantiate a new PDO object, applying strict error reporting and emulated prepared statements.
-     * 3. Catch any PDOException and rethrow as a generic RuntimeException.
+     * 3. Enforce UTC timezone on the database connection for PostgreSQL.
+     * 4. Catch any PDOException and rethrow as a generic RuntimeException.
      * 
      * Logic behind the logic:
      * - Wrapping the creation in a `try/catch` prevents raw PDO exception strings 
      *   (which may contain passwords) from accidentally leaking to the frontend.
+     * - Explicitly executing `SET TIME ZONE 'UTC'` prevents timezone drift and ensures consistent
+     *   timestamp retrieval across distributed database instances.
      *
      * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $settings The connection settings.
      * @return PDO The configured connection.
@@ -132,11 +139,17 @@ class DatabaseConnectionManager
         $dsn = "{$driver}:host={$settings['host']};port={$settings['port']};dbname={$settings['dbname']};";
 
         try {
-            return new PDO($dsn, $settings['user'], $settings['password'], [
+            $pdo = new PDO($dsn, $settings['user'], $settings['password'], [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => $this->emulatePrepares,
             ]);
+
+            if ($driver === 'pgsql') {
+                $pdo->exec("SET TIME ZONE 'UTC'");
+            }
+
+            return $pdo;
         } catch (PDOException $e) {
             throw new RuntimeException("Database connection failed. Please check your configuration.", 0, $e);
         }
