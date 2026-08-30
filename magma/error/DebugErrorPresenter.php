@@ -736,7 +736,8 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         }
         .hero-actions {
             display: flex;
-            gap: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .btn-action {
             display: inline-flex;
@@ -768,11 +769,12 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
 
         .exception-title {
             font-family: var(--font-heading);
-            font-size: 1.85rem;
+            font-size: clamp(1.35rem, 3.5vw, 1.85rem);
             font-weight: 700;
             color: var(--color-primary);
             margin-bottom: 0.5rem;
-            word-break: break-word;
+            overflow-wrap: break-word;
+            word-break: normal;
         }
         .exception-message-box {
             background: #fff5f5;
@@ -1008,6 +1010,32 @@ class DebugErrorPresenter implements \Magma\interfaces\DebugErrorPresenterInterf
         }
         @media (max-width: 860px) {
             .info-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem 2rem 1rem;
+                margin-top: 5.5rem;
+            }
+            .hero-card {
+                padding: 1.25rem 1rem;
+            }
+            .hero-top {
+                gap: 0.75rem;
+            }
+            .hero-actions {
+                width: 100%;
+                gap: 8px;
+            }
+            .btn-action {
+                flex: 1 1 auto;
+                justify-content: center;
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .exception-message-box {
+                padding: 0.85rem 1rem;
+                font-size: 0.95rem;
+            }
         }
         .info-card {
             background: var(--color-white);
