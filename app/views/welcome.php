@@ -14,7 +14,7 @@
  * @var array{title?: string, diagnostics: \App\dto\SystemDiagnosticsDTO, engine: \Magma\view\TemplateEngine} $data Encapsulated view data payload.
  */
 
-$pageTitle = $data['title'] ?? 'Magma Framework Core';
+$pageTitle = $data['title'] ?? 'Core Engine';
 $diag = $data['diagnostics'];
 $phpVersion = $diag->phpVersion;
 $environment = $diag->environment;

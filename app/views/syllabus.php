@@ -3,7 +3,7 @@
  * Title: Syllabus View
  * Purpose: Renders the textbook / syllabus page.
  */
-$pageTitle = $data['title'] ?? 'Architectural Syllabus | Magma Framework';
+$pageTitle = $data['title'] ?? 'Architectural Syllabus';
 ?>
 <!DOCTYPE html>
 <html lang="en">
