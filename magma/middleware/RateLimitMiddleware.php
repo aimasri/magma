@@ -88,17 +88,17 @@ class RateLimitMiddleware implements MiddlewareInterface
         if ($currentAttempts > $this->maxAttempts) {
             // Threshold exceeded
             $response = new Response("Too Many Requests. Please try again later.", 429);
-            $response->setHeader('Retry-After', (string)$this->decaySeconds);
-            $response->setHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
-            $response->setHeader('X-RateLimit-Remaining', '0');
+            $response->addHeader('Retry-After', (string)$this->decaySeconds);
+            $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
+            $response->addHeader('X-RateLimit-Remaining', '0');
             return $response;
         }
 
         /** @var Response $response */
         $response = $next($request);
         
-        $response->setHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
-        $response->setHeader('X-RateLimit-Remaining', (string)$remaining);
+        $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
+        $response->addHeader('X-RateLimit-Remaining', (string)$remaining);
 
         return $response;
     }
