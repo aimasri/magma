@@ -26,7 +26,7 @@ use Magma\security\RateLimiterInterface;
 class RateLimitMiddleware implements MiddlewareInterface
 {
     private RateLimiterInterface $limiter;
-    private int $maxAttempts = 5;
+    private int $maxAttempts = 30;
     private int $decaySeconds = 60; // 1 minute
 
     /**
@@ -39,6 +39,18 @@ class RateLimitMiddleware implements MiddlewareInterface
     public function __construct(RateLimiterInterface $limiter)
     {
         $this->limiter = $limiter;
+    }
+
+    /**
+     * Configures the rate limits for the middleware instance.
+     * 
+     * @param int $maxAttempts Maximum number of allowed attempts
+     * @param int $decaySeconds Time window in seconds
+     */
+    public function configure(int $maxAttempts, int $decaySeconds): void
+    {
+        $this->maxAttempts = $maxAttempts;
+        $this->decaySeconds = $decaySeconds;
     }
 
     /**
@@ -57,9 +69,13 @@ class RateLimitMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, callable $next): Response
     {
-        // Extract IP address; falling back to a default string if unavailable
-        $remoteAddr = $request->server('REMOTE_ADDR');
-        $ip = is_scalar($remoteAddr) ? (string)$remoteAddr : '0.0.0.0';
+        // Extract IP address from trusted proxies or direct connection
+        $ip = $this->resolveClientIp($request);
+
+        if ($ip === null) {
+            return new Response("Unable to identify client IP. Request rejected.", 429);
+        }
+
         $requestUri = $request->server('REQUEST_URI');
         $uri = is_scalar($requestUri) ? (string)$requestUri : '/';
         $key = $ip . ':' . $uri;
@@ -67,12 +83,47 @@ class RateLimitMiddleware implements MiddlewareInterface
         // Record the attempt atomically FIRST to close the race window
         // The limiter returns the new count, saving us a second GET trip.
         $currentAttempts = $this->limiter->hit($key, $this->decaySeconds);
+        $remaining = max(0, $this->maxAttempts - $currentAttempts);
 
         if ($currentAttempts > $this->maxAttempts) {
             // Threshold exceeded
-            return new Response("Too Many Requests. Please try again later.", 429);
+            $response = new Response("Too Many Requests. Please try again later.", 429);
+            $response->addHeader('Retry-After', (string)$this->decaySeconds);
+            $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
+            $response->addHeader('X-RateLimit-Remaining', '0');
+            return $response;
         }
 
-        return $next($request);
+        /** @var Response $response */
+        $response = $next($request);
+        
+        $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
+        $response->addHeader('X-RateLimit-Remaining', (string)$remaining);
+
+        return $response;
+    }
+
+    private function resolveClientIp(Request $request): ?string
+    {
+        // Check Cloudflare first
+        $cfIp = $request->server('HTTP_CF_CONNECTING_IP');
+        if (is_string($cfIp) && $cfIp !== '') {
+            return trim($cfIp);
+        }
+
+        // Check X-Forwarded-For (can be a comma-separated list, first is original client)
+        $xff = $request->server('HTTP_X_FORWARDED_FOR');
+        if (is_string($xff) && $xff !== '') {
+            $ips = explode(',', $xff);
+            return trim($ips[0]);
+        }
+
+        // Fallback to direct remote address
+        $remoteAddr = $request->server('REMOTE_ADDR');
+        if (is_string($remoteAddr) && $remoteAddr !== '') {
+            return trim($remoteAddr);
+        }
+
+        return null;
     }
 }

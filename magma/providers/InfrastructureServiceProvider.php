@@ -131,7 +131,13 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(RateLimiterInterface::class, function ($c) {
-            return new RedisRateLimiter($c->get(\Redis::class));
+            $tenantContext = $c->has(\Magma\security\TenantContext::class) 
+                ? $c->get(\Magma\security\TenantContext::class) 
+                : null;
+            return new RedisRateLimiter(
+                $c->get(\Redis::class),
+                $tenantContext instanceof \Magma\security\TenantContext ? $tenantContext : null
+            );
         });
 
         $container->set(QueueInterface::class, function ($c) {
