@@ -26,7 +26,7 @@ use Magma\security\RateLimiterInterface;
 class RateLimitMiddleware implements MiddlewareInterface
 {
     private RateLimiterInterface $limiter;
-    private int $maxAttempts = 30;
+    private int $maxAttempts = 200;
     private int $decaySeconds = 60; // 1 minute
 
     /**
@@ -67,8 +67,14 @@ class RateLimitMiddleware implements MiddlewareInterface
      * - We return an HTTP 429 status code instead of a 403 Forbidden because a 429 correctly 
      *   communicates to standard HTTP clients that they should simply "back off and try again later".
      */
+
     public function process(Request $request, callable $next): Response
     {
+        // Bypass rate limiting in development to prevent locking out developers
+        if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
+            return $next($request);
+        }
+
         // Extract IP address from trusted proxies or direct connection
         $ip = $this->resolveClientIp($request);
 
