@@ -262,16 +262,14 @@ class ErrorHandler implements ErrorHandlerInterface
         );
         error_log($logEntry);
 
-        // Map domain exceptions to appropriate HTTP status codes
-        $code = match (true) {
-            $e instanceof \Magma\domain\exceptions\DuplicateResourceException => 409,
-            $e instanceof \Magma\domain\exceptions\NotFoundException => 404,
-            $e instanceof \Magma\domain\exceptions\AuthorizationException => 403,
-            $e instanceof \Magma\domain\exceptions\InvalidStateTransitionException => 422,
-            default => (is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599) ? $e->getCode() : 500,
-        };
+        // Handle specific RouteNotFoundException to show the interactive Route Explorer in debug mode
+        if ($e instanceof \Magma\routing\RouteNotFoundException) {
+            return $this->renderNotFound($request, $e);
+        }
 
-        $safeMessage = $this->debug ? $e->getMessage() : 'An unexpected system error occurred.';
+        // Map domain exceptions to appropriate HTTP status codes and resolve safe user-facing message
+        $code = $this->resolveHttpStatusCode($e);
+        $safeMessage = $this->resolveUserFacingMessage($e, $code);
 
         if ($isJson) {
             return $this->jsonPresenter->present($code, $safeMessage, $e, $this->debug);
@@ -282,5 +280,39 @@ class ErrorHandler implements ErrorHandlerInterface
         }
 
         return $this->renderError($code, $safeMessage, $e->getTraceAsString(), $request);
+    }
+
+    /**
+     * Maps exception types to appropriate HTTP status codes.
+     */
+    private function resolveHttpStatusCode(\Throwable $e): int
+    {
+        return match (true) {
+            $e instanceof \Magma\domain\exceptions\DuplicateResourceException => 409,
+            $e instanceof \Magma\domain\exceptions\NotFoundException => 404,
+            $e instanceof \Magma\domain\exceptions\AuthorizationException => 403,
+            $e instanceof \Magma\routing\MethodNotAllowedException => 405,
+            $e instanceof \Magma\domain\exceptions\InvalidStateTransitionException => 422,
+            $e instanceof \Magma\validation\ValidationException => 422,
+            $e instanceof \Magma\domain\exceptions\ExternalServiceException => 502,
+            default => (is_int($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599) ? $e->getCode() : 500,
+        };
+    }
+
+    /**
+     * Resolves a safe user-facing message based on the environment and HTTP status code.
+     */
+    private function resolveUserFacingMessage(\Throwable $e, int $httpStatusCode): string
+    {
+        if ($this->debug) {
+            return $e->getMessage();
+        }
+
+        // Only expose specific exception messages in production if they are 4xx client errors.
+        if ($httpStatusCode >= 400 && $httpStatusCode < 500) {
+            return $e->getMessage();
+        }
+
+        return 'An unexpected system error occurred.';
     }
 }

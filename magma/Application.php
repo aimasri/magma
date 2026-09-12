@@ -135,14 +135,6 @@ class Application
      */
     private function handleKernelError(\Throwable $e, ?RequestInterface $request): Response
     {
-        if ($e instanceof \Magma\routing\RouteNotFoundException) {
-            try {
-                return $this->errorHandler->renderNotFound($request, $e);
-            } catch (\Throwable $fatal) {
-                return new Response('Not Found', 404);
-            }
-        }
-
         try {
             return $this->errorHandler->handleException($e, $request);
         } catch (\Throwable $fatal) {
