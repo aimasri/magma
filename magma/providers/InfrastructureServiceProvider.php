@@ -140,6 +140,10 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             );
         });
 
+        $container->set(\Magma\contracts\ClockInterface::class, function () {
+            return new \Magma\infrastructure\time\SystemClock();
+        });
+
         $container->set(QueueInterface::class, function ($c) {
             return new RedisQueue($c->get(\Redis::class));
         });
