@@ -58,7 +58,7 @@ class SendPasswordResetEmailJob implements JobInterface
         $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
 
         // The reset link is unique per password reset attempt, so it makes a perfect idempotency key
-        $this->guard->guard('email_password_reset', md5($resetLink), function () use ($toName, $resetLink, $toEmail) {
+        $this->guard->guardExternalIo('email_password_reset', md5($resetLink), function () use ($toName, $resetLink, $toEmail) {
             $mailable = new PasswordResetEmail(
                 $toName,
                 $resetLink

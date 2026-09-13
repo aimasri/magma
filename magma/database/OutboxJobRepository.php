@@ -250,13 +250,29 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $pdo = $this->dbManager->getWriteConnection();
 
-        $sql = 'UPDATE "outbox_jobs" '
-             . 'SET "attempts" = "attempts" + 1, '
-             . '    "locked_at" = NULL, '
-             . '    "last_error" = :error '
-             . 'WHERE "id" = :id';
-
         try {
+            $stmtCheck = $pdo->prepare('SELECT "attempts" FROM "outbox_jobs" WHERE "id" = :id');
+            $stmtCheck->execute([':id' => $id]);
+            $attempts = (int) $stmtCheck->fetchColumn();
+
+            if ($attempts >= 10) {
+                error_log(sprintf(
+                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Deleting poisoned job. Last error: %s",
+                    date('Y-m-d H:i:s'),
+                    $id,
+                    $errorMessage
+                ));
+                $stmtDel = $pdo->prepare('DELETE FROM "outbox_jobs" WHERE "id" = :id');
+                $stmtDel->execute([':id' => $id]);
+                return;
+            }
+
+            $sql = 'UPDATE "outbox_jobs" '
+                 . 'SET "attempts" = "attempts" + 1, '
+                 . '    "locked_at" = NULL, '
+                 . '    "last_error" = :error '
+                 . 'WHERE "id" = :id';
+
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);

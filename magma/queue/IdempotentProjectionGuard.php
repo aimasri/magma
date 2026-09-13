@@ -144,11 +144,48 @@ class IdempotentProjectionGuard
         ?int $tenantId = null,
         array $metadata = []
     ): mixed {
+        if (!$this->markProcessed($projectionName, $eventId, $tenantId, $metadata)) {
+            return null;
+        }
+
+        return $action();
+    }
+
+    /**
+     * Guards the execution of external I/O (e.g., sending emails or webhook calls),
+     * ensuring At-Least-Once delivery semantics without wrapping in a long-lived database transaction.
+     *
+     * Execution Flow:
+     * 1. Check if the event has already been processed using `isProcessed()`. If so, skip and return null.
+     * 2. Execute the external action.
+     * 3. Record the checkpoint by calling `markProcessed()`.
+     *
+     * Logic behind the logic:
+     * - By executing the action BEFORE marking it processed, any network exceptions or timeouts will 
+     *   prevent the checkpoint from being written, ensuring the queue safely retries the job.
+     * - This avoids holding database transaction locks open while waiting for slow external APIs.
+     *
+     * @param string $projectionName The target projection identifier.
+     * @param string $eventId The unique domain event ID.
+     * @param callable $action The projection mutation callback to execute.
+     * @param int|null $tenantId Optional tenant context ID.
+     * @param array<string, mixed> $metadata Optional audit metadata.
+     * @return mixed The callback execution result, or null if skipped due to idempotency.
+     * @throws Throwable If the projection callback throws an unhandled exception.
+     */
+    public function guardExternalIo(
+        string $projectionName,
+        string $eventId,
+        callable $action,
+        ?int $tenantId = null,
+        array $metadata = []
+    ): mixed {
         if ($this->isProcessed($projectionName, $eventId)) {
             return null;
         }
 
         $result = $action();
+
         $this->markProcessed($projectionName, $eventId, $tenantId, $metadata);
 
         return $result;

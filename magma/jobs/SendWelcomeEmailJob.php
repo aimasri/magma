@@ -51,7 +51,7 @@ class SendWelcomeEmailJob implements JobInterface
         $toName = is_scalar($payload['to_name'] ?? null) ? (string)$payload['to_name'] : '';
         $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
 
-        $this->guard->guard('email_welcome', $toEmail, function () use ($toName, $toEmail) {
+        $this->guard->guardExternalIo('email_welcome', $toEmail, function () use ($toName, $toEmail) {
             $mailable = new WelcomeEmail($toName);
             
             $this->mailerService->sendMailable(

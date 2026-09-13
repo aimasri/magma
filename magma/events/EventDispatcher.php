@@ -31,10 +31,10 @@ use RuntimeException;
 class EventDispatcher implements EventDispatcherInterface
 {
     /** @var array<string, array<int, callable|string|object>> */
-    private array $listeners = [];
+    private static array $listeners = [];
 
     /** @var array<string, string|null> Reflection type cache for listener handle() parameters */
-    private array $parameterTypeCache = [];
+    private static array $parameterTypeCache = [];
 
     private Container $container;
 
@@ -65,7 +65,7 @@ class EventDispatcher implements EventDispatcherInterface
      */
     public function listen(string $eventName, callable|string|object $listener): void
     {
-        $this->listeners[trim($eventName, '\\')][] = $listener;
+        self::$listeners[trim($eventName, '\\')][] = $listener;
     }
 
     /**
@@ -91,11 +91,11 @@ class EventDispatcher implements EventDispatcherInterface
         $eventClass = get_class($event);
         $normalizedClass = trim($eventClass, '\\');
 
-        if (!isset($this->listeners[$normalizedClass])) {
+        if (!isset(self::$listeners[$normalizedClass])) {
             return;
         }
 
-        foreach ($this->listeners[$normalizedClass] as $listener) {
+        foreach (self::$listeners[$normalizedClass] as $listener) {
             $this->invokeListener($listener, $event);
         }
     }
@@ -112,8 +112,8 @@ class EventDispatcher implements EventDispatcherInterface
      */
     public function clear(): void
     {
-        $this->listeners = [];
-        $this->parameterTypeCache = [];
+        self::$listeners = [];
+        self::$parameterTypeCache = [];
     }
 
     /**
@@ -164,21 +164,21 @@ class EventDispatcher implements EventDispatcherInterface
     {
         $listenerClass = get_class($listenerInstance);
 
-        if (!array_key_exists($listenerClass, $this->parameterTypeCache)) {
+        if (!array_key_exists($listenerClass, self::$parameterTypeCache)) {
             $refMethod = new ReflectionMethod($listenerInstance, 'handle');
             $params = $refMethod->getParameters();
 
             if (empty($params)) {
-                $this->parameterTypeCache[$listenerClass] = null;
+                self::$parameterTypeCache[$listenerClass] = null;
             } else {
                 $type = $params[0]->getType();
-                $this->parameterTypeCache[$listenerClass] = ($type instanceof ReflectionNamedType)
+                self::$parameterTypeCache[$listenerClass] = ($type instanceof ReflectionNamedType)
                     ? $type->getName()
                     : null;
             }
         }
 
-        $expectedType = $this->parameterTypeCache[$listenerClass];
+        $expectedType = self::$parameterTypeCache[$listenerClass];
 
         if ($expectedType === null) {
             return $event;
