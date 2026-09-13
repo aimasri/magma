@@ -134,7 +134,7 @@ abstract class AbstractCommandRepository
             $stmt = $this->getDb()->prepare($sql);
             $stmt->execute($mergedParams);
         } catch (\PDOException $e) {
-            throw new \Magma\infrastructure\exceptions\DatabaseException("Database update failed.", 0, $e);
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database update failed on table [{$table}].", 0, $e);
         }
 
         return $stmt->rowCount();
@@ -160,7 +160,7 @@ abstract class AbstractCommandRepository
             $stmt = $this->getDb()->prepare($sql);
             $stmt->execute($whereParams);
         } catch (\PDOException $e) {
-            throw new \Magma\infrastructure\exceptions\DatabaseException("Database delete failed.", 0, $e);
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database delete failed on table [{$table}].", 0, $e);
         }
 
         return $stmt->rowCount();
@@ -179,7 +179,8 @@ abstract class AbstractCommandRepository
             $stmt = $this->getDb()->prepare($sql);
             $stmt->execute($params);
         } catch (\PDOException $e) {
-            throw new \Magma\infrastructure\exceptions\DatabaseException("Database execute failed.", 0, $e);
+            $snippet = substr($sql, 0, 50);
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Database execute failed for query starting with: [{$snippet}].", 0, $e);
         }
         return $stmt->rowCount();
     }

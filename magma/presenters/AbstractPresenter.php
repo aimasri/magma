@@ -97,7 +97,8 @@ abstract class AbstractPresenter implements JsonSerializable, ArrayAccess
 
             $dt = new \DateTimeImmutable((string) $date);
             return $dt->format($format);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log("AbstractPresenter::formatDate failed: " . $e->getMessage());
             return 'Invalid Date';
         }
     }

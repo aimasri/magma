@@ -218,7 +218,7 @@ class Session implements SessionInterface
                     setcookie(
                         $sessionName,
                         '',
-                        time() - 42000,
+                        1,
                         $params["path"],
                         $params["domain"],
                         $params["secure"],

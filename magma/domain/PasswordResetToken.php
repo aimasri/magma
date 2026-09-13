@@ -51,11 +51,16 @@ class PasswordResetToken
      *
      * @return self
      */
-    public static function generate(): self
+    public static function generate(\Magma\contracts\ClockInterface $clock): self
     {
         $token = bin2hex(random_bytes(32));
         $hashedToken = hash('sha256', $token);
-        $expiresAt = date('Y-m-d H:i:s', time() + 3600); // 1 Hour TTL
+        
+        $now = $clock->now();
+        $expiryTimestamp = $now->getTimestamp() + 3600; // 1 Hour TTL
+        $expiryDate = clone $now;
+        $expiryDate->setTimestamp($expiryTimestamp);
+        $expiresAt = $expiryDate->format('Y-m-d H:i:s');
 
         return new self($token, $hashedToken, $expiresAt);
     }

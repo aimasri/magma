@@ -81,13 +81,9 @@ class Application
      */
     public function handle(RequestInterface $request): Response
     {
-        try {
-            $router = $this->container->get(RouterInterface::class);
-            assert($router instanceof RouterInterface);
-            return $router->dispatch($request, $this->middleware);
-        } catch (\Throwable $e) {
-            return $this->handleKernelError($e, $request);
-        }
+        $router = $this->container->get(RouterInterface::class);
+        assert($router instanceof RouterInterface);
+        return $router->dispatch($request, $this->middleware);
     }
 
     /**
@@ -111,7 +107,9 @@ class Application
             $response = $this->handle($request);
             $bufferedOutput = (string) ob_get_clean();
         } catch (\Throwable $e) {
-            ob_end_clean();
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             $response = $this->handleKernelError($e, $request instanceof RequestInterface ? $request : null);
         }
 

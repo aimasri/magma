@@ -31,16 +31,19 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 {
     private DatabaseConnectionManager $dbManager;
     private ?TransactionManagerInterface $transactionManager;
+    private \Magma\contracts\ClockInterface $clock;
 
     /**
      * Initializes the repository with database connection management.
      * 
      * @param DatabaseConnectionManager $dbManager Manager supplying specific read/write PDO instances.
+     * @param \Magma\contracts\ClockInterface $clock Interface for deterministic time.
      * @param TransactionManagerInterface|null $transactionManager Optional transaction manager for bulk operations.
      */
-    public function __construct(DatabaseConnectionManager $dbManager, ?TransactionManagerInterface $transactionManager = null)
+    public function __construct(DatabaseConnectionManager $dbManager, \Magma\contracts\ClockInterface $clock, ?TransactionManagerInterface $transactionManager = null)
     {
         $this->dbManager = $dbManager;
+        $this->clock = $clock;
         $this->transactionManager = $transactionManager;
     }
 
@@ -65,21 +68,27 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $limit = max(1, min($limit, 1000));
         $pdo = $this->dbManager->getWriteConnection();
+        
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $fiveMinsAgo = $this->clock->now()->modify('-5 minutes')->format('Y-m-d H:i:s');
 
         $sql = 'UPDATE "outbox_jobs" '
-             . 'SET "locked_at" = NOW() '
+             . 'SET "locked_at" = :now '
              . 'WHERE "id" IN ('
              . '    SELECT "id" FROM "outbox_jobs" '
-             . '    WHERE ("locked_at" IS NULL OR "locked_at" < NOW() - INTERVAL \'5 minutes\') '
+             . '    WHERE ("locked_at" IS NULL OR "locked_at" < :timeout) '
              . '    AND "attempts" < 10 '
              . '    ORDER BY "id" ASC '
              . '    LIMIT :limit '
-             . '    FOR UPDATE SKIP LOCKED'
-             . ') RETURNING "id", "tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
+             . '    FOR UPDATE SKIP LOCKED '
+             . ') '
+             . 'RETURNING "id", "tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
 
         try {
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':now', $now);
+            $stmt->bindValue(':timeout', $fiveMinsAgo);
             $stmt->execute();
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox fetch failed.", 0, $e);
@@ -103,7 +112,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
                 'payload' => is_array($payload) ? $payload : [],
                 'headers' => is_array($headers) ? $headers : [],
                 'attempts' => (int) ($row['attempts'] ?? 0),
-                'created_at' => (string) ($row['created_at'] ?? date('Y-m-d H:i:s')),
+                'created_at' => (string) ($row['created_at'] ?? $this->clock->now()->format('Y-m-d H:i:s')),
             ];
         }
 
@@ -164,7 +173,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         $pdo = $this->dbManager->getWriteConnection();
 
         $sql = 'INSERT INTO "outbox_jobs" ("tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at") '
-             . 'VALUES (:tenant_id, :queue, :handler, :payload, :headers, 0, NOW()) RETURNING "id"';
+             . 'VALUES (:tenant_id, :queue, :handler, :payload, :headers, 0, :created_at) RETURNING "id"';
 
         try {
             $stmt = $pdo->prepare($sql);
@@ -173,6 +182,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
             $stmt->bindValue(':handler', trim($job->handlerClass));
             $stmt->bindValue(':payload', json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             $stmt->bindValue(':headers', json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+            $stmt->bindValue(':created_at', $this->clock->now()->format('Y-m-d H:i:s'));
             $stmt->execute();
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox record failed.", 0, $e);
@@ -195,6 +205,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 
         $executeChunks = function () use ($jobs) {
             $pdo = $this->dbManager->getWriteConnection();
+            $now = $this->clock->now()->format('Y-m-d H:i:s');
 
             $chunks = array_chunk($jobs, 1000);
             foreach ($chunks as $chunk) {
@@ -203,13 +214,14 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 
                 $i = 0;
                 foreach ($chunk as $job) {
-                    $placeholders[] = "(:tenant_id_{$i}, :queue_{$i}, :handler_{$i}, :payload_{$i}, :headers_{$i}, 0, NOW())";
+                    $placeholders[] = "(:tenant_id_{$i}, :queue_{$i}, :handler_{$i}, :payload_{$i}, :headers_{$i}, 0, :created_at_{$i})";
                     
                     $bindings[":tenant_id_{$i}"] = $job->tenantId !== null ? $job->tenantId : null;
                     $bindings[":queue_{$i}"] = trim($job->queue);
                     $bindings[":handler_{$i}"] = trim($job->handlerClass);
                     $bindings[":payload_{$i}"] = json_encode($job->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
                     $bindings[":headers_{$i}"] = json_encode($job->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+                    $bindings[":created_at_{$i}"] = $now;
                     
                     $i++;
                 }
@@ -251,13 +263,29 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $pdo = $this->dbManager->getWriteConnection();
 
-        $sql = 'UPDATE "outbox_jobs" '
-             . 'SET "attempts" = "attempts" + 1, '
-             . '    "locked_at" = NULL, '
-             . '    "last_error" = :error '
-             . 'WHERE "id" = :id';
-
         try {
+            $stmtCheck = $pdo->prepare('SELECT "attempts" FROM "outbox_jobs" WHERE "id" = :id');
+            $stmtCheck->execute([':id' => $id]);
+            $attempts = (int) $stmtCheck->fetchColumn();
+
+            if ($attempts >= 10) {
+                error_log(sprintf(
+                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Deleting poisoned job. Last error: %s",
+                    $this->clock->now()->format('Y-m-d H:i:s'),
+                    $id,
+                    $errorMessage
+                ));
+                $stmtDel = $pdo->prepare('DELETE FROM "outbox_jobs" WHERE "id" = :id');
+                $stmtDel->execute([':id' => $id]);
+                return;
+            }
+
+            $sql = 'UPDATE "outbox_jobs" '
+                 . 'SET "attempts" = "attempts" + 1, '
+                 . '    "locked_at" = NULL, '
+                 . '    "last_error" = :error '
+                 . 'WHERE "id" = :id';
+
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);

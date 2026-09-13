@@ -133,7 +133,8 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(RememberMeService::class, function ($c) {
             return new RememberMeService(
-                $c->get(\Magma\repositories\RememberTokenRepository::class)
+                $c->get(\Magma\repositories\RememberTokenRepository::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
@@ -165,8 +166,9 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(\Magma\queue\IdempotentProjectionGuard::class, function ($c) {
             $db = $c->get(\Magma\database\DatabaseConnectionManager::class);
+            $clock = $c->get(\Magma\contracts\ClockInterface::class);
             assert($db instanceof \Magma\database\DatabaseConnectionManager);
-            return new \Magma\queue\IdempotentProjectionGuard($db);
+            return new \Magma\queue\IdempotentProjectionGuard($db, $clock);
         });
     }
 }

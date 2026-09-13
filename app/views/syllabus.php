@@ -1,7 +1,17 @@
 <?php
 /**
  * Title: Syllabus View
- * Purpose: Renders the textbook / syllabus page.
+ *
+ * Purpose:
+ * - Renders the textbook / syllabus page, acting as the primary educational entry point for the Magma Framework.
+ * - Displays the 15-module masterclass covering all architectural concepts.
+ *
+ * Teaching notes:
+ * - This view is completely standalone and bypasses the main application layout wrapper because it is a self-contained, long-form document.
+ * - All CSS cascade layers for the syllabus are strictly scoped to prevent overriding other UI components.
+ *
+ * @var array $data Associative array containing view data passed from the controller.
+ * @var string|null $data['title'] The optional dynamic page title.
  */
 $pageTitle = $data['title'] ?? 'Architectural Syllabus';
 ?>

@@ -141,7 +141,8 @@ class DashboardWidgetRegistry
 
         try {
             return $this->resolveWidget($this->widgets[$identifier]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            error_log("DashboardWidgetRegistry::getWidget failed for {$identifier}: " . $e->getMessage());
             return null;
         }
     }

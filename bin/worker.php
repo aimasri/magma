@@ -32,7 +32,12 @@ try {
     require __DIR__ . '/../magma/config/bootstrap.php';
 
     $queue = $container->get(\Magma\queue\QueueInterface::class);
-    $daemon = new \Magma\queue\QueueWorkerDaemon($container, $queue, $container->get(\Magma\logging\LoggerInterface::class));
+    $daemon = new \Magma\queue\QueueWorkerDaemon(
+        $container, 
+        $queue, 
+        $container->get(\Magma\logging\LoggerInterface::class),
+        $container->get(\Magma\contracts\ClockInterface::class)
+    );
     $daemon->run();
 } catch (\Throwable $e) {
     fwrite(STDERR, "CRITICAL WORKER BOOT FAILURE: " . $e->getMessage() . "\n");

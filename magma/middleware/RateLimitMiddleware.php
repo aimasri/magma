@@ -88,16 +88,21 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         // Record the attempt atomically FIRST to close the race window
         // The limiter returns the new count, saving us a second GET trip.
-        $currentAttempts = $this->limiter->hit($key, $this->decaySeconds);
-        $remaining = max(0, $this->maxAttempts - $currentAttempts);
+        try {
+            $currentAttempts = $this->limiter->hit($key, $this->decaySeconds);
+            $remaining = max(0, $this->maxAttempts - $currentAttempts);
 
-        if ($currentAttempts > $this->maxAttempts) {
-            // Threshold exceeded
-            $response = new Response("Too Many Requests. Please try again later.", 429);
-            $response->addHeader('Retry-After', (string)$this->decaySeconds);
-            $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
-            $response->addHeader('X-RateLimit-Remaining', '0');
-            return $response;
+            if ($currentAttempts > $this->maxAttempts) {
+                // Threshold exceeded
+                $response = new Response("Too Many Requests. Please try again later.", 429);
+                $response->addHeader('Retry-After', (string)$this->decaySeconds);
+                $response->addHeader('X-RateLimit-Limit', (string)$this->maxAttempts);
+                $response->addHeader('X-RateLimit-Remaining', '0');
+                return $response;
+            }
+        } catch (\Throwable $e) {
+            // Fail open if rate limiter is down (e.g., Redis failure)
+            $remaining = $this->maxAttempts;
         }
 
         /** @var Response $response */

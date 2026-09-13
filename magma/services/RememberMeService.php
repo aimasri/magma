@@ -25,6 +25,7 @@ use Magma\repositories\RememberTokenRepository;
 class RememberMeService
 {
     protected RememberTokenRepository $userTokenRepository;
+    protected \Magma\contracts\ClockInterface $clock;
 
     /**
      * Initializes the RememberMeService.
@@ -38,10 +39,12 @@ class RememberMeService
      *   from the data persistence details.
      *
      * @param RememberTokenRepository $userTokenRepository
+     * @param \Magma\contracts\ClockInterface $clock
      */
-    public function __construct(RememberTokenRepository $userTokenRepository)
+    public function __construct(RememberTokenRepository $userTokenRepository, \Magma\contracts\ClockInterface $clock)
     {
         $this->userTokenRepository = $userTokenRepository;
+        $this->clock = $clock;
     }
 
     /**
@@ -91,18 +94,21 @@ class RememberMeService
     {
         $selector = bin2hex(random_bytes(12));
         $validator = bin2hex(random_bytes(32));
-        $expiry = time() + $ttlSeconds;
+        $now = $this->clock->now();
+        $expiryTimestamp = $now->getTimestamp() + $ttlSeconds;
+        $expiryDate = clone $now;
+        $expiryDate->setTimestamp($expiryTimestamp);
 
         $this->userTokenRepository->saveRememberToken(
             $userId, 
             $selector, 
             hash('sha256', $validator), 
-            date('Y-m-d H:i:s', $expiry)
+            $expiryDate->format('Y-m-d H:i:s')
         );
 
         return [
             'token' => "$selector:$validator",
-            'expiry' => $expiry
+            'expiry' => $expiryTimestamp
         ];
     }
 

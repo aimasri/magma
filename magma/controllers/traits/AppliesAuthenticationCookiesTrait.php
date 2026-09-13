@@ -31,7 +31,7 @@ trait AppliesAuthenticationCookiesTrait
             $response->withCookie($cookie['name'], $cookie['value'], $cookie['expiry'], "/", "", $request->isSecure(), true);
         }
         foreach ($result->getCookiesToClear() as $name) {
-            $response->withCookie($name, '', time() - 3600, "/", "", $request->isSecure(), true);
+            $response->withCookie($name, '', 1, "/", "", $request->isSecure(), true);
         }
         return $response;
     }

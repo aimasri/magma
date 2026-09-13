@@ -60,6 +60,7 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
         $stmt = $this->getDb()->prepare("
             SELECT user_id FROM user_tokens 
             WHERE token_hash = ? AND type = 'password_reset' AND expires_at > ?
+            FOR UPDATE
         ");
         $stmt->execute([$tokenHash, $this->clock->now()->format('Y-m-d H:i:s')]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);

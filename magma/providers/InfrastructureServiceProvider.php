@@ -96,7 +96,7 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                 );
 
                 if (!$connected) {
-                    throw new \RuntimeException('Redis connection failed.');
+                    return $redis;
                 }
 
                 $password = Config::get('REDIS_PASSWORD');
@@ -111,7 +111,8 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                     $redis->select((int)$db);
                 }
             } catch (\RedisException $e) {
-                throw new \RuntimeException('Redis configuration or connection error: ' . $e->getMessage(), 0, $e);
+                // Return unconnected instance so DI resolution doesn't crash.
+                // Callers (RedisCache, RateLimitMiddleware) will handle failures gracefully.
             }
 
             return $redis;
@@ -142,6 +143,10 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
 
         $container->set(\Magma\contracts\ClockInterface::class, function () {
             return new \Magma\infrastructure\time\SystemClock();
+        });
+
+        $container->set(\Magma\logging\CorrelationIdProviderInterface::class, function () {
+            return new \Magma\logging\CorrelationIdProvider();
         });
 
         $container->set(QueueInterface::class, function ($c) {
