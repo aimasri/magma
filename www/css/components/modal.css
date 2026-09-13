@@ -1,0 +1,55 @@
+/**
+ * Title: Modal Component Styles
+ *
+ * Purpose:
+ * - Styles the floating modal cards and their internal structural elements (header, body, footer).
+ *
+ * Why / Why this design:
+ * - BEM Encapsulation: Modals often contain complex injected HTML. By keeping `.magma-modal-card` 
+ *   strictly encapsulated, we ensure the injected DOM elements do not accidentally inherit generic 
+ *   card or panel styles from the underlying page.
+ *
+ * Teaching notes:
+ * - Backdrop and overlay logic should be handled by utility or layout layers, this specifically 
+ *   targets the modal surface itself.
+ */
+@layer components {
+    .magma-modal-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .magma-modal-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .magma-modal-card__title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .magma-modal-card__body {
+        background-color: var(--bg-surface);
+    }
+
+    .magma-modal-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--border-subtle);
+    }
+}

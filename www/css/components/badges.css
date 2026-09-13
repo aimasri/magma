@@ -1,0 +1,80 @@
+/**
+ * Title: Badge and Pill Component Styles
+ *
+ * Purpose:
+ * - Single Responsibility: Encapsulates status indicators, code pills, and tags.
+ *
+ * Why / Why this design:
+ * - Independent Domain: Separating badges from global typography ensures we can apply custom vertical alignments and spacing without breaking global layouts.
+ *
+ * Teaching notes:
+ * - Strictly layered under 'components' to ensure utilities can override them if needed.
+ * - Keep variations minimal to ensure UI consistency.
+ */
+
+@layer components {
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.65rem;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+        background-color: var(--badge-bg, transparent);
+        color: var(--badge-color, inherit);
+        border: 1px solid var(--badge-border, transparent);
+    }
+
+    .badge--brand {
+        --badge-bg: var(--color-success);
+        --badge-color: var(--bg-canvas);
+    }
+
+    .badge--pill {
+        border-radius: var(--radius-full);
+        padding: 0.3rem 0.85rem;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    .badge--success {
+        --badge-bg: var(--color-success-subtle);
+        --badge-color: var(--color-success);
+        --badge-border: var(--color-success);
+    }
+
+    .badge--debug {
+        --badge-bg: var(--bg-canvas);
+        --badge-color: var(--color-success);
+        --badge-border: transparent;
+    }
+
+    .badge--info {
+        --badge-bg: var(--color-info-subtle);
+        --badge-color: var(--color-info);
+        --badge-border: var(--color-info);
+    }
+
+    .badge--topology {
+        --badge-bg: var(--brand-flame);
+        --badge-color: var(--color-success);
+        --badge-border: transparent;
+    }
+
+    .badge--warning {
+        --badge-bg: var(--color-warning-subtle);
+        --badge-color: var(--color-warning);
+        --badge-border: var(--color-warning);
+    }
+
+    .badge--neutral {
+        --badge-bg: var(--bg-code);
+        --badge-color: var(--text-muted);
+        --badge-border: var(--border-subtle);
+    }
+}
