@@ -107,7 +107,9 @@ class Application
             $response = $this->handle($request);
             $bufferedOutput = (string) ob_get_clean();
         } catch (\Throwable $e) {
-            ob_end_clean();
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
             $response = $this->handleKernelError($e, $request instanceof RequestInterface ? $request : null);
         }
 
