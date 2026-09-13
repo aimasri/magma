@@ -95,7 +95,8 @@ class RememberMeService
         $selector = bin2hex(random_bytes(12));
         $validator = bin2hex(random_bytes(32));
         $now = $this->clock->now();
-        $expiryDate = $now->setTimestamp($now->getTimestamp() + $ttlSeconds);
+        $expiryTimestamp = $now->getTimestamp() + $ttlSeconds;
+        $expiryDate = $now->setTimestamp($expiryTimestamp);
 
         $this->userTokenRepository->saveRememberToken(
             $userId, 
