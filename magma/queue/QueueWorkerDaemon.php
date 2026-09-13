@@ -27,6 +27,7 @@ class QueueWorkerDaemon
     private Container $container;
     private QueueInterface $queue;
     private \Magma\logging\LoggerInterface $logger;
+    private \Magma\contracts\ClockInterface $clock;
 
     private bool $running = true;
 
@@ -40,12 +41,18 @@ class QueueWorkerDaemon
      * @param Container $container
      * @param QueueInterface $queue
      * @param \Magma\logging\LoggerInterface $logger
+     * @param \Magma\contracts\ClockInterface $clock
      */
-    public function __construct(Container $container, QueueInterface $queue, \Magma\logging\LoggerInterface $logger)
-    {
+    public function __construct(
+        Container $container, 
+        QueueInterface $queue, 
+        \Magma\logging\LoggerInterface $logger,
+        \Magma\contracts\ClockInterface $clock
+    ) {
         $this->container = $container;
         $this->queue = $queue;
         $this->logger = $logger;
+        $this->clock = $clock;
     }
 
     public function run(string $queueName = 'emails'): void

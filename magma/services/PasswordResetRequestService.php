@@ -49,8 +49,10 @@ class PasswordResetRequestService
         private UserQueryInterface $userQueryRepository,
         private PasswordResetTokenRepository $userTokenRepository,
         private TransactionManagerInterface $transactionManager,
-        private EventDispatcherInterface $eventDispatcher
-    ) {}
+        private EventDispatcherInterface $eventDispatcher,
+        private \Magma\contracts\ClockInterface $clock
+    ) {
+    }
 
     /**
      * Executes the password reset request workflow.
@@ -71,7 +73,7 @@ class PasswordResetRequestService
             return PasswordResetStatus::USER_NOT_FOUND;
         }
 
-        $token = \Magma\domain\PasswordResetToken::generate();
+        $token = \Magma\domain\PasswordResetToken::generate($this->clock);
 
         try {
             $this->transactionManager->transactional(function () use ($user, $token, $email) {

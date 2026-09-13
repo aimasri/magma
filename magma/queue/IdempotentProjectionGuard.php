@@ -29,6 +29,7 @@ use Throwable;
 class IdempotentProjectionGuard
 {
     private DatabaseConnectionManager $dbManager;
+    private \Magma\contracts\ClockInterface $clock;
 
     /**
      * Initializes the projection guard with the database connection manager.
@@ -38,10 +39,12 @@ class IdempotentProjectionGuard
      *   ensuring immediate read-after-write consistency for idempotent checks.
      *
      * @param DatabaseConnectionManager $dbManager
+     * @param \Magma\contracts\ClockInterface $clock
      */
-    public function __construct(DatabaseConnectionManager $dbManager)
+    public function __construct(DatabaseConnectionManager $dbManager, \Magma\contracts\ClockInterface $clock)
     {
         $this->dbManager = $dbManager;
+        $this->clock = $clock;
     }
 
     /**
@@ -99,7 +102,7 @@ class IdempotentProjectionGuard
 
         $sql = 'INSERT INTO "projection_checkpoints" '
              . '("projection_name", "event_id", "tenant_id", "metadata", "applied_at") '
-             . 'VALUES (:projection_name, :event_id, :tenant_id, :metadata, NOW()) '
+             . 'VALUES (:projection_name, :event_id, :tenant_id, :metadata, :applied_at) '
              . 'ON CONFLICT ("projection_name", "event_id") DO NOTHING';
 
         $stmt = $pdo->prepare($sql);
@@ -111,6 +114,7 @@ class IdempotentProjectionGuard
             $stmt->bindValue(':tenant_id', null, PDO::PARAM_NULL);
         }
         $stmt->bindValue(':metadata', json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $stmt->bindValue(':applied_at', $this->clock->now()->format('Y-m-d H:i:s'));
         $stmt->execute();
 
         return $stmt->rowCount() > 0;

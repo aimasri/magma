@@ -66,6 +66,7 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
             SELECT user_id, token_hash as hashed_validator 
             FROM user_tokens 
             WHERE selector = ? AND type = 'remember_me' AND expires_at > ?
+            FOR UPDATE
         ");
         $stmt->execute([$selector, $this->clock->now()->format('Y-m-d H:i:s')]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);

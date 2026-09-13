@@ -30,19 +30,23 @@ abstract class AbstractProjectionWorker implements JobInterface
 {
     protected IdempotentProjectionGuard $guard;
     protected DatabaseTransactionManager $transactionManager;
+    protected \Magma\contracts\ClockInterface $clock;
 
     /**
      * Initializes the projection worker with guarding and transactional capabilities.
      * 
      * @param IdempotentProjectionGuard $guard Guard instance ensuring idempotency of projection runs.
      * @param DatabaseTransactionManager $transactionManager Manager orchestrating database transactions.
+     * @param \Magma\contracts\ClockInterface $clock System clock interface for deterministic time.
      */
     public function __construct(
         IdempotentProjectionGuard $guard,
-        DatabaseTransactionManager $transactionManager
+        DatabaseTransactionManager $transactionManager,
+        \Magma\contracts\ClockInterface $clock
     ) {
         $this->guard = $guard;
         $this->transactionManager = $transactionManager;
+        $this->clock = $clock;
     }
 
     /**
@@ -81,7 +85,7 @@ abstract class AbstractProjectionWorker implements JobInterface
                 $tenantId,
                 [
                     'handler' => static::class,
-                    'projected_at' => date('c'),
+                    'projected_at' => $this->clock->now()->format('c'),
                 ]
             );
         });
