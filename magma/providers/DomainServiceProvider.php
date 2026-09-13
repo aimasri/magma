@@ -133,7 +133,8 @@ class DomainServiceProvider implements ServiceProviderInterface
 
         $container->set(RememberMeService::class, function ($c) {
             return new RememberMeService(
-                $c->get(\Magma\repositories\RememberTokenRepository::class)
+                $c->get(\Magma\repositories\RememberTokenRepository::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
