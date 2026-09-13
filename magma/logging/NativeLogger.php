@@ -22,6 +22,17 @@ namespace Magma\logging;
  */
 class NativeLogger implements LoggerInterface
 {
+    private ?\Magma\security\TenantContext $tenantContext;
+    private ?CorrelationIdProviderInterface $correlationIdProvider;
+
+    public function __construct(
+        ?\Magma\security\TenantContext $tenantContext = null,
+        ?CorrelationIdProviderInterface $correlationIdProvider = null
+    ) {
+        $this->tenantContext = $tenantContext;
+        $this->correlationIdProvider = $correlationIdProvider;
+    }
+
     /**
      * @param array<string, mixed> $context
      */
@@ -74,10 +85,18 @@ class NativeLogger implements LoggerInterface
      */
     private function log(string $level, string $message, array $context): void
     {
+        $tenantId = ($this->tenantContext !== null && $this->tenantContext->hasTenantId()) ? $this->tenantContext->getTenantId() : 'System';
+        $traceId = $this->correlationIdProvider !== null ? $this->correlationIdProvider->getCorrelationId() : 'N/A';
+        
+        // Sanitize CRLF to prevent log injection
+        $safeMessage = str_replace(["\r", "\n"], ' ', $message);
+
         $logEntry = sprintf(
-            '[%s] %s %s',
+            '[%s] [Trace: %s] [Tenant: %s] %s %s',
             $level,
-            $message,
+            $traceId,
+            $tenantId,
+            $safeMessage,
             empty($context) ? '' : json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
         );
 

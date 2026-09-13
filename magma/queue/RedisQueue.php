@@ -57,7 +57,10 @@ class RedisQueue implements QueueInterface
             JobInterface::HANDLER_KEY => $handlerClass,
             JobInterface::PAYLOAD_KEY => $payload
         ], JSON_THROW_ON_ERROR);
-        $this->redis->rpush($this->prefix . $queue, $data);
+        $result = $this->redis->rpush($this->prefix . $queue, $data);
+        if ($result === false) {
+            throw new \Magma\infrastructure\exceptions\InfrastructureException("Redis queue push failed for queue: {$queue}");
+        }
     }
 
     /**
@@ -112,6 +115,9 @@ class RedisQueue implements QueueInterface
             ], JSON_THROW_ON_ERROR);
         }, $payloads);
 
-        $this->redis->rpush($this->prefix . $queue, ...$encodedPayloads);
+        $result = $this->redis->rpush($this->prefix . $queue, ...$encodedPayloads);
+        if ($result === false) {
+            throw new \Magma\infrastructure\exceptions\InfrastructureException("Redis queue batch push failed for queue: {$queue}");
+        }
     }
 }

@@ -238,14 +238,22 @@ class ErrorHandler implements ErrorHandlerInterface
                 /** @var \Magma\security\TenantContext $tenantContext */
                 $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
                 $tenantId = $tenantContext->hasTenantId() ? $tenantContext->getTenantId() : null;
-            } catch (\Throwable) {}
+            } catch (\Throwable $resolveError) {
+                error_log("Failed to resolve TenantContext during error handling: " . $resolveError->getMessage());
+            }
         }
 
         // Build full exception chain trace to prevent losing PDOException details
         $traceChain = $e->getTraceAsString();
         $prev = $e->getPrevious();
         while ($prev !== null) {
-            $traceChain .= "\n\n[Caused by]: " . get_class($prev) . " - " . $prev->getMessage() . "\n" . $prev->getTraceAsString();
+            $msg = $prev->getMessage();
+            if ($prev instanceof \PDOException) {
+                // Sanitize credentials from DSN and raw SQL parameters
+                $msg = preg_replace('/password=[\S]+/', 'password=***', $msg);
+                $msg = preg_replace('/(VALUES\s*\().*?(\))/is', '$1***$2', $msg ?? '');
+            }
+            $traceChain .= "\n\n[Caused by]: " . get_class($prev) . " - " . $msg . "\n" . $prev->getTraceAsString();
             $prev = $prev->getPrevious();
         }
 

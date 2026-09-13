@@ -81,11 +81,15 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function updatePassword(int $userId, string $hashedPassword, ?\DateTimeImmutable $changedAt = null): void
     {
-        $changedAtStr = $changedAt ? $changedAt->format('Y-m-d H:i:s') : null;
-        
-        $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = ? WHERE \"id\" = ?";
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute([$hashedPassword, $changedAtStr, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
+        try {
+            $changedAtStr = $changedAt ? $changedAt->format('Y-m-d H:i:s') : null;
+            
+            $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = ? WHERE \"id\" = ?";
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute([$hashedPassword, $changedAtStr, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException('Database error occurred while updating user password.', 0, $e);
+        }
     }
 
     /**
@@ -97,9 +101,13 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function updateRole(int $userId, string $role): bool
     {
-        $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = ? WHERE \"id\" = ?");
-        $stmt->execute([$role, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
-        return $stmt->rowCount() > 0;
+        try {
+            $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = ? WHERE \"id\" = ?");
+            $stmt->execute([$role, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
+            return $stmt->rowCount() > 0;
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException('Database error occurred while updating user role.', 0, $e);
+        }
     }
 
     /**
@@ -119,25 +127,29 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
      */
     public function provisionAdminUser(string $name, string $email, string $hashedPassword, string $role = 'admin'): int
     {
-        $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $sql = "INSERT INTO \"users\" (\"name\", \"email\", \"password\", \"role\", \"created_at\", \"updated_at\") 
-                VALUES (:name, :email, :password, :role, :now, :now) 
-                ON CONFLICT (\"email\") DO UPDATE 
-                SET \"name\" = EXCLUDED.\"name\", 
-                    \"password\" = EXCLUDED.\"password\", 
-                    \"role\" = EXCLUDED.\"role\", 
-                    \"updated_at\" = :now 
-                RETURNING \"id\"";
-                
-        $stmt = $this->getDb()->prepare($sql);
-        $stmt->execute([
-            'name' => $name,
-            'email' => $email,
-            'password' => $hashedPassword,
-            'role' => $role,
-            'now' => $now,
-        ]);
-        
-        return (int) $stmt->fetchColumn();
+        try {
+            $now = $this->clock->now()->format('Y-m-d H:i:s');
+            $sql = "INSERT INTO \"users\" (\"name\", \"email\", \"password\", \"role\", \"created_at\", \"updated_at\") 
+                    VALUES (:name, :email, :password, :role, :now, :now) 
+                    ON CONFLICT (\"email\") DO UPDATE 
+                    SET \"name\" = EXCLUDED.\"name\", 
+                        \"password\" = EXCLUDED.\"password\", 
+                        \"role\" = EXCLUDED.\"role\", 
+                        \"updated_at\" = :now 
+                    RETURNING \"id\"";
+                    
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute([
+                'name' => $name,
+                'email' => $email,
+                'password' => $hashedPassword,
+                'role' => $role,
+                'now' => $now,
+            ]);
+            
+            return (int) $stmt->fetchColumn();
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException('Database error occurred while provisioning admin user.', 0, $e);
+        }
     }
 }

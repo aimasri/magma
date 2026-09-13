@@ -81,13 +81,9 @@ class Application
      */
     public function handle(RequestInterface $request): Response
     {
-        try {
-            $router = $this->container->get(RouterInterface::class);
-            assert($router instanceof RouterInterface);
-            return $router->dispatch($request, $this->middleware);
-        } catch (\Throwable $e) {
-            return $this->handleKernelError($e, $request);
-        }
+        $router = $this->container->get(RouterInterface::class);
+        assert($router instanceof RouterInterface);
+        return $router->dispatch($request, $this->middleware);
     }
 
     /**
