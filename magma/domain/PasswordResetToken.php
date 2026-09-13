@@ -57,9 +57,7 @@ class PasswordResetToken
         $hashedToken = hash('sha256', $token);
         
         $now = $clock->now();
-        $expiryTimestamp = $now->getTimestamp() + 3600; // 1 Hour TTL
-        $expiryDate = clone $now;
-        $expiryDate->setTimestamp($expiryTimestamp);
+        $expiryDate = $now->setTimestamp($now->getTimestamp() + 3600);
         $expiresAt = $expiryDate->format('Y-m-d H:i:s');
 
         return new self($token, $hashedToken, $expiresAt);

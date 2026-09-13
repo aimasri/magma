@@ -85,7 +85,8 @@ class DomainServiceProvider implements ServiceProviderInterface
                 $c->get(UserQueryInterface::class),
                 $c->get(\Magma\repositories\PasswordResetTokenRepository::class),
                 $c->get(TransactionManagerInterface::class),
-                $c->get(\Magma\interfaces\EventDispatcherInterface::class)
+                $c->get(\Magma\interfaces\EventDispatcherInterface::class),
+                $c->get(\Magma\contracts\ClockInterface::class)
             );
         });
 
