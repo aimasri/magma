@@ -29,6 +29,8 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
     private int $standardTimeout = 1800; // 30 minutes
     private int $adminTimeout = 7200; // 2 hours
 
+    private \Magma\contracts\ClockInterface $clock;
+
     /**
      * Initializes the middleware with the required session handler.
      *
@@ -38,11 +40,13 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
      * Logic behind the logic:
      * - Passing the Session instance via constructor injection complies with the Dependency Inversion Principle, decoupling the middleware from global session state or static helpers.
      *
-     * @param Session $session The HTTP session instance.
+     * @param Session $session The session handler.
+     * @param \Magma\contracts\ClockInterface $clock The application clock.
      */
-    public function __construct(Session $session)
+    public function __construct(Session $session, \Magma\contracts\ClockInterface $clock)
     {
         $this->session = $session;
+        $this->clock = $clock;
     }
 
     /**
@@ -67,7 +71,7 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
         if (is_array($user)) {
             $lastActivity = $this->session->get('last_activity');
             $lastActivity = is_numeric($lastActivity) ? (int)$lastActivity : null;
-            $currentTime = time();
+            $currentTime = $this->clock->now()->getTimestamp();
             
             $allowedTimeout = $this->standardTimeout;
             
@@ -81,7 +85,7 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
                 $this->session->destroy();
                 
                 return (new \Magma\http\RedirectResponse('/login'))
-                    ->withCookie('remember_user', '', time() - 3600);
+                    ->withCookie('remember_user', '', $currentTime - 3600);
             }
 
             // Update last activity timestamp

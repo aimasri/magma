@@ -112,7 +112,7 @@ class QueueWorkerDaemon
             $this->queue->push('failed_jobs', 'UnknownHandler', [
                 'raw_payload' => $jobString,
                 'error' => 'json_decode failed or payload is not an array',
-                'failed_at' => date('c')
+                'failed_at' => $this->clock->now()->format('c')
             ]);
             return;
         }
@@ -163,7 +163,7 @@ class QueueWorkerDaemon
                     sleep(1); // Brief delay before requeue
                     $this->queue->push($queueName, $handlerClass, $payload);
                 } else {
-                    $payload['failed_at'] = date('c');
+                    $payload['failed_at'] = $this->clock->now()->format('c');
                     $this->queue->push('failed_jobs', $handlerClass, $payload);
                 }
             } finally {

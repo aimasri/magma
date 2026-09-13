@@ -111,7 +111,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
                 'payload' => is_array($payload) ? $payload : [],
                 'headers' => is_array($headers) ? $headers : [],
                 'attempts' => (int) ($row['attempts'] ?? 0),
-                'created_at' => (string) ($row['created_at'] ?? date('Y-m-d H:i:s')),
+                'created_at' => (string) ($row['created_at'] ?? $this->clock->now()->format('Y-m-d H:i:s')),
             ];
         }
 

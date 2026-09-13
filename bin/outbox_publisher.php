@@ -37,21 +37,6 @@ require_once __DIR__ . '/../magma/config/bootstrap.php';
 use Magma\database\OutboxJobRepositoryInterface;
 use Magma\database\OutboxJobRepository;
 use Magma\queue\QueueInterface;
-use Magma\database\DatabaseTransactionManager;
-use Magma\database\DatabaseConnectionManager;
-
-// Configure graceful termination signals if pcntl is installed
-$keepRunning = true;
-if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
-    pcntl_async_signals(true);
-    $signalHandler = function (int $signal) use (&$keepRunning) {
-        echo "[" . date('Y-m-d H:i:s') . "] Signal {$signal} received. Initiating graceful shutdown...\n";
-        $keepRunning = false;
-    };
-    pcntl_signal(SIGTERM, $signalHandler);
-    pcntl_signal(SIGINT, $signalHandler);
-}
-
 use Magma\config\Config;
 
 /** @var OutboxJobRepositoryInterface $outboxRepo */
@@ -68,11 +53,26 @@ $txManager = $container->get(DatabaseTransactionManager::class);
 /** @var DatabaseConnectionManager $dbManager */
 $dbManager = $container->get(DatabaseConnectionManager::class);
 
+/** @var \Magma\contracts\ClockInterface $clock */
+$clock = $container->get(\Magma\contracts\ClockInterface::class);
+
+// Configure graceful termination signals if pcntl is installed
+$keepRunning = true;
+if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
+    pcntl_async_signals(true);
+    $signalHandler = function (int $signal) use (&$keepRunning, $clock) {
+        echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Signal {$signal} received. Initiating graceful shutdown...\n";
+        $keepRunning = false;
+    };
+    pcntl_signal(SIGTERM, $signalHandler);
+    pcntl_signal(SIGINT, $signalHandler);
+}
+
 $batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
 $idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
 $timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
 
-echo "[" . date('Y-m-d H:i:s') . "] Outbox publisher daemon started. Polling outbox_jobs...\n";
+echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon started. Polling outbox_jobs...\n";
 
 while ($keepRunning) {
     try {
@@ -90,7 +90,7 @@ while ($keepRunning) {
                     $queue->push($job['queue'], $job['handler'], $job['payload']);
                     $publishedIds[] = $job['id'];
                 } catch (\Throwable $publishError) {
-                    echo "[" . date('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
+                    echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
                     $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
                 }
             }
@@ -103,7 +103,7 @@ while ($keepRunning) {
         });
 
         if ($processedCount > 0) {
-            echo "[" . date('Y-m-d H:i:s') . "] Published and cleared {$processedCount} outbox jobs.\n";
+            echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Published and cleared {$processedCount} outbox jobs.\n";
             // Check for more immediate jobs without sleeping
             continue;
         }
@@ -113,7 +113,7 @@ while ($keepRunning) {
         usleep($idleSleepMicroseconds);
 
     } catch (\Throwable $e) {
-        echo "[" . date('Y-m-d H:i:s') . "] Outbox Publisher Error: " . $e->getMessage() . "\n";
+        echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox Publisher Error: " . $e->getMessage() . "\n";
         $dbManager->disconnect();
         sleep(2);
     } finally {
@@ -121,5 +121,5 @@ while ($keepRunning) {
     }
 }
 
-echo "[" . date('Y-m-d H:i:s') . "] Outbox publisher daemon shut down successfully.\n";
+echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon shut down successfully.\n";
 exit(0);
