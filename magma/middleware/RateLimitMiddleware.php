@@ -111,25 +111,39 @@ class RateLimitMiddleware implements MiddlewareInterface
 
     private function resolveClientIp(Request $request): ?string
     {
-        // Check Cloudflare first
-        $cfIp = $request->server('HTTP_CF_CONNECTING_IP');
-        if (is_string($cfIp) && $cfIp !== '') {
-            return trim($cfIp);
+        $remoteAddrVal = $request->server('REMOTE_ADDR');
+        $remoteAddr = (is_string($remoteAddrVal) && $remoteAddrVal !== '') ? trim($remoteAddrVal) : null;
+
+        $trustedProxies = \Magma\config\Config::get('TRUSTED_PROXIES', ['127.0.0.1']);
+        if (is_string($trustedProxies)) {
+            $trustedProxies = explode(',', $trustedProxies);
         }
 
-        // Check X-Forwarded-For (can be a comma-separated list, first is original client)
-        $xff = $request->server('HTTP_X_FORWARDED_FOR');
-        if (is_string($xff) && $xff !== '') {
-            $ips = explode(',', $xff);
-            return trim($ips[0]);
+        $isTrustedProxy = false;
+        if ($remoteAddr !== null && is_array($trustedProxies)) {
+            foreach ($trustedProxies as $proxy) {
+                if (is_string($proxy) && str_starts_with($remoteAddr, trim($proxy))) {
+                    $isTrustedProxy = true;
+                    break;
+                }
+            }
         }
 
-        // Fallback to direct remote address
-        $remoteAddr = $request->server('REMOTE_ADDR');
-        if (is_string($remoteAddr) && $remoteAddr !== '') {
-            return trim($remoteAddr);
+        if ($isTrustedProxy) {
+            // Check Cloudflare first
+            $cfIp = $request->server('HTTP_CF_CONNECTING_IP');
+            if (is_string($cfIp) && $cfIp !== '') {
+                return trim($cfIp);
+            }
+
+            // Check X-Forwarded-For (can be a comma-separated list, first is original client)
+            $xff = $request->server('HTTP_X_FORWARDED_FOR');
+            if (is_string($xff) && $xff !== '') {
+                $ips = explode(',', $xff);
+                return trim($ips[0]);
+            }
         }
 
-        return null;
+        return $remoteAddr;
     }
 }

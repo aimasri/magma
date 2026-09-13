@@ -64,7 +64,8 @@ class CredentialAuthenticationService
 
         if (!$user) {
             // Mitigate timing attacks by performing a dummy hash comparison
-            password_verify($password, '$2y$10$abcdefghijklmnopqrstuv');
+            // Uses Argon2id dummy hash with matching memory_cost (65536) and time_cost (4)
+            password_verify($password, '$argon2id$v=19$m=65536,t=4,p=1$Zm04bHJFUWpKU29VajAucw$ytNQl3ClKZDw1BmVgzOl+7LR1Wp2DK27AjH+cwQV9lM');
             return AuthenticationResult::failure();
         }
 
