@@ -1,17 +1,7 @@
 <?php
 /**
  * Title: Syllabus View
- *
- * Purpose:
- * - Renders the textbook / syllabus page, acting as the primary educational entry point for the Magma Framework.
- * - Displays the 15-module masterclass covering all architectural concepts.
- *
- * Teaching notes:
- * - This view is completely standalone and bypasses the main application layout wrapper because it is a self-contained, long-form document.
- * - All CSS cascade layers for the syllabus are strictly scoped to prevent overriding other UI components.
- *
- * @var array $data Associative array containing view data passed from the controller.
- * @var string|null $data['title'] The optional dynamic page title.
+ * Purpose: Renders the textbook / syllabus page.
  */
 $pageTitle = $data['title'] ?? 'Architectural Syllabus';
 ?>
@@ -1768,6 +1758,9 @@ Both of these are unacceptable in a professional application.
 In the Magma Framework, we enforce a global <strong>Exception Handler</strong> and absolute <strong>Exception Boundaries</strong> at the infrastructure level.
 <br>
 For example, our base <code>AbstractQueryRepository</code> and <code>AbstractCommandRepository</code> explicitly catch <code>PDOException</code> natively at the execution layer, translating them into <code>DatabaseException</code>. Similarly, our storage adapters (<code>LocalStorageService</code>, <code>S3StorageService</code>) throw <code>StorageException</code> upon network drops or disk permission failures, preventing silent boolean data loss. This mathematically guarantees raw database credentials, SQL syntax errors, or cloud storage secrets never bleed into the domain or HTTP application layers.
+</p>
+<p>
+To further elevate our Site Reliability Engineering (SRE), deep within our <code>ErrorHandler</code>, we deploy <strong>Regex Credential Sanitization</strong> on <code>PDOException</code> traces before they hit our logs, stripping out DSN passwords and raw <code>VALUES(...)</code> insertions so they never reach external aggregation platforms. We also utilize a <code>CorrelationIdProvider</code> to attach a unique Trace ID to every request cycle, allowing developers to track complex asynchronous events perfectly across boundaries.
 </p>
 <p>
 Furthermore, we enforce <strong>Pre-Kernel Boot Safety Nets</strong>. If a fatal error occurs in <code>www/index.php</code> or <code>bin/worker.php</code> *before* the application container and <code>ErrorHandler</code> are fully registered, an outermost <code>try/catch</code> wrapper intercepts the failure to emit a clean 500 status code, protecting the system from 0-day <code>.env</code> or container misconfiguration leaks.
