@@ -37,7 +37,16 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function findByEmail(string $email): ?AuthUser
     {
-        $row = $this->fetchOne("SELECT id, name, email, role, tenant_id FROM users WHERE email = ?", [$email]);
+        $tenantId = $this->getTenantId();
+        $sql = "SELECT id, name, email, role, tenant_id FROM users WHERE email = ?";
+        $params = [$email];
+        
+        if ($tenantId !== null) {
+            $sql .= " AND (tenant_id = ? OR tenant_id IS NULL)";
+            $params[] = $tenantId;
+        }
+        
+        $row = $this->fetchOne($sql, $params);
         return $row ? new AuthUser($row) : null;
     }
 
@@ -56,8 +65,17 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function findForAuth(string $email): ?array
     {
-        $stmt = $this->getDb()->prepare("SELECT id, name, email, role, password, tenant_id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        $tenantId = $this->getTenantId();
+        $sql = "SELECT id, name, email, role, password, tenant_id FROM users WHERE email = ?";
+        $params = [$email];
+        
+        if ($tenantId !== null) {
+            $sql .= " AND (tenant_id = ? OR tenant_id IS NULL)";
+            $params[] = $tenantId;
+        }
+
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute($params);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (is_array($result)) {
             $row = [];
