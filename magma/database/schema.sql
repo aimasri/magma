@@ -18,31 +18,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Section: 1. Identity & Auth
-
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
-    role VARCHAR(50) DEFAULT 'user',
-    password_changed_at TIMESTAMP NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS user_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL, -- 'remember_me' or 'password_reset'
-    selector CHAR(24) UNIQUE,  -- Used only by 'remember_me'
-    token_hash VARCHAR(255) NOT NULL, -- Stores the hashed validator or reset token
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL
-);
-
--- Section: 2. Subscriptions & Feature Flags
+-- Section: 1. Subscriptions & Feature Flags
 
 CREATE TABLE IF NOT EXISTS plans (
     id SERIAL PRIMARY KEY,
@@ -65,7 +41,7 @@ CREATE TABLE IF NOT EXISTS plan_features (
     PRIMARY KEY (plan_id, feature_id)
 );
 
--- Section: 3. Multi-Tenancy (Tenants)
+-- Section: 2. Multi-Tenancy (Tenants)
 
 CREATE TABLE IF NOT EXISTS tenants (
     id SERIAL PRIMARY KEY,
@@ -94,6 +70,30 @@ CREATE TABLE IF NOT EXISTS tenant_domains (
     tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     domain VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Section: 3. Identity & Auth
+
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+    role VARCHAR(50) DEFAULT 'user',
+    password_changed_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- 'remember_me' or 'password_reset'
+    selector CHAR(24) UNIQUE,  -- Used only by 'remember_me'
+    token_hash VARCHAR(255) NOT NULL, -- Stores the hashed validator or reset token
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL
 );
 
 -- Section: 4. Global Lookups
