@@ -25,7 +25,7 @@ class RouteDefinition
     /** @var array<int, string>|callable|string */
     private mixed $handler;
     private ?string $action = null;
-    /** @var array<int, string> */
+    /** @var array<int, string|object|array<int|string, mixed>> */
     private array $middleware = [];
     private ?string $name = null;
     /** @var array<string, string> */
@@ -37,7 +37,7 @@ class RouteDefinition
      * @param string $uri The URL path pattern (e.g., '/users/{id}')
      * @param array<int, string>|callable|string $handler Controller action tuple, closure, or invocable class
      * @param ?string $action Specific controller method name if separated
-     * @param array<int, string> $middleware Array of middleware class-strings or instances
+     * @param array<int, string|object|array<int|string, mixed>> $middleware Array of middleware class-strings, instances, or configured tuples
      * @param ?string $name Unique route identifier for reverse URL generation
      * @param array<string, string> $parameters Associative array of parameter constraints (e.g. ['id' => '\d+'])
      * @param ?string $redirectOnFail Fallback redirection URI on constraint failure
@@ -142,7 +142,7 @@ class RouteDefinition
     /**
      * Appends one or multiple middleware classes or configured middleware definitions to the route pipeline.
      *
-     * @param array<int, mixed>|string $middleware
+     * @param array<int, string|object|array<int|string, mixed>>|string $middleware
      * @return $this
      */
     public function middleware(array|string $middleware): self
@@ -244,7 +244,7 @@ class RouteDefinition
         return $this->action;
     }
 
-    /** @return array<int, string> */
+    /** @return array<int, string|object|array<int|string, mixed>> */
     public function getMiddleware(): array
     {
         return $this->middleware;
