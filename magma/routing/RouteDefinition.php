@@ -142,7 +142,7 @@ class RouteDefinition
     /**
      * Appends one or multiple middleware classes or configured middleware definitions to the route pipeline.
      *
-     * @param array<int, string|object|array<int|string, mixed>>|string $middleware
+     * @param array<int|string, mixed>|string $middleware
      * @return $this
      */
     public function middleware(array|string $middleware): self
