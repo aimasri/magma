@@ -179,6 +179,14 @@ class QueueWorkerDaemon
             $attempts = is_numeric($attemptsVal) ? (int)$attemptsVal : 0;
             $payload['attempts'] = $attempts + 1;
 
+            if ($this->container->has(\Magma\logging\CorrelationIdProvider::class)) {
+                $correlationProvider = $this->container->get(\Magma\logging\CorrelationIdProvider::class);
+                if ($correlationProvider instanceof \Magma\logging\CorrelationIdProvider) {
+                    $cid = $payload['correlation_id'] ?? null;
+                    $correlationProvider->reset(is_string($cid) ? $cid : null);
+                }
+            }
+
             try {
                 if (function_exists('pcntl_alarm') && function_exists('pcntl_signal')) {
                     pcntl_signal(SIGALRM, function () {
@@ -212,6 +220,12 @@ class QueueWorkerDaemon
             } finally {
                 if (function_exists('pcntl_alarm')) {
                     pcntl_alarm(0);
+                }
+                if ($this->container->has(\Magma\logging\CorrelationIdProvider::class)) {
+                    $correlationProvider = $this->container->get(\Magma\logging\CorrelationIdProvider::class);
+                    if ($correlationProvider instanceof \Magma\logging\CorrelationIdProvider) {
+                        $correlationProvider->reset();
+                    }
                 }
                 if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
                     $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);

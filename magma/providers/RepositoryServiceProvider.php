@@ -51,7 +51,8 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         $container->set(TenantCommandInterface::class, function ($c) {
             return new TenantCommandRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
+                $c->get(\Magma\security\TenantContext::class),
+                $c->has(\Redis::class) ? $c->get(\Redis::class) : null
             );
         });
 
