@@ -55,8 +55,39 @@ class QueueWorkerDaemon
         $this->clock = $clock;
     }
 
+    /**
+     * Executes the long-running worker polling loop.
+     *
+     * Execution Flow:
+     * 1. Register asynchronous POSIX signal handlers (SIGTERM, SIGINT, SIGQUIT) if pcntl extension is present.
+     * 2. Enter polling loop checking $this->running flag before every iteration.
+     * 3. Flush container instances to maintain memory hygiene and tenant isolation.
+     * 4. Call QueueInterface::pop() with a 2-second timeout (blocking in Redis, 0% CPU spin).
+     * 5. Process any received job payload synchronously.
+     * 6. Check memory consumption against safety limit (128MB).
+     * 7. Terminate gracefully when signaled or memory threshold breached.
+     *
+     * Logic behind the logic:
+     * - Using a 2-second blocking pop prevents CPU busy-waiting (100% core spin) while ensuring
+     *   POSIX termination signals are caught and handled within 2 seconds without killing jobs mid-flight.
+     *
+     * @param string $queueName
+     */
     public function run(string $queueName = 'emails'): void
     {
+        if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
+            pcntl_async_signals(true);
+            $signalHandler = function (int $signal): void {
+                $this->logger->info("Received termination signal ({$signal}). Stopping worker gracefully after current job...");
+                $this->running = false;
+            };
+            pcntl_signal(SIGTERM, $signalHandler);
+            pcntl_signal(SIGINT, $signalHandler);
+            if (defined('SIGQUIT')) {
+                pcntl_signal(SIGQUIT, $signalHandler);
+            }
+        }
+
         $this->logger->info("Worker started. Listening for jobs on '{$queueName}' queue...");
 
         while ($this->running) {
@@ -64,23 +95,35 @@ class QueueWorkerDaemon
             $this->container->flushInstances();
 
             try {
-                $jobString = $this->queue->pop($queueName, 0);
+                // 2-second blocking timeout prevents CPU spinning while allowing responsive signal handling
+                $jobString = $this->queue->pop($queueName, 2);
             } catch (\Throwable $e) {
                 $this->logger->critical("Queue pop failed (e.g. Redis offline). Sleeping for 5s.", ['exception' => $e->getMessage()]);
                 sleep(5);
                 continue;
             }
 
-            if ($jobString) {
+            if ($jobString !== null && $jobString !== '') {
                 $this->processJob($jobString, $queueName);
             }
 
             // Prevent OOM in long-running processes (128MB threshold)
             if (memory_get_usage() > 134217728) {
                 $this->logger->warning("Memory limit exceeded (128MB). Exiting daemon safely.");
-                exit(0);
+                $this->running = false;
+                break;
             }
         }
+
+        $this->logger->info("Worker daemon terminated cleanly.");
+    }
+
+    /**
+     * Programmatically requests the worker daemon to stop after its current iteration.
+     */
+    public function stop(): void
+    {
+        $this->running = false;
     }
 
     /**

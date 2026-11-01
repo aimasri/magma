@@ -68,15 +68,13 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $limit = max(1, min($limit, 1000));
         $pdo = $this->dbManager->getWriteConnection();
-        
-        $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $fiveMinsAgo = $this->clock->now()->modify('-5 minutes')->format('Y-m-d H:i:s');
 
         $sql = 'UPDATE "outbox_jobs" '
-             . 'SET "locked_at" = :now '
+             . 'SET "locked_at" = CURRENT_TIMESTAMP '
              . 'WHERE "id" IN ('
              . '    SELECT "id" FROM "outbox_jobs" '
-             . '    WHERE "locked_at" IS NULL OR "locked_at" < :timeout '
+             . '    WHERE ("locked_at" IS NULL OR "locked_at" < CURRENT_TIMESTAMP - INTERVAL \'5 minutes\') '
+             . '      AND "attempts" >= 0 '
              . '    ORDER BY "id" ASC '
              . '    LIMIT :limit '
              . '    FOR UPDATE SKIP LOCKED '
@@ -86,8 +84,6 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         try {
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':now', $now);
-            $stmt->bindValue(':timeout', $fiveMinsAgo);
             $stmt->execute();
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox fetch failed.", 0, $e);
@@ -269,13 +265,15 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
 
             if ($attempts >= 10) {
                 error_log(sprintf(
-                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Deleting poisoned job. Last error: %s",
+                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Dead-lettering poisoned job. Last error: %s",
                     $this->clock->now()->format('Y-m-d H:i:s'),
                     $id,
                     $errorMessage
                 ));
-                $stmtDel = $pdo->prepare('DELETE FROM "outbox_jobs" WHERE "id" = :id');
-                $stmtDel->execute([':id' => $id]);
+                $stmtDeadLetter = $pdo->prepare('UPDATE "outbox_jobs" SET "attempts" = -1, "locked_at" = NULL, "last_error" = :error WHERE "id" = :id');
+                $stmtDeadLetter->bindValue(':error', mb_substr($errorMessage, 0, 1000));
+                $stmtDeadLetter->bindValue(':id', $id, PDO::PARAM_INT);
+                $stmtDeadLetter->execute();
                 return;
             }
 

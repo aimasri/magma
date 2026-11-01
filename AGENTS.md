@@ -73,3 +73,8 @@ Crucially, candidates must improve core architecture (e.g., performance, securit
 
 ## 12. Execution Protocol
 - **Strict Task-By-Task Basis:** ALWAYS operate on a strict task-by-task basis. Never "jump the gun" or execute follow-up steps, architectural changes, or related fixes proactively. If a task naturally implies a next step, you must stop, present your findings, and explicitly ask for permission before proceeding. We refine between tasks without rushing. Do absolutely nothing more than what is explicitly requested.
+
+## 13. Anti-Hallucination & Grounding Protocol
+- **Tool-First Grounding:** Never rely on parametric memory for library APIs, CLI flags, schemas, or codebase structure. Before proposing code changes, answering technical questions, or calling unfamiliar APIs, you MUST inspect the target files, local schemas, or official documentation using read/search tools first. If a detail cannot be verified via tools, state explicitly that it is unverified rather than guessing.
+- **Short-Horizon Verification Gates:** Do not chain multiple unverified assumptions across long multi-step turns. Break complex debugging and refactoring into atomic steps—verify the state (via file view, test execution, or typecheck) after each logical change before proceeding to the next step, or delegate isolated research tasks to subagents to keep the main context window clean.
+- **Mandatory Evidence Links:** Every claim about codebase behavior, bug root causes, or external facts must be backed by an exact file-and-line link (e.g., [file.py](file:///abs/path/file.py#L10-L20)) or a verified source URL. Never cite a symbol, method signature, or line range without having viewed it in the current session.
