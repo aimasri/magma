@@ -149,6 +149,19 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             return new \Magma\logging\CorrelationIdProvider();
         });
 
+        $container->set(\Magma\logging\LoggerInterface::class, function ($c) {
+            $tenantContext = $c->has(\Magma\security\TenantContext::class) 
+                ? $c->get(\Magma\security\TenantContext::class) 
+                : null;
+            $corrProvider = $c->has(\Magma\logging\CorrelationIdProviderInterface::class)
+                ? $c->get(\Magma\logging\CorrelationIdProviderInterface::class)
+                : null;
+            return new \Magma\logging\NativeLogger(
+                $tenantContext instanceof \Magma\security\TenantContext ? $tenantContext : null,
+                $corrProvider instanceof \Magma\logging\CorrelationIdProviderInterface ? $corrProvider : null
+            );
+        });
+
         $container->set(QueueInterface::class, function ($c) {
             return new RedisQueue($c->get(\Redis::class));
         });
