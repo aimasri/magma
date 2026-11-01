@@ -116,15 +116,16 @@ CREATE TABLE IF NOT EXISTS outbox_jobs (
     locked_at TIMESTAMP,
     last_error TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) WITH (autovacuum_vacuum_scale_factor = 0.05, autovacuum_vacuum_cost_limit = 500);
 
 CREATE TABLE IF NOT EXISTS projection_checkpoints (
+    tenant_id INTEGER NOT NULL DEFAULT 0,
     projection_name VARCHAR(255) NOT NULL,
     event_id VARCHAR(255) NOT NULL,
-    tenant_id INTEGER,
+    status VARCHAR(50) NOT NULL DEFAULT 'completed', -- 'in_flight', 'completed', 'failed'
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     metadata JSONB DEFAULT '{}'::jsonb,
-    PRIMARY KEY (projection_name, event_id)
+    PRIMARY KEY (tenant_id, projection_name, event_id)
 );
 
 -- Section: Indexes
@@ -136,7 +137,8 @@ CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
-CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_tenant ON projection_checkpoints(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_dead_letter ON outbox_jobs(id) WHERE attempts < 0;
+CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_lookup ON projection_checkpoints(tenant_id, projection_name, status);
 
 -- Section: Triggers
 

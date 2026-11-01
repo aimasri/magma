@@ -95,21 +95,17 @@ class EventDispatcher implements EventDispatcherInterface
             return;
         }
 
-        $exceptions = [];
-
         foreach (self::$listeners[$normalizedClass] as $listener) {
             try {
                 $this->invokeListener($listener, $event);
             } catch (\Throwable $e) {
-                $exceptions[] = $e;
+                error_log(sprintf(
+                    "Event listener failure on event [%s]: %s\nStack trace: %s",
+                    $normalizedClass,
+                    $e->getMessage(),
+                    $e->getTraceAsString()
+                ));
             }
-        }
-
-        if (!empty($exceptions)) {
-            throw new \Magma\events\EventDispatchException(
-                "One or more listeners failed while dispatching [" . $normalizedClass . "].",
-                $exceptions
-            );
         }
     }
 

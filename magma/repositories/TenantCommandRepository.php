@@ -21,20 +21,30 @@ use Magma\models\AbstractCommandRepository;
  */
 class TenantCommandRepository extends AbstractCommandRepository implements TenantCommandInterface
 {
+    private ?\Redis $redis;
+
     /**
      * Initializes the TenantCommandRepository.
      *
      * Execution Flow:
      * 1. Calls the parent constructor with the database manager and tenant context to establish the write connection.
+     * 2. Injects optional Redis instance for cache invalidation upon command mutations.
      *
      * Logic behind the logic:
      * - Injects dependencies required to manage the connection to the primary database used for writes, adhering to Dependency Inversion.
+     * - Evicting cache keys directly after successful SQL updates prevents dual-write stale reads across distributed workers.
+     *
+     * @param DatabaseConnectionManager $dbManager
+     * @param TenantContext $tenantContext
+     * @param \Redis|null $redis
      */
     public function __construct(
         DatabaseConnectionManager $dbManager,
-        TenantContext $tenantContext
+        TenantContext $tenantContext,
+        ?\Redis $redis = null
     ) {
         parent::__construct($dbManager, $tenantContext);
+        $this->redis = $redis;
     }
 
 
@@ -88,6 +98,15 @@ class TenantCommandRepository extends AbstractCommandRepository implements Tenan
             'payment_gateway_customer_id' => $tenantDTO->payment_gateway_customer_id,
             'theme_settings' => json_encode($tenantDTO->theme_settings),
         ], '"id" = :id', [':id' => $id]);
+
+        if ($affected > 0 && $this->redis !== null) {
+            try {
+                $this->redis->del("tenant:{$id}");
+            } catch (\Throwable $e) {
+                error_log("Failed to evict Redis cache for tenant {$id}: " . $e->getMessage());
+            }
+        }
+
         return $affected > 0;
     }
 
@@ -104,6 +123,15 @@ class TenantCommandRepository extends AbstractCommandRepository implements Tenan
     public function delete(int $id): bool
     {
         $affected = $this->executeDelete('tenants', '"id" = :id', [':id' => $id]);
+
+        if ($affected > 0 && $this->redis !== null) {
+            try {
+                $this->redis->del("tenant:{$id}");
+            } catch (\Throwable $e) {
+                error_log("Failed to evict Redis cache for tenant {$id}: " . $e->getMessage());
+            }
+        }
+
         return $affected > 0;
     }
 }

@@ -77,6 +77,8 @@ abstract class AbstractDomainWorkerJob implements JobInterface
         } catch (Throwable $e) {
             $this->onFailure($payload, $e);
             throw $e;
+        } finally {
+            $this->tenantContext?->clear();
         }
     }
 
@@ -94,6 +96,8 @@ abstract class AbstractDomainWorkerJob implements JobInterface
         $tenantId = $payload['tenant_id'] ?? null;
         if ($tenantId !== null && is_numeric($tenantId)) {
             $this->tenantContext->setTenantId((int) $tenantId);
+        } else {
+            $this->tenantContext->clear();
         }
     }
 
