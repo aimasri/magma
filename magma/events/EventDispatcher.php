@@ -96,7 +96,16 @@ class EventDispatcher implements EventDispatcherInterface
         }
 
         foreach (self::$listeners[$normalizedClass] as $listener) {
-            $this->invokeListener($listener, $event);
+            try {
+                $this->invokeListener($listener, $event);
+            } catch (\Throwable $e) {
+                error_log(sprintf(
+                    "Event listener failure on event [%s]: %s\nStack trace: %s",
+                    $normalizedClass,
+                    $e->getMessage(),
+                    $e->getTraceAsString()
+                ));
+            }
         }
     }
 

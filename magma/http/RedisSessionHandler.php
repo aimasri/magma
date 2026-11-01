@@ -24,6 +24,8 @@ class RedisSessionHandler implements SessionHandlerInterface
     private Redis $redis;
     private int $maxTtl;
     private string $prefix = 'session:';
+    private string $lockPrefix = 'session:lock:';
+    private ?string $lockedSessionId = null;
 
     /**
      * Initializes the handler with Redis and an absolute maximum TTL.
@@ -49,44 +51,93 @@ class RedisSessionHandler implements SessionHandlerInterface
     }
 
     /**
-     * Closes the session storage mechanism.
+     * Closes the session storage mechanism and releases any acquired mutex locks.
      * 
      * Logic behind the logic:
-     * - Simply returns true as the Redis connection lifecycle is managed outside this class.
+     * - Guarantees session locks are released at request shutdown even if write() was skipped.
      */
     public function close(): bool
     {
+        if ($this->lockedSessionId !== null) {
+            $this->releaseLock($this->lockedSessionId);
+        }
         return true;
     }
 
     /**
-     * Reads the session data from Redis.
+     * Reads the session data from Redis, acquiring a mutex lock to serialize concurrent tab requests.
      *
      * Execution Flow:
-     * 1. Query Redis for the prefixed session ID.
-     * 2. Return the serialized data string, or an empty string if it doesn't exist.
+     * 1. Spin-lock Redis mutex key with 10-second safety TTL.
+     * 2. Query Redis for the prefixed session ID.
+     * 3. Return the serialized data string, or an empty string if it doesn't exist.
      *
      * Logic behind the logic:
-     * - A fast O(1) memory lookup ensuring practically zero overhead during the critical bootstrapping phase of the request lifecycle.
+     * - A fast O(1) memory lookup with spin-lock protection prevents last-write-wins race conditions
+     *   when a user opens multiple browser tabs simultaneously.
      */
     public function read(string $id): string|false
     {
+        $this->acquireLock($id);
         $data = $this->redis->get($this->prefix . $id);
         return is_string($data) ? $data : '';
     }
 
     /**
-     * Writes the session data to Redis with the absolute maximum TTL.
+     * Writes the session data to Redis with the absolute maximum TTL and releases the mutex lock.
      *
      * Execution Flow:
      * 1. Execute `SETEX` to store the data and set the expiration timer natively.
+     * 2. Release the acquired session mutex lock.
      *
      * Logic behind the logic:
-     * - Using `SETEX` securely packages the store action and the TTL expiration into a single atomic network call, preventing orphan keys in the event of a network blip.
+     * - Using `SETEX` securely packages the store action and the TTL expiration into a single atomic network call,
+     *   preventing orphan keys in the event of a network blip.
      */
     public function write(string $id, string $data): bool
     {
-        return $this->redis->setex($this->prefix . $id, $this->maxTtl, $data);
+        try {
+            return $this->redis->setex($this->prefix . $id, $this->maxTtl, $data);
+        } finally {
+            $this->releaseLock($id);
+        }
+    }
+
+    /**
+     * Acquires a transient Redis lock with retry spin to serialize concurrent requests for the same session.
+     *
+     * @param string $id
+     */
+    private function acquireLock(string $id): void
+    {
+        $lockKey = $this->lockPrefix . $id;
+        $retries = 20; // 20 * 50ms = 1.0 second max wait
+
+        while ($retries > 0) {
+            $acquired = $this->redis->set($lockKey, '1', ['NX', 'EX' => 10]);
+            if ($acquired) {
+                $this->lockedSessionId = $id;
+                return;
+            }
+            usleep(50000); // 50ms backoff
+            $retries--;
+        }
+
+        // Fall back gracefully if lock times out to avoid blocking the HTTP request indefinitely
+        $this->lockedSessionId = $id;
+    }
+
+    /**
+     * Releases the acquired Redis session mutex lock.
+     *
+     * @param string $id
+     */
+    private function releaseLock(string $id): void
+    {
+        if ($this->lockedSessionId === $id) {
+            $this->redis->del($this->lockPrefix . $id);
+            $this->lockedSessionId = null;
+        }
     }
 
     /**

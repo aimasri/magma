@@ -41,4 +41,23 @@ class CorrelationIdProvider implements CorrelationIdProviderInterface
         }
         return $this->correlationId;
     }
+
+    /**
+     * Resets or explicitly overrides the current correlation ID.
+     *
+     * Execution Flow:
+     * 1. If an explicit string ID is passed, trim and store it.
+     * 2. If null is passed, reset internal property to null for lazy re-generation on subsequent calls.
+     *
+     * Logic behind the logic:
+     * - Essential in persistent CLI worker daemons and Swoole/RoadRunner servers to prevent
+     *   correlation ID leakage across independent request or job lifecycles.
+     *
+     * @param string|null $correlationId
+     * @return void
+     */
+    public function reset(?string $correlationId = null): void
+    {
+        $this->correlationId = $correlationId !== null && trim($correlationId) !== '' ? trim($correlationId) : null;
+    }
 }

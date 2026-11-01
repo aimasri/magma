@@ -48,29 +48,24 @@ class IdempotentProjectionGuard
     }
 
     /**
-     * Checks whether an event has already been applied to a named projection.
-     *
-     * Execution Flow:
-     * 1. Query the `projection_checkpoints` table on the Write connection.
-     * 2. Return true if a matching row exists, false otherwise.
-     *
-     * Logic behind the logic:
-     * - We check the Write connection to ensure immediate read-after-write consistency within
-     *   active transaction boundaries, bypassing read-replica replication lag.
+     * Checks whether an event has already been successfully applied to a named projection.
      *
      * @param string $projectionName The unique identifier of the read-model projection.
      * @param string $eventId The unique identifier of the domain event or message.
-     * @return bool True if already processed; false otherwise.
+     * @param int|null $tenantId Optional tenant context ID (defaults to 0 for global/system).
+     * @return bool True if already processed and completed; false otherwise.
      */
-    public function isProcessed(string $projectionName, string $eventId): bool
+    public function isProcessed(string $projectionName, string $eventId, ?int $tenantId = null): bool
     {
         $pdo = $this->dbManager->getWriteConnection();
+        $tid = $tenantId ?? 0;
 
         $sql = 'SELECT 1 FROM "projection_checkpoints" '
-             . 'WHERE "projection_name" = :projection_name AND "event_id" = :event_id '
+             . 'WHERE "tenant_id" = :tenant_id AND "projection_name" = :projection_name AND "event_id" = :event_id AND "status" = \'completed\' '
              . 'LIMIT 1';
 
         $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
         $stmt->bindValue(':projection_name', trim($projectionName));
         $stmt->bindValue(':event_id', trim($eventId));
         $stmt->execute();
@@ -79,59 +74,99 @@ class IdempotentProjectionGuard
     }
 
     /**
-     * Records a projection checkpoint indicating that an event was successfully applied.
+     * Atomically claims an event execution reservation.
      *
      * Execution Flow:
-     * 1. Prepare an INSERT query targeting `projection_checkpoints`.
-     * 2. Bind the projection name, event ID, optional tenant ID, and JSON-encoded metadata.
-     * 3. Execute using `ON CONFLICT ("projection_name", "event_id") DO NOTHING`.
+     * 1. Issue an INSERT targeting `projection_checkpoints` with status 'in_flight'.
+     * 2. On conflict on (tenant_id, projection_name, event_id), update status to 'in_flight' ONLY if
+     *    the previous execution failed or timed out (> 5 minutes ago).
+     * 3. Return true if a row was returned (claim acquired); false if already active or completed.
      *
-     * Logic behind the logic:
-     * - `ON CONFLICT DO NOTHING` handles potential race conditions gracefully without throwing
-     *   unhandled unique constraint PDOExceptions.
-     *
-     * @param string $projectionName The target projection identifier.
-     * @param string $eventId The domain event ID.
-     * @param int|null $tenantId Optional tenant context ID.
-     * @param array<string, mixed> $metadata Optional audit metadata.
-     * @return bool True if a new checkpoint was inserted; false if it already existed.
+     * @param string $projectionName
+     * @param string $eventId
+     * @param int|null $tenantId
+     * @param array<string, mixed> $metadata
+     * @return bool True if claimed successfully; false otherwise.
      */
-    public function markProcessed(string $projectionName, string $eventId, ?int $tenantId = null, array $metadata = []): bool
+    public function claim(string $projectionName, string $eventId, ?int $tenantId = null, array $metadata = []): bool
     {
         $pdo = $this->dbManager->getWriteConnection();
+        $tid = $tenantId ?? 0;
 
         $sql = 'INSERT INTO "projection_checkpoints" '
-             . '("projection_name", "event_id", "tenant_id", "metadata", "applied_at") '
-             . 'VALUES (:projection_name, :event_id, :tenant_id, :metadata, :applied_at) '
-             . 'ON CONFLICT ("projection_name", "event_id") DO NOTHING';
+             . '("tenant_id", "projection_name", "event_id", "status", "applied_at", "metadata") '
+             . 'VALUES (:tenant_id, :projection_name, :event_id, \'in_flight\', CURRENT_TIMESTAMP, :metadata) '
+             . 'ON CONFLICT ("tenant_id", "projection_name", "event_id") DO UPDATE '
+             . 'SET "status" = \'in_flight\', "applied_at" = CURRENT_TIMESTAMP, "metadata" = :metadata_update '
+             . 'WHERE "projection_checkpoints"."status" = \'failed\' '
+             . '   OR ("projection_checkpoints"."status" = \'in_flight\' AND "projection_checkpoints"."applied_at" < CURRENT_TIMESTAMP - INTERVAL \'5 minutes\') '
+             . 'RETURNING 1';
 
         $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
         $stmt->bindValue(':projection_name', trim($projectionName));
         $stmt->bindValue(':event_id', trim($eventId));
-        if ($tenantId !== null) {
-            $stmt->bindValue(':tenant_id', $tenantId, PDO::PARAM_INT);
-        } else {
-            $stmt->bindValue(':tenant_id', null, PDO::PARAM_NULL);
-        }
-        $stmt->bindValue(':metadata', json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
-        $stmt->bindValue(':applied_at', $this->clock->now()->format('Y-m-d H:i:s'));
+        $metaJson = json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $stmt->bindValue(':metadata', $metaJson);
+        $stmt->bindValue(':metadata_update', $metaJson);
         $stmt->execute();
 
-        return $stmt->rowCount() > 0;
+        return (bool) $stmt->fetchColumn();
     }
 
     /**
-     * Guards the execution of a projection mutation, ensuring it executes once and only once.
+     * Marks an in-flight checkpoint as completed.
      *
-     * Execution Flow:
-     * 1. Verify if the event has already been processed for this projection; if so, skip execution and return null.
-     * 2. Execute the provided projection callback.
-     * 3. Record the checkpoint in the database.
-     * 4. Return the callback result.
+     * @param string $projectionName
+     * @param string $eventId
+     * @param int|null $tenantId
+     * @param array<string, mixed> $metadata
+     */
+    public function complete(string $projectionName, string $eventId, ?int $tenantId = null, array $metadata = []): void
+    {
+        $pdo = $this->dbManager->getWriteConnection();
+        $tid = $tenantId ?? 0;
+
+        $sql = 'UPDATE "projection_checkpoints" '
+             . 'SET "status" = \'completed\', "applied_at" = CURRENT_TIMESTAMP, "metadata" = :metadata '
+             . 'WHERE "tenant_id" = :tenant_id AND "projection_name" = :projection_name AND "event_id" = :event_id';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
+        $stmt->bindValue(':projection_name', trim($projectionName));
+        $stmt->bindValue(':event_id', trim($eventId));
+        $stmt->bindValue(':metadata', json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $stmt->execute();
+    }
+
+    /**
+     * Marks an in-flight checkpoint as failed to permit future retries.
      *
-     * Logic behind the logic:
-     * - Wrapping check and mark inside the projection workflow guarantees that duplicate queue
-     *   retries are safely swallowed as no-ops without corrupting data.
+     * @param string $projectionName
+     * @param string $eventId
+     * @param int|null $tenantId
+     * @param string $errorMessage
+     */
+    public function fail(string $projectionName, string $eventId, ?int $tenantId = null, string $errorMessage = ''): void
+    {
+        $pdo = $this->dbManager->getWriteConnection();
+        $tid = $tenantId ?? 0;
+
+        $sql = 'UPDATE "projection_checkpoints" '
+             . 'SET "status" = \'failed\', '
+             . '    "metadata" = jsonb_set("metadata", \'{last_error}\', to_jsonb(:error::text), true) '
+             . 'WHERE "tenant_id" = :tenant_id AND "projection_name" = :projection_name AND "event_id" = :event_id';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
+        $stmt->bindValue(':projection_name', trim($projectionName));
+        $stmt->bindValue(':event_id', trim($eventId));
+        $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
+        $stmt->execute();
+    }
+
+    /**
+     * Guards the execution of a projection mutation using two-phase atomic claiming.
      *
      * @param string $projectionName The target projection identifier.
      * @param string $eventId The unique domain event ID.
@@ -148,34 +183,31 @@ class IdempotentProjectionGuard
         ?int $tenantId = null,
         array $metadata = []
     ): mixed {
-        if (!$this->markProcessed($projectionName, $eventId, $tenantId, $metadata)) {
+        if (!$this->claim($projectionName, $eventId, $tenantId, $metadata)) {
             return null;
         }
 
-        return $action();
+        try {
+            $result = $action();
+            $this->complete($projectionName, $eventId, $tenantId, $metadata);
+            return $result;
+        } catch (Throwable $e) {
+            $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
-     * Guards the execution of external I/O (e.g., sending emails or webhook calls),
-     * ensuring At-Least-Once delivery semantics without wrapping in a long-lived database transaction.
-     *
-     * Execution Flow:
-     * 1. Check if the event has already been processed using `isProcessed()`. If so, skip and return null.
-     * 2. Execute the external action.
-     * 3. Record the checkpoint by calling `markProcessed()`.
-     *
-     * Logic behind the logic:
-     * - By executing the action BEFORE marking it processed, any network exceptions or timeouts will 
-     *   prevent the checkpoint from being written, ensuring the queue safely retries the job.
-     * - This avoids holding database transaction locks open while waiting for slow external APIs.
+     * Guards the execution of external I/O (e.g. sending emails or webhook calls),
+     * ensuring atomic claiming without wrapping in a long-lived database transaction.
      *
      * @param string $projectionName The target projection identifier.
      * @param string $eventId The unique domain event ID.
-     * @param callable $action The projection mutation callback to execute.
+     * @param callable $action The external action callback to execute.
      * @param int|null $tenantId Optional tenant context ID.
      * @param array<string, mixed> $metadata Optional audit metadata.
      * @return mixed The callback execution result, or null if skipped due to idempotency.
-     * @throws Throwable If the projection callback throws an unhandled exception.
+     * @throws Throwable If the external action callback throws an unhandled exception.
      */
     public function guardExternalIo(
         string $projectionName,
@@ -184,14 +216,17 @@ class IdempotentProjectionGuard
         ?int $tenantId = null,
         array $metadata = []
     ): mixed {
-        if ($this->isProcessed($projectionName, $eventId)) {
+        if (!$this->claim($projectionName, $eventId, $tenantId, $metadata)) {
             return null;
         }
 
-        $result = $action();
-
-        $this->markProcessed($projectionName, $eventId, $tenantId, $metadata);
-
-        return $result;
+        try {
+            $result = $action();
+            $this->complete($projectionName, $eventId, $tenantId, $metadata);
+            return $result;
+        } catch (Throwable $e) {
+            $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            throw $e;
+        }
     }
 }
