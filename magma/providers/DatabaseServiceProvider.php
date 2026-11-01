@@ -51,7 +51,7 @@ class DatabaseServiceProvider implements ServiceProviderInterface
             return new DatabaseConnectionManager(
                 $primary,
                 $replica,
-                Config::get('DB_EMULATE_PREPARES', 'false') === 'true'
+                Config::get('DB_EMULATE_PREPARES', 'true') === 'true'
             );
         });
 

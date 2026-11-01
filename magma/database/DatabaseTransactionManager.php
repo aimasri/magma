@@ -69,40 +69,76 @@ class DatabaseTransactionManager implements TransactionManagerInterface
      * - Nested transactions inherit the outer boundary while maintaining isolated recovery points.
      *
      * @param callable $callback The business operation to execute.
+     * @param int $maxRetries Maximum number of retries on transient PostgreSQL serialization failures (40001) or deadlocks (40P01).
+     * @param string|null $isolationLevel Optional SQL isolation level (e.g. 'SERIALIZABLE', 'REPEATABLE READ', 'READ COMMITTED').
      * @return mixed The result returned by the callback.
      * @throws Throwable
      */
-    public function transactional(callable $callback): mixed
+    public function transactional(callable $callback, int $maxRetries = 3, ?string $isolationLevel = null): mixed
     {
-        try {
-            $this->begin();
-            $result = $callback();
-            $this->commit();
-
-            return $result;
-        } catch (Throwable $e) {
+        // If nested inside an active transaction, savepoints manage isolation; retry loop is handled at root level
+        if ($this->transactionLevel > 0) {
             try {
-                $this->rollBack();
-            } catch (Throwable $rollbackError) {
-                error_log("Rollback failed: " . $rollbackError->getMessage());
-            }
+                $this->begin($isolationLevel);
+                $result = $callback();
+                $this->commit();
 
-            throw $e;
+                return $result;
+            } catch (Throwable $e) {
+                try {
+                    $this->rollBack();
+                } catch (Throwable $rollbackError) {
+                    error_log("Nested savepoint rollback failed: " . $rollbackError->getMessage());
+                }
+
+                throw $e;
+            }
+        }
+
+        $attempts = 0;
+        $maxRetries = max(1, $maxRetries);
+
+        while (true) {
+            $attempts++;
+            try {
+                $this->begin($isolationLevel);
+                $result = $callback();
+                $this->commit();
+
+                return $result;
+            } catch (Throwable $e) {
+                try {
+                    $this->rollBack();
+                } catch (Throwable $rollbackError) {
+                    error_log("Rollback failed: " . $rollbackError->getMessage());
+                }
+
+                if ($this->isRetryableException($e) && $attempts < $maxRetries) {
+                    // Exponential backoff with random jitter: 2^attempt * 25ms + random(0, 25ms)
+                    $backoffMs = (int) (pow(2, $attempts) * 25 + random_int(0, 25));
+                    usleep($backoffMs * 1000);
+                    continue;
+                }
+
+                throw $e;
+            }
         }
     }
 
     /**
      * Manually begins a transaction or savepoint.
      *
+     * @param string|null $isolationLevel Optional SQL isolation level for root transaction.
      * @return void
      */
-    public function begin(): void
+    public function begin(?string $isolationLevel = null): void
     {
         $dbWrite = $this->dbManager->getWriteConnection();
 
         if ($this->transactionLevel === 0) {
             $dbWrite->beginTransaction();
-            $dbWrite->exec('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+            $level = $isolationLevel !== null ? strtoupper(trim($isolationLevel)) : 'SERIALIZABLE';
+            $dbWrite->exec("SET TRANSACTION ISOLATION LEVEL {$level}");
             $this->transactionLevel = 1;
             $this->dbManager->forceWriteForReads(true);
         } else {
@@ -110,6 +146,41 @@ class DatabaseTransactionManager implements TransactionManagerInterface
             $dbWrite->exec("SAVEPOINT {$savepoint}");
             $this->transactionLevel++;
         }
+    }
+
+    /**
+     * Inspects an exception to determine if it represents a transient PostgreSQL concurrency failure
+     * (e.g. 40001 serialization failure or 40P01 deadlock detected) eligible for retry.
+     *
+     * @param Throwable $e
+     * @return bool True if retryable; false otherwise.
+     */
+    private function isRetryableException(Throwable $e): bool
+    {
+        if ($e instanceof \PDOException) {
+            $code = (string) $e->getCode();
+            if ($code === '40001' || $code === '40P01') {
+                return true;
+            }
+        }
+
+        $prev = $e->getPrevious();
+        if ($prev instanceof \PDOException) {
+            $code = (string) $prev->getCode();
+            if ($code === '40001' || $code === '40P01') {
+                return true;
+            }
+        }
+
+        $msg = $e->getMessage();
+        if (str_contains($msg, '40001') || str_contains($msg, '40P01') 
+            || str_contains($msg, 'could not serialize access') 
+            || str_contains($msg, 'deadlock detected')
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
