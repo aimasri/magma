@@ -30,37 +30,48 @@ use Magma\dto\OutboxJobDTO;
 class SendWelcomeEmailListener implements EventListenerInterface
 {
     private OutboxJobRepositoryInterface $outboxJobRepository;
+    private \Magma\security\TenantContext $tenantContext;
 
     /**
      * Initializes the SendWelcomeEmailListener.
      *
      * @param OutboxJobRepositoryInterface $outboxJobRepository Used to record the outbox job reliably.
+     * @param \Magma\security\TenantContext $tenantContext Used to capture active tenant context.
      */
-    public function __construct(OutboxJobRepositoryInterface $outboxJobRepository)
-    {
+    public function __construct(
+        OutboxJobRepositoryInterface $outboxJobRepository,
+        \Magma\security\TenantContext $tenantContext
+    ) {
         $this->outboxJobRepository = $outboxJobRepository;
+        $this->tenantContext = $tenantContext;
     }
 
     /**
      * Handles the user registered event.
      *
      * Execution Flow:
-     * 1. Extracts the user's email and name from the event payload.
-     * 2. Constructs an OutboxJobDTO intended for the emails queue.
-     * 3. Records the job in the database outbox.
+     * 1. Extracts the user's email, name, and user ID from the event payload.
+     * 2. Captures current tenant context.
+     * 3. Constructs an OutboxJobDTO intended for the emails queue.
+     * 4. Records the job in the database outbox.
      *
      * @param mixed $event The domain event triggered upon user registration.
      */
     public function handle(mixed $event): void
     {
         assert($event instanceof UserRegisteredEvent);
+        $tenantId = $this->tenantContext->getTenantId();
+
         $jobDto = new OutboxJobDTO(
             'emails',
             SendWelcomeEmailJob::class,
             [
-                'to_email' => $event->registration->getEmail(),
-                'to_name'  => $event->registration->getName()
-            ]
+                'user_id'   => $event->userId,
+                'to_email'  => $event->registration->getEmail(),
+                'to_name'   => $event->registration->getName(),
+                'tenant_id' => $tenantId,
+            ],
+            tenantId: $tenantId
         );
         
         $this->outboxJobRepository->record($jobDto);

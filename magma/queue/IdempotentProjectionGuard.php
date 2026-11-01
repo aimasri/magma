@@ -239,4 +239,36 @@ class IdempotentProjectionGuard
             throw $e;
         }
     }
+
+    /**
+     * Prunes expired completed and failed projection checkpoints older than a given retention threshold.
+     *
+     * Execution Flow:
+     * 1. Acquire the write connection from DatabaseConnectionManager.
+     * 2. Delete completed and failed checkpoints where applied_at is older than $retentionDays.
+     * 3. Return the number of deleted checkpoint records.
+     *
+     * Logic behind the logic:
+     * - Checkpoints for events that completed beyond the queue retry/redelivery window (e.g. 90 days)
+     *   no longer need in-memory or B-tree index representation. Pruning them prevents unbounded
+     *   table bloat and keeps the index hot in PostgreSQL RAM buffers.
+     *
+     * @param int $retentionDays Retention threshold in days (defaults to 90).
+     * @return int Number of deleted checkpoint records.
+     */
+    public function prune(int $retentionDays = 90): int
+    {
+        $retentionDays = max(1, $retentionDays);
+        $pdo = $this->dbManager->getWriteConnection();
+
+        $sql = 'DELETE FROM "projection_checkpoints" '
+             . 'WHERE "status" IN (\'completed\', \'failed\') '
+             . '  AND "applied_at" < CURRENT_TIMESTAMP - (:days || \' days\')::INTERVAL';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':days', (string)$retentionDays);
+        $stmt->execute();
+
+        return $stmt->rowCount();
+    }
 }

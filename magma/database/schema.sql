@@ -139,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE lock
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_dead_letter ON outbox_jobs(id) WHERE attempts < 0;
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_lookup ON projection_checkpoints(tenant_id, projection_name, status);
+CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_prune ON projection_checkpoints(applied_at) WHERE status IN ('completed', 'failed');
 
 -- Section: Triggers
 
