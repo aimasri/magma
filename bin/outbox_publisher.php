@@ -95,6 +95,14 @@ while ($keepRunning) {
         if (empty($jobs)) {
             // Idle state: disconnect database connection and sleep to conserve pool resources
             $dbManager->disconnect();
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+            if (memory_get_usage() > 134217728) {
+                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher memory limit exceeded (128MB). Exiting daemon safely for supervisor restart.\n";
+                $keepRunning = false;
+                break;
+            }
             usleep($idleSleepMicroseconds);
             continue;
         }

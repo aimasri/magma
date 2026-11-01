@@ -132,6 +132,9 @@ CREATE TABLE IF NOT EXISTS projection_checkpoints (
 
 -- Section: Indexes
 
+CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_domains_tenant_id ON tenant_domains(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_addons_feature_id ON tenant_addons(feature_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_plan_id ON tenants(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_lookup ON user_tokens(type, expires_at);
@@ -140,6 +143,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, typ
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_lease ON outbox_jobs(lease_expires_at, attempts);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_claim_sweep ON outbox_jobs(lease_expires_at, id ASC) WHERE attempts >= 0;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_dead_letter ON outbox_jobs(id) WHERE attempts < 0;
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_lookup ON projection_checkpoints(tenant_id, projection_name, status);
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_prune ON projection_checkpoints(applied_at) WHERE status IN ('completed', 'failed');
