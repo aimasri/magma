@@ -227,6 +227,12 @@ class QueueWorkerDaemon
                         $correlationProvider->reset();
                     }
                 }
+                if ($this->container->has(\Magma\security\TenantContext::class)) {
+                    $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+                    if ($tenantContext instanceof \Magma\security\TenantContext) {
+                        $tenantContext->clear();
+                    }
+                }
                 if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
                     $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
                     if ($db instanceof \Magma\database\DatabaseConnectionManager) {

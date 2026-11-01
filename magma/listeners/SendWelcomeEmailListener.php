@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Magma\listeners;
 
 use Magma\domain\events\UserRegisteredEvent;
-use Magma\events\EventListenerInterface;
+use Magma\events\TransactionalListenerInterface;
 use Magma\jobs\SendWelcomeEmailJob;
 use Magma\database\OutboxJobRepositoryInterface;
 use Magma\dto\OutboxJobDTO;
@@ -27,7 +27,7 @@ use Magma\dto\OutboxJobDTO;
  *   to an event, it still pushes the actual email sending to a background job to keep
  *   the HTTP response fast for the user. By writing to the Outbox, we guarantee at-least-once delivery.
  */
-class SendWelcomeEmailListener implements EventListenerInterface
+class SendWelcomeEmailListener implements TransactionalListenerInterface
 {
     private OutboxJobRepositoryInterface $outboxJobRepository;
     private \Magma\security\TenantContext $tenantContext;

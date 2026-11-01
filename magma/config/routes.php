@@ -18,14 +18,18 @@
 use Magma\controllers\PasswordResetRequestController;
 use Magma\controllers\PasswordResetCompletionController;
 use Magma\controllers\LoginController;
+use Magma\middleware\RateLimitMiddleware;
 use Magma\routing\RouteDefinition;
 
 return [
     RouteDefinition::get('/login', [LoginController::class, 'login']),
-    RouteDefinition::post('/login', [LoginController::class, 'authenticate']),
+    RouteDefinition::post('/login', [LoginController::class, 'authenticate'])
+        ->middleware([RateLimitMiddleware::class, 5, 60]),
     RouteDefinition::get('/forgot-password', [PasswordResetRequestController::class, 'forgotPassword']),
-    RouteDefinition::post('/forgot-password', [PasswordResetRequestController::class, 'sendResetLink']),
+    RouteDefinition::post('/forgot-password', [PasswordResetRequestController::class, 'sendResetLink'])
+        ->middleware([RateLimitMiddleware::class, 3, 300]),
     RouteDefinition::get('/reset-password', [PasswordResetCompletionController::class, 'resetPasswordForm']),
-    RouteDefinition::post('/reset-password', [PasswordResetCompletionController::class, 'resetPassword']),
+    RouteDefinition::post('/reset-password', [PasswordResetCompletionController::class, 'resetPassword'])
+        ->middleware([RateLimitMiddleware::class, 5, 300]),
     RouteDefinition::get('/logout', [LoginController::class, 'logout']),
 ];

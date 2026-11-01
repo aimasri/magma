@@ -68,12 +68,14 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     {
         $limit = max(1, min($limit, 1000));
         $pdo = $this->dbManager->getWriteConnection();
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $staleThreshold = $this->clock->now()->modify('-5 minutes')->format('Y-m-d H:i:s');
 
         $sql = 'UPDATE "outbox_jobs" '
-             . 'SET "locked_at" = CURRENT_TIMESTAMP '
+             . 'SET "locked_at" = :now '
              . 'WHERE "id" IN ('
              . '    SELECT "id" FROM "outbox_jobs" '
-             . '    WHERE ("locked_at" IS NULL OR "locked_at" < CURRENT_TIMESTAMP - INTERVAL \'5 minutes\') '
+             . '    WHERE ("locked_at" IS NULL OR "locked_at" < :staleThreshold) '
              . '      AND "attempts" >= 0 '
              . '    ORDER BY "id" ASC '
              . '    LIMIT :limit '
@@ -84,6 +86,8 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         try {
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':now', $now);
+            $stmt->bindValue(':staleThreshold', $staleThreshold);
             $stmt->execute();
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox fetch failed.", 0, $e);
@@ -107,11 +111,105 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
                 'payload' => is_array($payload) ? $payload : [],
                 'headers' => is_array($headers) ? $headers : [],
                 'attempts' => (int) ($row['attempts'] ?? 0),
-                'created_at' => (string) ($row['created_at'] ?? $this->clock->now()->format('Y-m-d H:i:s')),
+                'created_at' => (string) ($row['created_at'] ?? $now),
             ];
         }
 
         return $results;
+    }
+
+    /**
+     * Atomically claims pending outbox jobs using a distributed worker fencing token and lease expiration.
+     *
+     * @param string $workerId Unique identifier of the claiming worker daemon process.
+     * @param int $limit Maximum number of jobs to claim.
+     * @param int $leaseTtlSeconds Duration in seconds for which the claim lease remains valid.
+     * @return array<int, array{id: int, tenant_id: int|null, queue: string, handler: string, payload: array<string, mixed>, headers: array<string, mixed>, attempts: int, created_at: string}>
+     */
+    public function claimPending(string $workerId, int $limit = 100, int $leaseTtlSeconds = 60): array
+    {
+        $limit = max(1, min($limit, 1000));
+        $leaseTtlSeconds = max(5, $leaseTtlSeconds);
+        $pdo = $this->dbManager->getWriteConnection();
+
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $leaseExpiresAt = $this->clock->now()->modify("+{$leaseTtlSeconds} seconds")->format('Y-m-d H:i:s');
+
+        $sql = 'UPDATE "outbox_jobs" '
+             . 'SET "locked_at" = :now, '
+             . '    "locked_by" = :workerId, '
+             . '    "lease_expires_at" = :leaseExpiresAt '
+             . 'WHERE "id" IN ('
+             . '    SELECT "id" FROM "outbox_jobs" '
+             . '    WHERE ("lease_expires_at" IS NULL OR "lease_expires_at" < :nowSelection OR ("locked_at" IS NULL AND "lease_expires_at" IS NULL)) '
+             . '      AND "attempts" >= 0 '
+             . '    ORDER BY "id" ASC '
+             . '    LIMIT :limit '
+             . '    FOR UPDATE SKIP LOCKED '
+             . ') '
+             . 'RETURNING "id", "tenant_id", "queue", "handler", "payload", "headers", "attempts", "created_at"';
+
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':now', $now);
+            $stmt->bindValue(':nowSelection', $now);
+            $stmt->bindValue(':workerId', $workerId);
+            $stmt->bindValue(':leaseExpiresAt', $leaseExpiresAt);
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox claim failed.", 0, $e);
+        }
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!$rows) {
+            return [];
+        }
+
+        $results = [];
+        foreach ($rows as $row) {
+            $payload = is_string($row['payload']) ? json_decode($row['payload'], true) : $row['payload'];
+            $headers = is_string($row['headers']) ? json_decode($row['headers'], true) : $row['headers'];
+
+            $results[] = [
+                'id' => (int) $row['id'],
+                'tenant_id' => isset($row['tenant_id']) ? (int) $row['tenant_id'] : null,
+                'queue' => (string) $row['queue'],
+                'handler' => (string) $row['handler'],
+                'payload' => is_array($payload) ? $payload : [],
+                'headers' => is_array($headers) ? $headers : [],
+                'attempts' => (int) ($row['attempts'] ?? 0),
+                'created_at' => (string) ($row['created_at'] ?? $now),
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Atomically deletes a batch of published jobs only if the calling worker holds the active lease token.
+     *
+     * @param int[] $ids Array of outbox record primary keys to delete.
+     * @param string $workerId Unique worker daemon identifier holding the claim lease.
+     */
+    public function deleteClaimedBatch(array $ids, string $workerId): void
+    {
+        $sanitizedIds = array_values(array_filter(array_map('intval', $ids), fn(int $id) => $id > 0));
+        if (empty($sanitizedIds)) {
+            return;
+        }
+
+        $pdo = $this->dbManager->getWriteConnection();
+        $placeholders = implode(',', array_fill(0, count($sanitizedIds), '?'));
+        $sql = "DELETE FROM \"outbox_jobs\" WHERE \"id\" IN ($placeholders) AND \"locked_by\" = ?";
+
+        try {
+            $stmt = $pdo->prepare($sql);
+            $bindings = array_merge($sanitizedIds, [$workerId]);
+            $stmt->execute($bindings);
+        } catch (\PDOException $e) {
+            throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox claimed batch deletion failed.", 0, $e);
+        }
     }
 
     /**
@@ -257,36 +355,32 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
     public function releaseOrMarkFailed(int $id, string $errorMessage): void
     {
         $pdo = $this->dbManager->getWriteConnection();
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
 
         try {
-            $stmtCheck = $pdo->prepare('SELECT "attempts" FROM "outbox_jobs" WHERE "id" = :id');
-            $stmtCheck->execute([':id' => $id]);
-            $attempts = (int) $stmtCheck->fetchColumn();
-
-            if ($attempts >= 10) {
-                error_log(sprintf(
-                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Dead-lettering poisoned job. Last error: %s",
-                    $this->clock->now()->format('Y-m-d H:i:s'),
-                    $id,
-                    $errorMessage
-                ));
-                $stmtDeadLetter = $pdo->prepare('UPDATE "outbox_jobs" SET "attempts" = -1, "locked_at" = NULL, "last_error" = :error WHERE "id" = :id');
-                $stmtDeadLetter->bindValue(':error', mb_substr($errorMessage, 0, 1000));
-                $stmtDeadLetter->bindValue(':id', $id, PDO::PARAM_INT);
-                $stmtDeadLetter->execute();
-                return;
-            }
-
             $sql = 'UPDATE "outbox_jobs" '
-                 . 'SET "attempts" = "attempts" + 1, '
+                 . 'SET "attempts" = CASE WHEN "attempts" >= 9 THEN -1 ELSE "attempts" + 1 END, '
                  . '    "locked_at" = NULL, '
+                 . '    "locked_by" = NULL, '
+                 . '    "lease_expires_at" = NULL, '
                  . '    "last_error" = :error '
-                 . 'WHERE "id" = :id';
+                 . 'WHERE "id" = :id '
+                 . 'RETURNING "attempts"';
 
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
+
+            $newAttempts = (int) $stmt->fetchColumn();
+            if ($newAttempts === -1) {
+                error_log(sprintf(
+                    "[%s] CRITICAL: Outbox job ID %d exceeded maximum attempts (10). Dead-lettering poisoned job. Last error: %s",
+                    $now,
+                    $id,
+                    $errorMessage
+                ));
+            }
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException("Outbox status update failed.", 0, $e);
         }

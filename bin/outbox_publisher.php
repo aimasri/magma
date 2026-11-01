@@ -58,6 +58,9 @@ $batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
 $idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
 $timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
 
+// Unique distributed fencing token for this daemon instance
+$workerId = gethostname() . ':' . getmypid() . ':' . bin2hex(random_bytes(4));
+
 // Configure graceful termination signals if pcntl is installed
 $keepRunning = true;
 if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
@@ -75,7 +78,7 @@ if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
     }
 }
 
-echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon started. Polling outbox_jobs...\n";
+echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon started (worker: {$workerId}). Polling outbox_jobs...\n";
 
 while ($keepRunning) {
     try {
@@ -84,8 +87,11 @@ while ($keepRunning) {
         }
         set_time_limit($timeLimit);
 
-        // Fetch and lock pending batch using atomic row locking
-        $jobs = $outboxRepo->fetchAndLockPending($batchSize);
+        // Claim pending batch using distributed fencing token and lease expiration
+        $jobs = method_exists($outboxRepo, 'claimPending')
+            ? $outboxRepo->claimPending($workerId, $batchSize, $timeLimit)
+            : $outboxRepo->fetchAndLockPending($batchSize);
+
         if (empty($jobs)) {
             // Idle state: disconnect database connection and sleep to conserve pool resources
             $dbManager->disconnect();
@@ -105,9 +111,13 @@ while ($keepRunning) {
             }
         }
 
-        // Delete successfully dispatched records in a batched delete
+        // Delete successfully dispatched records in a batched delete protected by worker lease token
         if (!empty($publishedIds)) {
-            $outboxRepo->deleteBatch($publishedIds);
+            if (method_exists($outboxRepo, 'deleteClaimedBatch')) {
+                $outboxRepo->deleteClaimedBatch($publishedIds, $workerId);
+            } else {
+                $outboxRepo->deleteBatch($publishedIds);
+            }
             echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Published and cleared " . count($publishedIds) . " outbox jobs.\n";
         }
 

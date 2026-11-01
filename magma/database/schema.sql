@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS outbox_jobs (
     headers JSONB DEFAULT '{}'::jsonb,
     attempts INTEGER DEFAULT 0,
     locked_at TIMESTAMP,
+    locked_by VARCHAR(255),
+    lease_expires_at TIMESTAMP,
     last_error TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) WITH (autovacuum_vacuum_scale_factor = 0.05, autovacuum_vacuum_cost_limit = 500);
@@ -137,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_lease ON outbox_jobs(lease_expires_at, attempts);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_dead_letter ON outbox_jobs(id) WHERE attempts < 0;
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_lookup ON projection_checkpoints(tenant_id, projection_name, status);
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_prune ON projection_checkpoints(applied_at) WHERE status IN ('completed', 'failed');
