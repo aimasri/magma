@@ -47,7 +47,7 @@ class DatabaseConnectionManager
      * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $readSettings
      * @param bool $emulatePrepares
      */
-    public function __construct(array $writeSettings, array $readSettings, bool $emulatePrepares = false)
+    public function __construct(array $writeSettings, array $readSettings, bool $emulatePrepares = true)
     {
         $this->writeSettings = $writeSettings;
         $this->readSettings = $readSettings;

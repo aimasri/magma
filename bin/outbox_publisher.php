@@ -66,6 +66,11 @@ if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
     };
     pcntl_signal(SIGTERM, $signalHandler);
     pcntl_signal(SIGINT, $signalHandler);
+    if (defined('SIGALRM')) {
+        pcntl_signal(SIGALRM, function () use ($timeLimit) {
+            throw new \RuntimeException("Outbox publisher iteration timeout exceeded ({$timeLimit}s).");
+        });
+    }
 }
 
 $batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
@@ -76,47 +81,46 @@ echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon sta
 
 while ($keepRunning) {
     try {
+        if (function_exists('pcntl_alarm')) {
+            pcntl_alarm($timeLimit);
+        }
         set_time_limit($timeLimit);
 
-        $processedCount = $txManager->transactional(function () use ($outboxRepo, $queue, $batchSize): int {
-            $jobs = $outboxRepo->fetchAndLockPending($batchSize);
-            if (empty($jobs)) {
-                return 0;
-            }
-
-            $publishedIds = [];
-            foreach ($jobs as $job) {
-                try {
-                    $queue->push($job['queue'], $job['handler'], $job['payload']);
-                    $publishedIds[] = $job['id'];
-                } catch (\Throwable $publishError) {
-                    echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
-                    $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
-                }
-            }
-
-            if (!empty($publishedIds)) {
-                $outboxRepo->deleteBatch($publishedIds);
-            }
-
-            return count($publishedIds);
-        });
-
-        if ($processedCount > 0) {
-            echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Published and cleared {$processedCount} outbox jobs.\n";
-            // Check for more immediate jobs without sleeping
+        // Fetch and lock pending batch using atomic row locking
+        $jobs = $outboxRepo->fetchAndLockPending($batchSize);
+        if (empty($jobs)) {
+            // Idle state: disconnect database connection and sleep to conserve pool resources
+            $dbManager->disconnect();
+            usleep($idleSleepMicroseconds);
             continue;
         }
 
-        // Idle state: disconnect database connection and sleep to save server resources
-        $dbManager->disconnect();
-        usleep($idleSleepMicroseconds);
+        $publishedIds = [];
+        foreach ($jobs as $job) {
+            try {
+                // Dispatch to destination queue outside database transaction
+                $queue->push($job['queue'], $job['handler'], $job['payload']);
+                $publishedIds[] = $job['id'];
+            } catch (\Throwable $publishError) {
+                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
+                $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
+            }
+        }
+
+        // Delete successfully dispatched records in a batched delete
+        if (!empty($publishedIds)) {
+            $outboxRepo->deleteBatch($publishedIds);
+            echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Published and cleared " . count($publishedIds) . " outbox jobs.\n";
+        }
 
     } catch (\Throwable $e) {
         echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox Publisher Error: " . $e->getMessage() . "\n";
         $dbManager->disconnect();
         sleep(2);
     } finally {
+        if (function_exists('pcntl_alarm')) {
+            pcntl_alarm(0);
+        }
         set_time_limit(0);
     }
 }
