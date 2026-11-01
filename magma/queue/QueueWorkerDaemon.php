@@ -241,7 +241,15 @@ class QueueWorkerDaemon
                 }
             }
         } else {
-            $this->logger->warning("Invalid job payload or handler does not exist.");
+            $handlerName = is_string($handlerClass) ? $handlerClass : 'UnknownHandler';
+            $this->logger->warning("Invalid job payload or handler does not exist. Pushing to DLQ.", [
+                'handler' => $handlerName,
+            ]);
+            $this->queue->push('failed_jobs', $handlerName, [
+                'raw_payload' => $job,
+                'error' => is_string($handlerClass) ? "Handler class '{$handlerClass}' does not exist" : "Job missing handler key",
+                'failed_at' => $this->clock->now()->format('c'),
+            ]);
         }
     }
 }

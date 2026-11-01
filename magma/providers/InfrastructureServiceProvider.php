@@ -111,6 +111,7 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                     $redis->select((int)$db);
                 }
             } catch (\RedisException $e) {
+                error_log(sprintf('[InfrastructureServiceProvider] Redis connection failed: %s', $e->getMessage()));
                 // Return unconnected instance so DI resolution doesn't crash.
                 // Callers (RedisCache, RateLimitMiddleware) will handle failures gracefully.
             }

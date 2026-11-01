@@ -60,7 +60,7 @@ class SendWelcomeEmailListener implements TransactionalListenerInterface
     public function handle(mixed $event): void
     {
         assert($event instanceof UserRegisteredEvent);
-        $tenantId = $this->tenantContext->getTenantId();
+        $tenantId = $this->tenantContext->hasTenantId() ? $this->tenantContext->getTenantId() : null;
 
         $jobDto = new OutboxJobDTO(
             'emails',

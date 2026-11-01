@@ -102,6 +102,7 @@ class RateLimitMiddleware implements MiddlewareInterface
             }
         } catch (\Throwable $e) {
             // Fail open if rate limiter is down (e.g., Redis failure)
+            error_log(sprintf('[RateLimitMiddleware] Limiter backend failure, failing open: %s', $e->getMessage()));
             $remaining = $this->maxAttempts;
         }
 

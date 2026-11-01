@@ -220,7 +220,8 @@ class ErrorHandler implements ErrorHandlerInterface
                 }
 
                 $referer = $request !== null ? $request->server('HTTP_REFERER', '/') : '/';
-                $target = is_string($referer) ? $referer : '/';
+                $rawReferer = is_string($referer) ? $referer : '/';
+                $target = \Magma\security\RedirectSanitizer::sanitizeOrFallback($rawReferer, '/');
                 return new \Magma\http\RedirectResponse($target);
             }
 
@@ -244,6 +245,11 @@ class ErrorHandler implements ErrorHandlerInterface
         }
 
         // Build full exception chain trace to prevent losing PDOException details
+        $eMsg = $e->getMessage();
+        if ($e instanceof \PDOException) {
+            $eMsg = preg_replace('/password=[\S]+/', 'password=***', $eMsg);
+            $eMsg = preg_replace('/(VALUES\s*\().*?(\))/is', '$1***$2', $eMsg ?? '');
+        }
         $traceChain = $e->getTraceAsString();
         $prev = $e->getPrevious();
         while ($prev !== null) {
@@ -257,18 +263,51 @@ class ErrorHandler implements ErrorHandlerInterface
             $prev = $prev->getPrevious();
         }
 
-        // Log general Throwable with Tenant ID context
-        $logEntry = sprintf(
-            "[%s] [Tenant:%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
-            date('Y-m-d H:i:s'),
-            $tenantId ?? 'System',
-            get_class($e),
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine(),
-            $traceChain
-        );
-        error_log($logEntry);
+        // Log general Throwable with Tenant ID context and CRLF prevention
+        $sanitizedEMsg = str_replace(["\r", "\n"], ' ', (string) $eMsg);
+        if ($this->container !== null && $this->container->has(\Magma\logging\LoggerInterface::class)) {
+            try {
+                /** @var \Magma\logging\LoggerInterface $logger */
+                $logger = $this->container->get(\Magma\logging\LoggerInterface::class);
+                $logger->error(sprintf(
+                    'Exception [%s]: %s in %s:%d',
+                    get_class($e),
+                    $sanitizedEMsg,
+                    $e->getFile(),
+                    $e->getLine()
+                ), [
+                    'tenant_id' => $tenantId ?? 'System',
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $traceChain,
+                ]);
+            } catch (\Throwable) {
+                $logEntry = sprintf(
+                    "[%s] [Tenant:%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
+                    date('Y-m-d H:i:s'),
+                    $tenantId ?? 'System',
+                    get_class($e),
+                    $sanitizedEMsg,
+                    $e->getFile(),
+                    $e->getLine(),
+                    $traceChain
+                );
+                error_log($logEntry);
+            }
+        } else {
+            $logEntry = sprintf(
+                "[%s] [Tenant:%s] Exception [%s]: %s in %s:%d\nStack Trace:\n%s",
+                date('Y-m-d H:i:s'),
+                $tenantId ?? 'System',
+                get_class($e),
+                $sanitizedEMsg,
+                $e->getFile(),
+                $e->getLine(),
+                $traceChain
+            );
+            error_log($logEntry);
+        }
 
         // Handle specific RouteNotFoundException to show the interactive Route Explorer in debug mode
         if ($e instanceof \Magma\routing\RouteNotFoundException) {
@@ -318,6 +357,9 @@ class ErrorHandler implements ErrorHandlerInterface
 
         // Only expose specific exception messages in production if they are 4xx client errors.
         if ($httpStatusCode >= 400 && $httpStatusCode < 500) {
+            if ($e instanceof \PDOException) {
+                return 'A database error occurred.';
+            }
             return $e->getMessage();
         }
 
