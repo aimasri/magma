@@ -64,9 +64,9 @@ class RouteDispatcher
      *
      * @param array<int, string>|callable|string|Route $handler
      * @param array<string, string> $params
-     * @param array<int, string> $middlewareList
+     * @param array<int, string|object|array<int|string, mixed>> $middlewareList
      * @param RequestInterface $request
-     * @param array<int, string> $globalMiddleware
+     * @param array<int, string|object|array<int|string, mixed>> $globalMiddleware
      * @return Response
      */
     public function dispatch(

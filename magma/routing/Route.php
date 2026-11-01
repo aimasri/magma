@@ -28,7 +28,7 @@ class Route implements \JsonSerializable
     /** @var array<int, string>|callable|string */
     public readonly mixed $handler;
     public readonly ?string $action;
-    /** @var array<int, string> */
+    /** @var array<int, string|object|array<int|string, mixed>> */
     public readonly array $middleware;
     public readonly ?string $name;
     /** @var array<string, string> */
@@ -43,7 +43,7 @@ class Route implements \JsonSerializable
      * @param string $uri The URI pattern (e.g., '/items/{id}')
      * @param array<int, string>|callable|string $handler Controller callback or handler
      * @param ?string $action Controller method name if applicable
-     * @param array<int, string> $middleware Stack of middleware class names
+     * @param array<int, string|object|array<int|string, mixed>> $middleware Stack of middleware class names or configured tuples
      * @param ?string $name Unique route identifier name
      * @param array<string, string> $parameters Associative array of regex parameter constraints
      * @param ?string $redirectOnFail Redirection path on constraint mismatch
@@ -195,7 +195,7 @@ class Route implements \JsonSerializable
         return $this->action;
     }
 
-    /** @return array<int, string> */
+    /** @return array<int, string|object|array<int|string, mixed>> */
     public function getMiddleware(): array
     {
         return $this->middleware;

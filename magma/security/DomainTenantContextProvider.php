@@ -6,6 +6,7 @@ namespace Magma\security;
 
 use Magma\http\RequestInterface;
 use Magma\database\DatabaseConnectionManager;
+use Magma\interfaces\CacheInterface;
 use PDO;
 use Throwable;
 
@@ -26,15 +27,18 @@ use Throwable;
 class DomainTenantContextProvider implements TenantContextProviderInterface
 {
     private DatabaseConnectionManager $dbManager;
+    private ?CacheInterface $cache;
 
     /**
      * Initializes the provider with a database connection manager.
      *
      * @param DatabaseConnectionManager $dbManager
+     * @param CacheInterface|null $cache
      */
-    public function __construct(DatabaseConnectionManager $dbManager)
+    public function __construct(DatabaseConnectionManager $dbManager, ?CacheInterface $cache = null)
     {
         $this->dbManager = $dbManager;
+        $this->cache = $cache;
     }
 
     /**
@@ -52,6 +56,16 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
 
         // Clean port if present (e.g. localhost:8080 -> localhost)
         $domain = explode(':', (string)$host)[0];
+        $cacheKey = "tenant_domain_res_{$domain}";
+        
+        if ($this->cache !== null) {
+            $cached = $this->cache->get($cacheKey);
+            if ($cached !== null && is_numeric($cached)) {
+                $cachedInt = (int)$cached;
+                // If we cached 0 or -1 to represent null domain mapping, return null.
+                return $cachedInt > 0 ? $cachedInt : null;
+            }
+        }
 
         try {
             $db = $this->dbManager->getReadConnection();
@@ -60,8 +74,13 @@ class DomainTenantContextProvider implements TenantContextProviderInterface
             $stmt->execute(['domain' => $domain]);
             
             $result = $stmt->fetchColumn();
+            $tenantId = $result !== false ? (int)$result : null;
             
-            return $result !== false ? (int)$result : null;
+            if ($this->cache !== null) {
+                $this->cache->set($cacheKey, $tenantId ?? 0, 600);
+            }
+            
+            return $tenantId;
         } catch (Throwable $e) {
             error_log("Failed to resolve tenant from domain: " . $e->getMessage());
             return null;
