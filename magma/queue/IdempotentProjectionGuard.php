@@ -48,6 +48,16 @@ class IdempotentProjectionGuard
     }
 
     /**
+     * Returns the clock instance associated with this projection guard.
+     *
+     * @return \Magma\contracts\ClockInterface
+     */
+    public function getClock(): \Magma\contracts\ClockInterface
+    {
+        return $this->clock;
+    }
+
+    /**
      * Checks whether an event has already been successfully applied to a named projection.
      *
      * @param string $projectionName The unique identifier of the read-model projection.
