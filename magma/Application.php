@@ -115,7 +115,16 @@ class Application
 
         // Send headers and body to the client
         $response->send();
-        echo $bufferedOutput;
+        if ($bufferedOutput !== '') {
+            $isJson = $response instanceof \Magma\http\JsonResponse
+                || str_contains(strtolower($response->getHeaders()['Content-Type'] ?? $response->getHeaders()['content-type'] ?? ''), 'application/json');
+
+            if (!$isJson) {
+                echo $bufferedOutput;
+            } else {
+                error_log(sprintf('[Application] Discarded unexpected buffer during JSON response: %s', $bufferedOutput));
+            }
+        }
     }
 
     /**

@@ -73,27 +73,38 @@ class PersistentAuthenticationService
      */
     public function attemptAutoLogin(string $token): AuthenticationResult
     {
-        /** @var AuthenticationResult $result */
-        $result = $this->transactionManager->transactional(function () use ($token) {
+        /** @var array{user: \Magma\domain\AuthUser, tokenData: array{token: string, expiry: int}}|null $rotationResult */
+        $rotationResult = $this->transactionManager->transactional(function () use ($token): ?array {
             $userId = $this->rememberMeService->validateToken($token);
             if (!$userId) {
-                return AuthenticationResult::failure()->clearCookie('remember_user');
+                return null;
             }
 
             $user = $this->userRepository->findById($userId);
             if (!$user) {
-                return AuthenticationResult::failure()->clearCookie('remember_user');
+                return null;
             }
 
-            $this->sessionAuth->login($user);
-
             $tokenData = $this->rememberMeService->rotateToken($token, $userId);
-            
-            return AuthenticationResult::success($user)
-                ->withCookie('remember_user', $tokenData['token'], $tokenData['expiry']);
+
+            return [
+                'user' => $user,
+                'tokenData' => $tokenData,
+            ];
         });
 
-        return $result;
+        if ($rotationResult === null) {
+            return AuthenticationResult::failure()->clearCookie('remember_user');
+        }
+
+        $authUser = $rotationResult['user'];
+
+        // Register session state outside the database transaction to prevent Redis spin-locks
+        // from starving the PgBouncer pool or triggering SQLSTATE 40001 serialization retries.
+        $this->sessionAuth->login($authUser);
+
+        return AuthenticationResult::success($authUser)
+            ->withCookie('remember_user', $rotationResult['tokenData']['token'], $rotationResult['tokenData']['expiry']);
     }
 
     /**

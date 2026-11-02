@@ -110,7 +110,7 @@ class Route implements \JsonSerializable
             uri: is_string($state['uri'] ?? null) ? $state['uri'] : '/',
             handler: $handler,
             action: is_string($state['action'] ?? null) ? $state['action'] : null,
-            middleware: array_filter($middleware, 'is_string'),
+            middleware: array_filter($middleware, static fn(mixed $m): bool => is_string($m) || is_array($m) || is_object($m)),
             name: is_string($state['name'] ?? null) ? $state['name'] : null,
             parameters: array_filter($parameters, 'is_string'),
             redirectOnFail: is_string($state['redirectOnFail'] ?? null) ? $state['redirectOnFail'] : null,

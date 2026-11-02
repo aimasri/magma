@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS plans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     monthly_price DECIMAL(10, 2) NOT NULL,
-    stripe_product_id VARCHAR(255)
+    stripe_product_id VARCHAR(255),
+    is_internal BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS features (
@@ -114,6 +115,8 @@ CREATE TABLE IF NOT EXISTS outbox_jobs (
     headers JSONB DEFAULT '{}'::jsonb,
     attempts INTEGER DEFAULT 0,
     locked_at TIMESTAMP,
+    locked_by VARCHAR(255),
+    lease_expires_at TIMESTAMP,
     last_error TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) WITH (autovacuum_vacuum_scale_factor = 0.05, autovacuum_vacuum_cost_limit = 500);
@@ -130,6 +133,9 @@ CREATE TABLE IF NOT EXISTS projection_checkpoints (
 
 -- Section: Indexes
 
+CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_domains_tenant_id ON tenant_domains(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_addons_feature_id ON tenant_addons(feature_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_plan_id ON tenants(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_tokens_lookup ON user_tokens(type, expires_at);
@@ -137,8 +143,11 @@ CREATE INDEX IF NOT EXISTS idx_user_tokens_hash_lookup ON user_tokens(token_hash
 CREATE INDEX IF NOT EXISTS idx_user_tokens_user_type ON user_tokens(user_id, type);
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_pending ON outbox_jobs(id) WHERE locked_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_polling ON outbox_jobs(locked_at, attempts);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_lease ON outbox_jobs(lease_expires_at, attempts);
+CREATE INDEX IF NOT EXISTS idx_outbox_jobs_claim_sweep ON outbox_jobs(lease_expires_at, id ASC) WHERE attempts >= 0;
 CREATE INDEX IF NOT EXISTS idx_outbox_jobs_dead_letter ON outbox_jobs(id) WHERE attempts < 0;
 CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_lookup ON projection_checkpoints(tenant_id, projection_name, status);
+CREATE INDEX IF NOT EXISTS idx_projection_checkpoints_prune ON projection_checkpoints(applied_at) WHERE status IN ('completed', 'failed');
 
 -- Section: Triggers
 

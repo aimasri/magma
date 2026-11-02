@@ -107,7 +107,6 @@ class RedisCache implements CacheInterface
             return $unserialized;
         } catch (Throwable $e) {
             $this->logger->error('Redis Cache get failure', ['exception' => $e->getMessage(), 'key' => $key]);
-            $this->delete($key);
             return $default;
         }
     }
@@ -215,10 +214,13 @@ class RedisCache implements CacheInterface
     {
         try {
             $pattern = $this->prefix . '*';
-            $keys = $this->redis->keys($pattern);
-            if (!empty($keys)) {
-                $this->redis->del($keys);
-            }
+            $iterator = null;
+            do {
+                $keys = $this->redis->scan($iterator, $pattern, 100);
+                if ($keys !== false && !empty($keys)) {
+                    $this->redis->del($keys);
+                }
+            } while ($iterator !== null && $iterator > 0);
             return true;
         } catch (Throwable $e) {
             $this->logger->warning('Redis Cache clear failed', ['exception' => $e->getMessage()]);

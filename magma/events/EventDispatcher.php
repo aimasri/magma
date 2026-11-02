@@ -105,8 +105,31 @@ class EventDispatcher implements EventDispatcherInterface
                     $e->getMessage(),
                     $e->getTraceAsString()
                 ));
+
+                if ($this->isTransactionalListener($listener)) {
+                    throw $e;
+                }
             }
         }
+    }
+
+    /**
+     * Determines whether a listener is marked as transactional.
+     *
+     * @param callable|string|object $listener
+     * @return bool
+     */
+    private function isTransactionalListener(callable|string|object $listener): bool
+    {
+        if (is_object($listener)) {
+            return $listener instanceof TransactionalListenerInterface;
+        }
+
+        if (is_string($listener)) {
+            return is_subclass_of($listener, TransactionalListenerInterface::class);
+        }
+
+        return false;
     }
 
     /**

@@ -105,6 +105,19 @@ class QueueWorkerDaemon
 
             if ($jobString !== null && $jobString !== '') {
                 $this->processJob($jobString, $queueName);
+            } else {
+                // Idle state: Disconnect database connection during idle wait to conserve pool resources
+                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
+                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                        $db->disconnect();
+                    }
+                }
+            }
+
+            // Periodic garbage collection to maintain memory hygiene in long-running processes
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
             }
 
             // Prevent OOM in long-running processes (128MB threshold)
@@ -112,6 +125,13 @@ class QueueWorkerDaemon
                 $this->logger->warning("Memory limit exceeded (128MB). Exiting daemon safely.");
                 $this->running = false;
                 break;
+            }
+        }
+
+        if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
+            $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+            if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                $db->disconnect();
             }
         }
 
@@ -227,15 +247,23 @@ class QueueWorkerDaemon
                         $correlationProvider->reset();
                     }
                 }
-                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
-                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
-                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
-                        $db->disconnect();
+                if ($this->container->has(\Magma\security\TenantContext::class)) {
+                    $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
+                    if ($tenantContext instanceof \Magma\security\TenantContext) {
+                        $tenantContext->clear();
                     }
                 }
             }
         } else {
-            $this->logger->warning("Invalid job payload or handler does not exist.");
+            $handlerName = is_string($handlerClass) ? $handlerClass : 'UnknownHandler';
+            $this->logger->warning("Invalid job payload or handler does not exist. Pushing to DLQ.", [
+                'handler' => $handlerName,
+            ]);
+            $this->queue->push('failed_jobs', $handlerName, [
+                'raw_payload' => $job,
+                'error' => is_string($handlerClass) ? "Handler class '{$handlerClass}' does not exist" : "Job missing handler key",
+                'failed_at' => $this->clock->now()->format('c'),
+            ]);
         }
     }
 }

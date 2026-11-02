@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
@@ -7,6 +9,7 @@ use Magma\interfaces\repositories\PasswordResetTokenRepositoryInterface;
 use Magma\contracts\ClockInterface;
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
+use Magma\infrastructure\exceptions\DatabaseException;
 
 /**
  * Title: Password Reset Token Repository
@@ -48,8 +51,12 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function createPasswordResetToken(int $userId, \Magma\domain\PasswordResetToken $token): void
     {
-        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, token_hash, expires_at, created_at) VALUES (?, 'password_reset', ?, ?, ?)");
-        $stmt->execute([$userId, $token->getHashedToken(), $token->getExpiresAt(), $this->clock->now()->format('Y-m-d H:i:s')]);
+        try {
+            $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, token_hash, expires_at, created_at) VALUES (?, 'password_reset', ?, ?, ?)");
+            $stmt->execute([$userId, $token->getHashedToken(), $token->getExpiresAt(), $this->clock->now()->format('Y-m-d H:i:s')]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while creating password reset token.", 0, $e);
+        }
     }
 
     /**
@@ -57,23 +64,27 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function findValidPasswordResetToken(string $tokenHash): ?array
     {
-        $stmt = $this->getDb()->prepare("
-            SELECT user_id FROM user_tokens 
-            WHERE token_hash = ? AND type = 'password_reset' AND expires_at > ?
-            FOR UPDATE
-        ");
-        $stmt->execute([$tokenHash, $this->clock->now()->format('Y-m-d H:i:s')]);
-        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (is_array($result)) {
-            $row = [];
-            foreach ($result as $k => $v) {
-                if (is_string($k)) {
-                    $row[$k] = $v;
+        try {
+            $stmt = $this->getDb()->prepare("
+                SELECT user_id FROM user_tokens 
+                WHERE token_hash = ? AND type = 'password_reset' AND expires_at > ?
+                FOR UPDATE
+            ");
+            $stmt->execute([$tokenHash, $this->clock->now()->format('Y-m-d H:i:s')]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (is_array($result)) {
+                $row = [];
+                foreach ($result as $k => $v) {
+                    if (is_string($k)) {
+                        $row[$k] = $v;
+                    }
                 }
+                return $row;
             }
-            return $row;
+            return null;
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while finding password reset token.", 0, $e);
         }
-        return null;
     }
 
     /**
@@ -92,8 +103,12 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function deleteAllPasswordResetTokensForUser(int $userId): void
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE user_id = ? AND type = 'password_reset'");
-        $stmt->execute([$userId]);
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE user_id = ? AND type = 'password_reset'");
+            $stmt->execute([$userId]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting user reset tokens.", 0, $e);
+        }
     }
 
     /**
@@ -112,8 +127,12 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function deletePasswordResetToken(string $tokenHash): void
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE token_hash = ? AND type = 'password_reset'");
-        $stmt->execute([$tokenHash]);
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE token_hash = ? AND type = 'password_reset'");
+            $stmt->execute([$tokenHash]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting password reset token.", 0, $e);
+        }
     }
 
     /**
@@ -131,8 +150,12 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
      */
     public function deleteExpiredTokens(): int
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'password_reset'");
-        $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
-        return $stmt->rowCount();
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'password_reset'");
+            $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
+            return $stmt->rowCount();
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting expired reset tokens.", 0, $e);
+        }
     }
 }

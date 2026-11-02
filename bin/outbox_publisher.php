@@ -36,6 +36,7 @@ require_once __DIR__ . '/../magma/config/bootstrap.php';
 
 use Magma\database\OutboxJobRepositoryInterface;
 use Magma\database\OutboxJobRepository;
+use Magma\database\DatabaseConnectionManager;
 use Magma\queue\QueueInterface;
 use Magma\config\Config;
 
@@ -47,14 +48,18 @@ $outboxRepo = $container->has(OutboxJobRepositoryInterface::class)
 /** @var QueueInterface $queue */
 $queue = $container->get(QueueInterface::class);
 
-/** @var DatabaseTransactionManager $txManager */
-$txManager = $container->get(DatabaseTransactionManager::class);
-
 /** @var DatabaseConnectionManager $dbManager */
 $dbManager = $container->get(DatabaseConnectionManager::class);
 
 /** @var \Magma\contracts\ClockInterface $clock */
 $clock = $container->get(\Magma\contracts\ClockInterface::class);
+
+$batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
+$idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
+$timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
+
+// Unique distributed fencing token for this daemon instance
+$workerId = gethostname() . ':' . getmypid() . ':' . bin2hex(random_bytes(4));
 
 // Configure graceful termination signals if pcntl is installed
 $keepRunning = true;
@@ -73,11 +78,7 @@ if (function_exists('pcntl_async_signals') && function_exists('pcntl_signal')) {
     }
 }
 
-$batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
-$idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
-$timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
-
-echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon started. Polling outbox_jobs...\n";
+echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher daemon started (worker: {$workerId}). Polling outbox_jobs...\n";
 
 while ($keepRunning) {
     try {
@@ -86,11 +87,22 @@ while ($keepRunning) {
         }
         set_time_limit($timeLimit);
 
-        // Fetch and lock pending batch using atomic row locking
-        $jobs = $outboxRepo->fetchAndLockPending($batchSize);
+        // Claim pending batch using distributed fencing token and lease expiration
+        $jobs = method_exists($outboxRepo, 'claimPending')
+            ? $outboxRepo->claimPending($workerId, $batchSize, $timeLimit)
+            : $outboxRepo->fetchAndLockPending($batchSize);
+
         if (empty($jobs)) {
             // Idle state: disconnect database connection and sleep to conserve pool resources
             $dbManager->disconnect();
+            if (function_exists('gc_collect_cycles')) {
+                gc_collect_cycles();
+            }
+            if (memory_get_usage() > 134217728) {
+                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher memory limit exceeded (128MB). Exiting daemon safely for supervisor restart.\n";
+                $keepRunning = false;
+                break;
+            }
             usleep($idleSleepMicroseconds);
             continue;
         }
@@ -107,9 +119,13 @@ while ($keepRunning) {
             }
         }
 
-        // Delete successfully dispatched records in a batched delete
+        // Delete successfully dispatched records in a batched delete protected by worker lease token
         if (!empty($publishedIds)) {
-            $outboxRepo->deleteBatch($publishedIds);
+            if (method_exists($outboxRepo, 'deleteClaimedBatch')) {
+                $outboxRepo->deleteClaimedBatch($publishedIds, $workerId);
+            } else {
+                $outboxRepo->deleteBatch($publishedIds);
+            }
             echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Published and cleared " . count($publishedIds) . " outbox jobs.\n";
         }
 

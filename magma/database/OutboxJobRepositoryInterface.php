@@ -32,11 +32,29 @@ interface OutboxJobRepositoryInterface
     public function fetchAndLockPending(int $limit = 100): array;
 
     /**
+     * Atomically claims pending outbox jobs using a distributed worker fencing token and lease expiration.
+     *
+     * @param string $workerId Unique identifier of the claiming worker daemon process.
+     * @param int $limit Maximum number of jobs to claim.
+     * @param int $leaseTtlSeconds Duration in seconds for which the claim lease remains valid.
+     * @return array<int, array{id: int, queue: string, handler: string, payload: array<string, mixed>, headers: array<string, mixed>, attempts: int, created_at: string}>
+     */
+    public function claimPending(string $workerId, int $limit = 100, int $leaseTtlSeconds = 60): array;
+
+    /**
      * Deletes a batch of successfully published outbox jobs by their IDs.
      *
      * @param int[] $ids Array of outbox record primary keys to delete.
      */
     public function deleteBatch(array $ids): void;
+
+    /**
+     * Atomically deletes a batch of published jobs only if the calling worker holds the active lease token.
+     *
+     * @param int[] $ids Array of outbox record primary keys to delete.
+     * @param string $workerId Unique worker daemon identifier holding the claim lease.
+     */
+    public function deleteClaimedBatch(array $ids, string $workerId): void;
 
     /**
      * Records a new job into the transactional outbox table.

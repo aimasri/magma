@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Magma\listeners;
 
 use Magma\domain\events\PasswordResetRequestedEvent;
-use Magma\events\EventListenerInterface;
+use Magma\events\TransactionalListenerInterface;
 use Magma\database\OutboxJobRepositoryInterface;
 use Magma\routing\UrlGenerator;
 use Magma\jobs\SendPasswordResetEmailJob;
@@ -24,7 +24,7 @@ use Magma\dto\OutboxJobDTO;
  * Teaching notes:
  * - Listeners should strictly avoid heavy domain logic. Their role is to translate domain events into infrastructure side-effects (like queue jobs).
  */
-class SendPasswordResetEmailListener implements EventListenerInterface
+class SendPasswordResetEmailListener implements TransactionalListenerInterface
 {
     private OutboxJobRepositoryInterface $outboxJobRepository;
     private UrlGenerator $urlGenerator;

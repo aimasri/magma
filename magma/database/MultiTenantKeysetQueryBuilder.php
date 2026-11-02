@@ -201,9 +201,12 @@ class MultiTenantKeysetQueryBuilder
 
         $whereSql = !empty($conditions) ? " WHERE " . implode(' AND ', $conditions) : '';
         $orderCol = "{$prefix}\"{$this->cursorColumn}\"";
+        $orderBy = $this->cursorColumn !== 'id'
+            ? "{$orderCol} {$this->direction}, {$prefix}\"id\" {$this->direction}"
+            : "{$orderCol} {$this->direction}";
         $limitPlusOne = $limit + 1;
 
-        $sql = "SELECT {$selectClause} FROM {$tableRef}{$whereSql} ORDER BY {$orderCol} {$this->direction} LIMIT {$limitPlusOne}";
+        $sql = "SELECT {$selectClause} FROM {$tableRef}{$whereSql} ORDER BY {$orderBy} LIMIT {$limitPlusOne}";
 
         return [
             'sql' => $sql,

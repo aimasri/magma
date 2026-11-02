@@ -111,6 +111,7 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
                     $redis->select((int)$db);
                 }
             } catch (\RedisException $e) {
+                error_log(sprintf('[InfrastructureServiceProvider] Redis connection failed: %s', $e->getMessage()));
                 // Return unconnected instance so DI resolution doesn't crash.
                 // Callers (RedisCache, RateLimitMiddleware) will handle failures gracefully.
             }
@@ -147,6 +148,19 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
 
         $container->set(\Magma\logging\CorrelationIdProviderInterface::class, function () {
             return new \Magma\logging\CorrelationIdProvider();
+        });
+
+        $container->set(\Magma\logging\LoggerInterface::class, function ($c) {
+            $tenantContext = $c->has(\Magma\security\TenantContext::class) 
+                ? $c->get(\Magma\security\TenantContext::class) 
+                : null;
+            $corrProvider = $c->has(\Magma\logging\CorrelationIdProviderInterface::class)
+                ? $c->get(\Magma\logging\CorrelationIdProviderInterface::class)
+                : null;
+            return new \Magma\logging\NativeLogger(
+                $tenantContext instanceof \Magma\security\TenantContext ? $tenantContext : null,
+                $corrProvider instanceof \Magma\logging\CorrelationIdProviderInterface ? $corrProvider : null
+            );
         });
 
         $container->set(QueueInterface::class, function ($c) {

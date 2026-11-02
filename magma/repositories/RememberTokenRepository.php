@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\repositories;
 
 use Magma\models\AbstractCommandRepository;
@@ -7,6 +9,7 @@ use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
 use Magma\contracts\ClockInterface;
 use Magma\database\DatabaseConnectionManager;
 use Magma\security\TenantContext;
+use Magma\infrastructure\exceptions\DatabaseException;
 
 /**
  * Title: Remember Token Repository
@@ -50,8 +53,12 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function saveRememberToken(int $userId, string $selector, string $hashedValidator, string $expiresAt): void
     {
-        $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, selector, token_hash, expires_at, created_at) VALUES (?, 'remember_me', ?, ?, ?, ?)");
-        $stmt->execute([$userId, $selector, $hashedValidator, $expiresAt, $this->clock->now()->format('Y-m-d H:i:s')]);
+        try {
+            $stmt = $this->getDb()->prepare("INSERT INTO user_tokens (user_id, type, selector, token_hash, expires_at, created_at) VALUES (?, 'remember_me', ?, ?, ?, ?)");
+            $stmt->execute([$userId, $selector, $hashedValidator, $expiresAt, $this->clock->now()->format('Y-m-d H:i:s')]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while saving remember token.", 0, $e);
+        }
     }
 
     /**
@@ -62,24 +69,28 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
         // Even though this is a find method, we keep it here for simplicity of SRP over CQRS strictness, 
         // or we use the read connection. Since we extend AbstractCommandRepository, we only have write connection.
         // It's acceptable to use write connection for session lookup to prevent replica lag issues on login.
-        $stmt = $this->getDb()->prepare("
-            SELECT user_id, token_hash as hashed_validator 
-            FROM user_tokens 
-            WHERE selector = ? AND type = 'remember_me' AND expires_at > ?
-            FOR UPDATE
-        ");
-        $stmt->execute([$selector, $this->clock->now()->format('Y-m-d H:i:s')]);
-        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (is_array($result)) {
-            $row = [];
-            foreach ($result as $k => $v) {
-                if (is_string($k)) {
-                    $row[$k] = $v;
+        try {
+            $stmt = $this->getDb()->prepare("
+                SELECT user_id, token_hash as hashed_validator 
+                FROM user_tokens 
+                WHERE selector = ? AND type = 'remember_me' AND expires_at > ?
+                FOR UPDATE
+            ");
+            $stmt->execute([$selector, $this->clock->now()->format('Y-m-d H:i:s')]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (is_array($result)) {
+                $row = [];
+                foreach ($result as $k => $v) {
+                    if (is_string($k)) {
+                        $row[$k] = $v;
+                    }
                 }
+                return $row;
             }
-            return $row;
+            return null;
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while finding remember token.", 0, $e);
         }
-        return null;
     }
 
     /**
@@ -98,8 +109,12 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function deleteRememberToken(string $selector): void
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE selector = ? AND type = 'remember_me'");
-        $stmt->execute([$selector]);
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE selector = ? AND type = 'remember_me'");
+            $stmt->execute([$selector]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting remember token.", 0, $e);
+        }
     }
 
     /**
@@ -116,9 +131,13 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function deleteExpiredTokens(): int
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'remember_me'");
-        $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
-        return $stmt->rowCount();
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE expires_at < ? AND type = 'remember_me'");
+            $stmt->execute([$this->clock->now()->format('Y-m-d H:i:s')]);
+            return $stmt->rowCount();
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting expired remember tokens.", 0, $e);
+        }
     }
 
     /**
@@ -137,7 +156,11 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
      */
     public function deleteAllRememberTokensForUser(int $userId): void
     {
-        $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE user_id = ? AND type = 'remember_me'");
-        $stmt->execute([$userId]);
+        try {
+            $stmt = $this->getDb()->prepare("DELETE FROM user_tokens WHERE user_id = ? AND type = 'remember_me'");
+            $stmt->execute([$userId]);
+        } catch (\PDOException $e) {
+            throw new DatabaseException("Database error occurred while deleting user remember tokens.", 0, $e);
+        }
     }
 }

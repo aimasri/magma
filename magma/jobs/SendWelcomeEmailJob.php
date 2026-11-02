@@ -50,14 +50,24 @@ class SendWelcomeEmailJob implements JobInterface
     {
         $toName = is_scalar($payload['to_name'] ?? null) ? (string)$payload['to_name'] : '';
         $toEmail = is_scalar($payload['to_email'] ?? null) ? (string)$payload['to_email'] : '';
+        $userId = is_scalar($payload['user_id'] ?? null) ? (string)$payload['user_id'] : '';
+        $tenantId = isset($payload['tenant_id']) && is_numeric($payload['tenant_id']) ? (int)$payload['tenant_id'] : null;
 
-        $this->guard->guardExternalIo('email_welcome', $toEmail, function () use ($toName, $toEmail) {
-            $mailable = new WelcomeEmail($toName);
-            
-            $this->mailerService->sendMailable(
-                $toEmail,
-                $mailable
-            );
-        });
+        $eventId = $userId !== '' ? "user_{$userId}" : $toEmail;
+
+        $this->guard->guardExternalIo(
+            'email_welcome',
+            $eventId,
+            function () use ($toName, $toEmail) {
+                $mailable = new WelcomeEmail($toName);
+                
+                $this->mailerService->sendMailable(
+                    $toEmail,
+                    $mailable
+                );
+            },
+            $tenantId,
+            ['to_email' => $toEmail, 'user_id' => $userId]
+        );
     }
 }

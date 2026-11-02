@@ -97,6 +97,8 @@ class S3StorageService implements StorageInterface
         curl_setopt($ch, CURLOPT_POSTFIELDS, $stringContent);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $res = curl_exec($ch);
         if ($res === false) {
             $error = curl_error($ch);
@@ -134,6 +136,8 @@ class S3StorageService implements StorageInterface
         $url = $this->endpoint . '/' . $normalizedKey;
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $res = curl_exec($ch);
         if ($res === false) {
             $error = curl_error($ch);
@@ -172,6 +176,8 @@ class S3StorageService implements StorageInterface
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_NOBODY, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $res = curl_exec($ch);
         if ($res === false) {
             $error = curl_error($ch);
@@ -208,6 +214,8 @@ class S3StorageService implements StorageInterface
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $res = curl_exec($ch);
         if ($res === false) {
             $error = curl_error($ch);

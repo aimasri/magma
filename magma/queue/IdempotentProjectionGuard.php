@@ -48,6 +48,16 @@ class IdempotentProjectionGuard
     }
 
     /**
+     * Returns the clock instance associated with this projection guard.
+     *
+     * @return \Magma\contracts\ClockInterface
+     */
+    public function getClock(): \Magma\contracts\ClockInterface
+    {
+        return $this->clock;
+    }
+
+    /**
      * Checks whether an event has already been successfully applied to a named projection.
      *
      * @param string $projectionName The unique identifier of the read-model projection.
@@ -92,20 +102,25 @@ class IdempotentProjectionGuard
     {
         $pdo = $this->dbManager->getWriteConnection();
         $tid = $tenantId ?? 0;
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $staleThreshold = $this->clock->now()->modify('-5 minutes')->format('Y-m-d H:i:s');
 
         $sql = 'INSERT INTO "projection_checkpoints" '
              . '("tenant_id", "projection_name", "event_id", "status", "applied_at", "metadata") '
-             . 'VALUES (:tenant_id, :projection_name, :event_id, \'in_flight\', CURRENT_TIMESTAMP, :metadata) '
+             . 'VALUES (:tenant_id, :projection_name, :event_id, \'in_flight\', :now, :metadata) '
              . 'ON CONFLICT ("tenant_id", "projection_name", "event_id") DO UPDATE '
-             . 'SET "status" = \'in_flight\', "applied_at" = CURRENT_TIMESTAMP, "metadata" = :metadata_update '
+             . 'SET "status" = \'in_flight\', "applied_at" = :now_update, "metadata" = :metadata_update '
              . 'WHERE "projection_checkpoints"."status" = \'failed\' '
-             . '   OR ("projection_checkpoints"."status" = \'in_flight\' AND "projection_checkpoints"."applied_at" < CURRENT_TIMESTAMP - INTERVAL \'5 minutes\') '
+             . '   OR ("projection_checkpoints"."status" = \'in_flight\' AND "projection_checkpoints"."applied_at" < :stale_threshold) '
              . 'RETURNING 1';
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
         $stmt->bindValue(':projection_name', trim($projectionName));
         $stmt->bindValue(':event_id', trim($eventId));
+        $stmt->bindValue(':now', $now);
+        $stmt->bindValue(':now_update', $now);
+        $stmt->bindValue(':stale_threshold', $staleThreshold);
         $metaJson = json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         $stmt->bindValue(':metadata', $metaJson);
         $stmt->bindValue(':metadata_update', $metaJson);
@@ -126,15 +141,17 @@ class IdempotentProjectionGuard
     {
         $pdo = $this->dbManager->getWriteConnection();
         $tid = $tenantId ?? 0;
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
 
         $sql = 'UPDATE "projection_checkpoints" '
-             . 'SET "status" = \'completed\', "applied_at" = CURRENT_TIMESTAMP, "metadata" = :metadata '
+             . 'SET "status" = \'completed\', "applied_at" = :now, "metadata" = :metadata '
              . 'WHERE "tenant_id" = :tenant_id AND "projection_name" = :projection_name AND "event_id" = :event_id';
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
         $stmt->bindValue(':projection_name', trim($projectionName));
         $stmt->bindValue(':event_id', trim($eventId));
+        $stmt->bindValue(':now', $now);
         $stmt->bindValue(':metadata', json_encode($metadata, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
         $stmt->execute();
     }
@@ -151,9 +168,10 @@ class IdempotentProjectionGuard
     {
         $pdo = $this->dbManager->getWriteConnection();
         $tid = $tenantId ?? 0;
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
 
         $sql = 'UPDATE "projection_checkpoints" '
-             . 'SET "status" = \'failed\', '
+             . 'SET "status" = \'failed\', "applied_at" = :now, '
              . '    "metadata" = jsonb_set("metadata", \'{last_error}\', to_jsonb(:error::text), true) '
              . 'WHERE "tenant_id" = :tenant_id AND "projection_name" = :projection_name AND "event_id" = :event_id';
 
@@ -161,6 +179,7 @@ class IdempotentProjectionGuard
         $stmt->bindValue(':tenant_id', $tid, PDO::PARAM_INT);
         $stmt->bindValue(':projection_name', trim($projectionName));
         $stmt->bindValue(':event_id', trim($eventId));
+        $stmt->bindValue(':now', $now);
         $stmt->bindValue(':error', mb_substr($errorMessage, 0, 1000));
         $stmt->execute();
     }
@@ -192,7 +211,11 @@ class IdempotentProjectionGuard
             $this->complete($projectionName, $eventId, $tenantId, $metadata);
             return $result;
         } catch (Throwable $e) {
-            $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            try {
+                $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            } catch (Throwable) {
+                // Suppress secondary connection/aborted transaction errors (e.g. 25P02) to preserve root exception $e
+            }
             throw $e;
         }
     }
@@ -225,8 +248,45 @@ class IdempotentProjectionGuard
             $this->complete($projectionName, $eventId, $tenantId, $metadata);
             return $result;
         } catch (Throwable $e) {
-            $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            try {
+                $this->fail($projectionName, $eventId, $tenantId, $e->getMessage());
+            } catch (Throwable) {
+                // Suppress secondary connection/aborted transaction errors (e.g. 25P02) to preserve root exception $e
+            }
             throw $e;
         }
+    }
+
+    /**
+     * Prunes expired completed and failed projection checkpoints older than a given retention threshold.
+     *
+     * Execution Flow:
+     * 1. Acquire the write connection from DatabaseConnectionManager.
+     * 2. Delete completed and failed checkpoints where applied_at is older than $retentionDays.
+     * 3. Return the number of deleted checkpoint records.
+     *
+     * Logic behind the logic:
+     * - Checkpoints for events that completed beyond the queue retry/redelivery window (e.g. 90 days)
+     *   no longer need in-memory or B-tree index representation. Pruning them prevents unbounded
+     *   table bloat and keeps the index hot in PostgreSQL RAM buffers.
+     *
+     * @param int $retentionDays Retention threshold in days (defaults to 90).
+     * @return int Number of deleted checkpoint records.
+     */
+    public function prune(int $retentionDays = 90): int
+    {
+        $retentionDays = max(1, $retentionDays);
+        $pdo = $this->dbManager->getWriteConnection();
+        $cutoff = $this->clock->now()->modify("-{$retentionDays} days")->format('Y-m-d H:i:s');
+
+        $sql = 'DELETE FROM "projection_checkpoints" '
+             . 'WHERE "status" IN (\'completed\', \'failed\') '
+             . '  AND "applied_at" < :cutoff';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':cutoff', $cutoff);
+        $stmt->execute();
+
+        return $stmt->rowCount();
     }
 }
