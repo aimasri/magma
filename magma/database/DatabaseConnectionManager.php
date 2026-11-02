@@ -148,6 +148,10 @@ class DatabaseConnectionManager
 
             if ($driver === 'pgsql') {
                 $pdo->exec("SET TIME ZONE 'UTC'");
+                $lockTimeout = isset($settings['lock_timeout']) ? (string)$settings['lock_timeout'] : '3000ms';
+                $statementTimeout = isset($settings['statement_timeout']) ? (string)$settings['statement_timeout'] : '15000ms';
+                $pdo->exec("SET lock_timeout = '{$lockTimeout}'");
+                $pdo->exec("SET statement_timeout = '{$statementTimeout}'");
             }
 
             return $pdo;

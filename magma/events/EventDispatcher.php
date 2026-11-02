@@ -65,7 +65,13 @@ class EventDispatcher implements EventDispatcherInterface
      */
     public function listen(string $eventName, callable|string|object $listener): void
     {
-        self::$listeners[trim($eventName, '\\')][] = $listener;
+        $normalized = trim($eventName, '\\');
+        if (!isset(self::$listeners[$normalized])) {
+            self::$listeners[$normalized] = [];
+        }
+        if (!in_array($listener, self::$listeners[$normalized], true)) {
+            self::$listeners[$normalized][] = $listener;
+        }
     }
 
     /**
