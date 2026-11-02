@@ -50,7 +50,9 @@ class Session implements SessionInterface
                 'httponly' => true,
                 'samesite' => 'Lax',
                 // @phpstan-ignore-next-line
-                'secure'   => isset($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off',
+                'secure'   => (isset($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+                    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+                    || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) === 'on'),
                 'path'     => '/',
             ]);
             session_start();

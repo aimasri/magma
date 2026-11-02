@@ -91,9 +91,6 @@ class QueueWorkerDaemon
         $this->logger->info("Worker started. Listening for jobs on '{$queueName}' queue...");
 
         while ($this->running) {
-            // Flush DI container state to prevent tenant data leakage across jobs
-            $this->container->flushInstances();
-
             try {
                 // 2-second blocking timeout prevents CPU spinning while allowing responsive signal handling
                 $jobString = $this->queue->pop($queueName, 2);
@@ -105,14 +102,6 @@ class QueueWorkerDaemon
 
             if ($jobString !== null && $jobString !== '') {
                 $this->processJob($jobString, $queueName);
-            } else {
-                // Idle state: Disconnect database connection during idle wait to conserve pool resources
-                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
-                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
-                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
-                        $db->disconnect();
-                    }
-                }
             }
 
             // Periodic garbage collection to maintain memory hygiene in long-running processes
@@ -241,6 +230,12 @@ class QueueWorkerDaemon
                 if (function_exists('pcntl_alarm')) {
                     pcntl_alarm(0);
                 }
+                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
+                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                        $db->disconnect();
+                    }
+                }
                 if ($this->container->has(\Magma\logging\CorrelationIdProvider::class)) {
                     $correlationProvider = $this->container->get(\Magma\logging\CorrelationIdProvider::class);
                     if ($correlationProvider instanceof \Magma\logging\CorrelationIdProvider) {
@@ -253,6 +248,8 @@ class QueueWorkerDaemon
                         $tenantContext->clear();
                     }
                 }
+                // Flush DI container instances after disconnecting and clearing job state
+                $this->container->flushInstances();
             }
         } else {
             $handlerName = is_string($handlerClass) ? $handlerClass : 'UnknownHandler';

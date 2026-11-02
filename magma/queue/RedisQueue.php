@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\queue;
 
 use Redis;
+use RedisException;
 use Magma\queue\JobInterface;
 
 /**
@@ -78,19 +81,29 @@ class RedisQueue implements QueueInterface
      */
     public function pop(string $queue, int $timeout = 0): ?string
     {
-        if ($timeout <= 0) {
-            $result = $this->redis->lpop($this->prefix . $queue);
-            return $result !== false ? (string)$result : null;
-        }
+        try {
+            if ($timeout <= 0) {
+                $result = $this->redis->lpop($this->prefix . $queue);
+                return $result !== false ? (string)$result : null;
+            }
 
-        $result = $this->redis->blpop([$this->prefix . $queue], $timeout);
-        
-        // blpop returns an array: [0 => list_name, 1 => payload] or empty array on timeout/failure
-        if (is_array($result) && isset($result[1]) && is_scalar($result[1])) {
-            return (string) $result[1];
-        }
+            $result = $this->redis->blpop([$this->prefix . $queue], $timeout);
+            
+            // blpop returns an array: [0 => list_name, 1 => payload] or empty array on timeout/failure
+            if (is_array($result) && isset($result[1]) && is_scalar($result[1])) {
+                return (string) $result[1];
+            }
 
-        return null;
+            return null;
+        } catch (RedisException $e) {
+            // Attempt to test socket viability; re-throw if unrecoverable so daemon can back off cleanly
+            try {
+                $this->redis->ping();
+            } catch (\Throwable) {
+                throw $e;
+            }
+            return null;
+        }
     }
 
     /**

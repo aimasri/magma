@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\dto;
 
 /**
@@ -19,20 +21,24 @@ namespace Magma\dto;
 class PaginationDTO
 {
     /**
- * Title: Initialize Pagination DTO
- *
- * Purpose:
-     * - Captures the pagination constraints (limit and offset key) for a query.
+     * Title: Initialize Pagination DTO
+     *
+     * Purpose:
+     * - Captures the pagination constraints (limit and keyset boundary parameters) for a query.
      * 
      * Logic behind the logic:
      * - By enforcing strictly typed properties via constructor injection, we prevent malformed 
      *   pagination data (like negative limits) from propagating down to the repository layer.
      * 
-     * @param int $limit
-     * @param int|null $lastId
+     * @param int $limit Number of records to fetch.
+     * @param int|null $lastId Primary ID cursor boundary.
+     * @param string|int|null $lastCursor Optional non-id column cursor boundary (e.g. created_at).
+     * @param int|null $tieBreakerId Optional secondary id tie-breaker for duplicate cursor column values.
      */
     public function __construct(
         public readonly int $limit,
-        public readonly ?int $lastId = null
+        public readonly ?int $lastId = null,
+        public readonly string|int|null $lastCursor = null,
+        public readonly ?int $tieBreakerId = null
     ) {}
 }

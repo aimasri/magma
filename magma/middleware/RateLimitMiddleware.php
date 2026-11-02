@@ -28,6 +28,7 @@ class RateLimitMiddleware implements MiddlewareInterface
     private RateLimiterInterface $limiter;
     private int $maxAttempts = 200;
     private int $decaySeconds = 60; // 1 minute
+    private string $scope = 'route';
 
     /**
      * Initializes the middleware with the required rate limiter instance.
@@ -42,15 +43,28 @@ class RateLimitMiddleware implements MiddlewareInterface
     }
 
     /**
-     * Configures the rate limits for the middleware instance.
+     * Configures the rate limits and scope for the middleware instance.
      * 
      * @param int $maxAttempts Maximum number of allowed attempts
      * @param int $decaySeconds Time window in seconds
+     * @param string $scope Scope namespace prefix to prevent collision between global and route limiters
      */
-    public function configure(int $maxAttempts, int $decaySeconds): void
+    public function configure(int $maxAttempts, int $decaySeconds, string $scope = 'route'): void
     {
         $this->maxAttempts = $maxAttempts;
         $this->decaySeconds = $decaySeconds;
+        $this->scope = $scope;
+    }
+
+    /**
+     * Sets the scope namespace prefix.
+     *
+     * @param string $scope
+     * @return void
+     */
+    public function setScope(string $scope): void
+    {
+        $this->scope = $scope;
     }
 
     /**
@@ -58,16 +72,12 @@ class RateLimitMiddleware implements MiddlewareInterface
      *
      * Execution Flow:
      * 1. Extract the client's IP address from the incoming Request.
-     * 2. Ask the RateLimiterInterface if the IP has exceeded the allowed limit.
-     * 3. If exceeded, return a 429 Too Many Requests response immediately, breaking the chain.
-     * 4. Otherwise, register a "hit" in the rate limiter.
-     * 5. Pass the request to the next middleware or controller via the `$next` callable.
-     *
-     * Logic behind the logic:
-     * - We return an HTTP 429 status code instead of a 403 Forbidden because a 429 correctly 
-     *   communicates to standard HTTP clients that they should simply "back off and try again later".
+     * 2. Derive rate limiting key strictly from the normalized route path, ignoring volatile query strings.
+     * 3. Prefix the key with the configured scope namespace to prevent global/route collision.
+     * 4. Record the attempt atomically in the limiter.
+     * 5. If limit exceeded, return HTTP 429 Too Many Requests response immediately.
+     * 6. Pass the request to the next middleware or controller via the `$next` callable.
      */
-
     public function process(Request $request, callable $next): Response
     {
         // Bypass rate limiting in development to prevent locking out developers
@@ -82,9 +92,9 @@ class RateLimitMiddleware implements MiddlewareInterface
             return new Response("Unable to identify client IP. Request rejected.", 429);
         }
 
-        $requestUri = $request->server('REQUEST_URI');
-        $uri = is_scalar($requestUri) ? (string)$requestUri : '/';
-        $key = $ip . ':' . $uri;
+        // Use getPath() rather than REQUEST_URI to eliminate query parameter bypasses
+        $path = $request->getPath();
+        $key = 'ratelimit:' . $this->scope . ':' . $ip . ':' . $path;
 
         // Record the attempt atomically FIRST to close the race window
         // The limiter returns the new count, saving us a second GET trip.

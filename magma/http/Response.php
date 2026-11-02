@@ -121,9 +121,10 @@ class Response
         string $path = "/", 
         string $domain = "", 
         bool $secure = true, 
-        bool $httponly = true
+        bool $httponly = true,
+        string $samesite = "Lax"
     ): self {
-        $this->cookies[] = compact('name', 'value', 'expires', 'path', 'domain', 'secure', 'httponly');
+        $this->cookies[] = compact('name', 'value', 'expires', 'path', 'domain', 'secure', 'httponly', 'samesite');
         return $this;
     }
 
@@ -133,7 +134,7 @@ class Response
      * Execution Flow:
      * 1. Emit the HTTP status code.
      * 2. Iterate through and emit all buffered HTTP headers.
-     * 3. Iterate through and emit all buffered cookies via `setcookie()`.
+     * 3. Iterate through and emit all buffered cookies via `setcookie()` using modern options array.
      * 4. Output the raw string content body.
      * 
      * Logic behind the logic:
@@ -150,13 +151,16 @@ class Response
 
         foreach ($this->cookies as $cookie) {
             setcookie(
-                $cookie['name'], 
-                $cookie['value'], 
-                $cookie['expires'], 
-                $cookie['path'], 
-                $cookie['domain'], 
-                $cookie['secure'], 
-                $cookie['httponly']
+                (string)$cookie['name'], 
+                (string)$cookie['value'], 
+                [
+                    'expires'  => (int)$cookie['expires'], 
+                    'path'     => (string)$cookie['path'], 
+                    'domain'   => (string)$cookie['domain'], 
+                    'secure'   => (bool)$cookie['secure'], 
+                    'httponly' => (bool)$cookie['httponly'],
+                    'samesite' => (string)($cookie['samesite'] ?? 'Lax'),
+                ]
             );
         }
 
