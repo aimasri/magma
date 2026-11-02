@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS plans (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     monthly_price DECIMAL(10, 2) NOT NULL,
-    stripe_product_id VARCHAR(255)
+    stripe_product_id VARCHAR(255),
+    is_internal BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS features (

@@ -16,6 +16,13 @@ namespace Magma\events;
  * - Solves the critical outbox consistency race where non-transactional listeners should fail safely
  *   without crashing the main request, but transactional listeners MUST propagate exceptions
  *   so that database transactions roll back if the event recording fails.
+ *
+ * Teaching notes:
+ * - Implement this interface on domain listeners that persist side effects into transactional outbox
+ *   tables (e.g., `OutboxListener`).
+ * - Contrast with standard `EventListenerInterface` implementations, where `EventDispatcher` safely
+ *   catches and logs listener exceptions to prevent secondary tasks (e.g., non-critical telemetry)
+ *   from aborting core user-facing operations.
  */
 interface TransactionalListenerInterface extends EventListenerInterface
 {
