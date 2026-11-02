@@ -140,24 +140,61 @@ class RouteDefinition
     }
 
     /**
-     * Appends one or multiple middleware classes or configured middleware definitions to the route pipeline.
+     * Appends one or multiple middleware classes, instances, or configured middleware definitions to the route pipeline.
      *
-     * @param array<int|string, mixed>|string $middleware
+     * Execution Flow:
+     * 1. If passed an array, inspects whether it represents a single parameterized middleware tuple [ClassString, ...$params].
+     * 2. If it is a parameterized tuple, appends it intact as a single configured middleware definition.
+     * 3. If it is a list of multiple definitions, recursively processes each middleware item.
+     * 4. If passed a single class string or instance, appends it directly to the middleware stack.
+     *
+     * @param array<int|string, mixed>|string|object $middleware
      * @return $this
      */
-    public function middleware(array|string $middleware): self
+    public function middleware(array|string|object $middleware): self
     {
         if (is_array($middleware)) {
-            // If passed as a single parameterized tuple [MiddlewareClass, ...params], append as a single definition
-            if (isset($middleware[0]) && is_string($middleware[0]) && count($middleware) > 1 && !is_array($middleware[1])) {
+            if ($this->isParameterizedTuple($middleware)) {
                 $this->middleware[] = $middleware;
             } else {
-                $this->middleware = array_merge($this->middleware, $middleware);
+                foreach ($middleware as $item) {
+                    if (is_array($item) || is_string($item) || is_object($item)) {
+                        $this->middleware($item);
+                    }
+                }
             }
         } else {
             $this->middleware[] = $middleware;
         }
         return $this;
+    }
+
+    /**
+     * Determines whether an array represents a single parameterized middleware tuple [ClassString, ...$params].
+     *
+     * Execution Flow:
+     * 1. Verifies the array has an indexed first element that is a valid class string implementing MiddlewareInterface.
+     * 2. If a second element is also a valid MiddlewareInterface class string, treats the array as a list of multiple middlewares.
+     * 3. Otherwise, treats the array as a single configured middleware tuple with constructor/configuration arguments.
+     *
+     * @param array<int|string, mixed> $definition
+     * @return bool
+     */
+    private function isParameterizedTuple(array $definition): bool
+    {
+        if (!isset($definition[0]) || !is_string($definition[0]) || count($definition) <= 1) {
+            return false;
+        }
+
+        if (!is_subclass_of($definition[0], \Magma\middleware\MiddlewareInterface::class)) {
+            return false;
+        }
+
+        if (isset($definition[1]) && is_string($definition[1]) && is_subclass_of($definition[1], \Magma\middleware\MiddlewareInterface::class)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
