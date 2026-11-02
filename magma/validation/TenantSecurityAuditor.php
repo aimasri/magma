@@ -35,26 +35,44 @@ class TenantSecurityAuditor
         'permissions',
         'system_settings',
         'outbox_jobs',
+        'plans',
+        'features',
+        'plan_features',
+        'user_tokens',
+        'countries',
     ];
 
     /**
      * Initializes the TenantSecurityAuditor.
      *
      * Execution Flow:
-     * 1. Accepts an optional PDO instance and an optional project root directory path.
-     * 2. Assigns the PDO connection and resolves the root directory fallback (using `ROOT_DIR` or relative path).
-     *
-     * Logic behind the logic:
-     * - Flexibility: Allows the auditor to run in different environments (like CI/CD scripts or normal app lifecycle)
-     *   by keeping the database connection and root path optional/configurable.
+     * 1. Accepts an optional PDO instance, project root path, and optional custom exempt tables.
+     * 2. Assigns the PDO connection and resolves the root directory fallback.
+     * 3. Merges any provided custom exempt tables into the active exclusion registry.
      *
      * @param PDO|null $pdo
      * @param string|null $projectRoot
+     * @param array<string> $customExemptTables
      */
-    public function __construct(?PDO $pdo = null, ?string $projectRoot = null)
+    public function __construct(?PDO $pdo = null, ?string $projectRoot = null, array $customExemptTables = [])
     {
         $this->pdo = $pdo;
         $this->projectRoot = $projectRoot ?? (defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 2));
+        if (!empty($customExemptTables)) {
+            $this->exemptTables = array_values(array_unique(array_merge($this->exemptTables, $customExemptTables)));
+        }
+    }
+
+    /**
+     * Appends additional exempt tables for specific application contexts (e.g., OpCo accounting).
+     *
+     * @param array<string> $tables
+     * @return self
+     */
+    public function addExemptTables(array $tables): self
+    {
+        $this->exemptTables = array_values(array_unique(array_merge($this->exemptTables, $tables)));
+        return $this;
     }
 
     /**
