@@ -329,19 +329,57 @@ class Request implements RequestInterface
      *
      * Execution Flow:
      * 1. Normalizes the requested header key to match PHP's standard $_SERVER array formatting.
-     * 2. Extracts and returns the scalar value or the default.
+     * 2. Checks standard HTTP_*, CONTENT_TYPE, and CONTENT_LENGTH keys in $_SERVER.
+     * 3. Inspects Apache redirect prefixes (REDIRECT_HTTP_*) for mod_rewrite subrequests.
+     * 4. Falls back to PHP auth parameters and apache_request_headers() if Apache FastCGI stripped Authorization.
+     * 5. Extracts and returns the scalar value or the default.
      *
      * Logic behind the logic:
      * - Masks the quirky behavior of PHP's HTTP_ prefixing, providing a predictable API for accessing raw headers.
+     * - Protects downstream API authentication middleware from silent Authorization header drops under Apache FastCGI/PHP-FPM.
      */
     public function header(string $key, ?string $default = null): ?string
     {
-        $key = str_replace('-', '_', strtoupper($key));
-        $headerKey = (str_starts_with($key, 'HTTP_') || $key === 'CONTENT_TYPE' || $key === 'CONTENT_LENGTH')
-            ? $key
-            : 'HTTP_' . $key;
+        $normalized = str_replace('-', '_', strtoupper($key));
+        $headerKey = (str_starts_with($normalized, 'HTTP_') || $normalized === 'CONTENT_TYPE' || $normalized === 'CONTENT_LENGTH')
+            ? $normalized
+            : 'HTTP_' . $normalized;
 
-        return isset($this->server[$headerKey]) && is_scalar($this->server[$headerKey]) ? (string)$this->server[$headerKey] : $default;
+        if (isset($this->server[$headerKey]) && is_scalar($this->server[$headerKey])) {
+            return (string)$this->server[$headerKey];
+        }
+
+        // Check Apache redirect prefix (e.g. REDIRECT_HTTP_AUTHORIZATION)
+        $redirectKey = 'REDIRECT_' . $headerKey;
+        if (isset($this->server[$redirectKey]) && is_scalar($this->server[$redirectKey])) {
+            return (string)$this->server[$redirectKey];
+        }
+
+        // Fallback for Apache Authorization header if stripped by FastCGI
+        if ($normalized === 'AUTHORIZATION' || $normalized === 'HTTP_AUTHORIZATION') {
+            if (isset($this->server['PHP_AUTH_USER']) && is_scalar($this->server['PHP_AUTH_USER'])) {
+                $user = (string)$this->server['PHP_AUTH_USER'];
+                $pw = isset($this->server['PHP_AUTH_PW']) && is_scalar($this->server['PHP_AUTH_PW']) ? (string)$this->server['PHP_AUTH_PW'] : '';
+                return 'Basic ' . base64_encode($user . ':' . $pw);
+            }
+
+            if (isset($this->server['PHP_AUTH_DIGEST']) && is_scalar($this->server['PHP_AUTH_DIGEST'])) {
+                return (string)$this->server['PHP_AUTH_DIGEST'];
+            }
+
+            if (function_exists('apache_request_headers')) {
+                $apacheHeaders = apache_request_headers();
+                if (is_array($apacheHeaders)) {
+                    foreach ($apacheHeaders as $hKey => $hVal) {
+                        if (strcasecmp((string)$hKey, 'Authorization') === 0 && is_scalar($hVal)) {
+                            return (string)$hVal;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $default;
     }
 
     /**
