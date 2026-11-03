@@ -102,7 +102,16 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function findById(int $id): ?AuthUser
     {
-        $row = $this->fetchOne("SELECT id, name, email, role, tenant_id FROM users WHERE id = ?", [$id]);
+        $tenantId = $this->getTenantId();
+        $sql = "SELECT id, name, email, role, tenant_id FROM users WHERE id = ?";
+        $params = [$id];
+
+        if ($tenantId !== null) {
+            $sql .= " AND (tenant_id = ? OR tenant_id IS NULL)";
+            $params[] = $tenantId;
+        }
+
+        $row = $this->fetchOne($sql, $params);
         return $row ? new AuthUser($row) : null;
     }
 
@@ -120,8 +129,17 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      */
     public function getPasswordChangedAt(int $id): ?int
     {
-        $stmt = $this->getDb()->prepare("SELECT password_changed_at FROM users WHERE id = ?");
-        $stmt->execute([$id]);
+        $tenantId = $this->getTenantId();
+        $sql = "SELECT password_changed_at FROM users WHERE id = ?";
+        $params = [$id];
+
+        if ($tenantId !== null) {
+            $sql .= " AND (tenant_id = ? OR tenant_id IS NULL)";
+            $params[] = $tenantId;
+        }
+
+        $stmt = $this->getDb()->prepare($sql);
+        $stmt->execute($params);
         $val = $stmt->fetchColumn();
         if (!$val) {
             return null;

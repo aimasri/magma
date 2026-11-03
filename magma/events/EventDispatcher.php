@@ -65,7 +65,13 @@ class EventDispatcher implements EventDispatcherInterface
      */
     public function listen(string $eventName, callable|string|object $listener): void
     {
-        self::$listeners[trim($eventName, '\\')][] = $listener;
+        $normalized = trim($eventName, '\\');
+        if (!isset(self::$listeners[$normalized])) {
+            self::$listeners[$normalized] = [];
+        }
+        if (!in_array($listener, self::$listeners[$normalized], true)) {
+            self::$listeners[$normalized][] = $listener;
+        }
     }
 
     /**
@@ -200,14 +206,20 @@ class EventDispatcher implements EventDispatcherInterface
             $refMethod = new ReflectionMethod($listenerInstance, 'handle');
             $params = $refMethod->getParameters();
 
-            if (empty($params)) {
-                self::$parameterTypeCache[$listenerClass] = null;
-            } else {
+            $typeName = null;
+            if (!empty($params)) {
                 $type = $params[0]->getType();
-                self::$parameterTypeCache[$listenerClass] = ($type instanceof ReflectionNamedType)
+                $typeName = ($type instanceof ReflectionNamedType)
                     ? $type->getName()
                     : null;
             }
+
+            // Enforce 1000-item FIFO cap matching Container.php to prevent unbounded memory growth in long-running daemons
+            if (count(self::$parameterTypeCache) >= 1000) {
+                unset(self::$parameterTypeCache[array_key_first(self::$parameterTypeCache)]);
+            }
+
+            self::$parameterTypeCache[$listenerClass] = $typeName;
         }
 
         $expectedType = self::$parameterTypeCache[$listenerClass];

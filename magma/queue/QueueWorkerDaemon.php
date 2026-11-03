@@ -6,6 +6,7 @@ namespace Magma\queue;
 
 use Magma\container\Container;
 use Magma\queue\QueueInterface;
+use Magma\queue\ReliableQueueInterface;
 use Throwable;
 
 /**
@@ -18,6 +19,7 @@ use Throwable;
  *
  * Why this design:
  * - Implements a Long-Running Process pattern. It flushes the dependency container between jobs to prevent memory leaks and tenant data contamination in a persistent PHP process.
+ * - Detects ReliableQueueInterface to provide two-phase at-least-once delivery (RPOPLPUSH/BLMOVE) and delayed retries with exponential backoff and jitter.
  *
  * Teaching notes:
  * - Daemons require careful memory management (e.g., checking memory usage and exiting if threshold is breached) because PHP is typically designed for short-lived request lifecycles.
@@ -60,9 +62,9 @@ class QueueWorkerDaemon
      *
      * Execution Flow:
      * 1. Register asynchronous POSIX signal handlers (SIGTERM, SIGINT, SIGQUIT) if pcntl extension is present.
-     * 2. Enter polling loop checking $this->running flag before every iteration.
-     * 3. Flush container instances to maintain memory hygiene and tenant isolation.
-     * 4. Call QueueInterface::pop() with a 2-second timeout (blocking in Redis, 0% CPU spin).
+     * 2. If the queue implements ReliableQueueInterface, recover any orphaned in-flight jobs from prior crashes.
+     * 3. Enter polling loop checking $this->running flag before every iteration.
+     * 4. Call popReliable() or pop() with a 2-second timeout (blocking in Redis, 0% CPU spin).
      * 5. Process any received job payload synchronously.
      * 6. Check memory consumption against safety limit (128MB).
      * 7. Terminate gracefully when signaled or memory threshold breached.
@@ -90,13 +92,25 @@ class QueueWorkerDaemon
 
         $this->logger->info("Worker started. Listening for jobs on '{$queueName}' queue...");
 
-        while ($this->running) {
-            // Flush DI container state to prevent tenant data leakage across jobs
-            $this->container->flushInstances();
+        if ($this->queue instanceof ReliableQueueInterface) {
+            try {
+                $recoveredCount = $this->queue->recoverOrphaned($queueName);
+                if ($recoveredCount > 0) {
+                    $this->logger->info("Recovered {$recoveredCount} orphaned in-flight jobs on queue '{$queueName}'.");
+                }
+            } catch (\Throwable $e) {
+                $this->logger->warning("Failed to recover orphaned jobs on startup: " . $e->getMessage());
+            }
+        }
 
+        while ($this->running) {
             try {
                 // 2-second blocking timeout prevents CPU spinning while allowing responsive signal handling
-                $jobString = $this->queue->pop($queueName, 2);
+                if ($this->queue instanceof ReliableQueueInterface) {
+                    $jobString = $this->queue->popReliable($queueName, 2);
+                } else {
+                    $jobString = $this->queue->pop($queueName, 2);
+                }
             } catch (\Throwable $e) {
                 $this->logger->critical("Queue pop failed (e.g. Redis offline). Sleeping for 5s.", ['exception' => $e->getMessage()]);
                 sleep(5);
@@ -105,14 +119,6 @@ class QueueWorkerDaemon
 
             if ($jobString !== null && $jobString !== '') {
                 $this->processJob($jobString, $queueName);
-            } else {
-                // Idle state: Disconnect database connection during idle wait to conserve pool resources
-                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
-                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
-                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
-                        $db->disconnect();
-                    }
-                }
             }
 
             // Periodic garbage collection to maintain memory hygiene in long-running processes
@@ -154,13 +160,14 @@ class QueueWorkerDaemon
      * 2. Validates the handler class existence and ensures it implements JobInterface.
      * 3. Registers a PCNTL alarm to enforce a strict execution timeout (e.g., 120 seconds).
      * 4. Resolves the handler from the container and invokes its handle() method.
-     * 5. Catches any exceptions, logs the error, and either re-queues the job or routes it to the dead-letter queue (failed_jobs) based on the attempt count.
-     * 6. Cleans up by disabling the PCNTL alarm and disconnecting the database to prevent connection drops on long idle periods.
+     * 5. Catches any exceptions, logs the error, and either re-queues the job (with jittered exponential backoff) or routes it to the DLQ.
+     * 6. Cleans up by disabling the PCNTL alarm, disconnecting the database, flushing container, and acknowledging the job if reliable queue.
      *
      * Logic behind the logic:
      * - Disconnecting the database at the end of each job prevents "MySQL server has gone away" errors
      *   during idle periods when the daemon is waiting for new jobs.
      * - The PCNTL alarm prevents hanging jobs (e.g., infinite loops or stuck network calls) from permanently blocking the worker.
+     * - Acknowledging in finally ensures that if the process terminates abruptly (SIGKILL/panic), the job remains in :processing for recovery.
      *
      * @param string $jobString The JSON-encoded job payload.
      * @param string $queueName The name of the queue being processed.
@@ -177,6 +184,9 @@ class QueueWorkerDaemon
                 'error' => 'json_decode failed or payload is not an array',
                 'failed_at' => $this->clock->now()->format('c')
             ]);
+            if ($this->queue instanceof ReliableQueueInterface) {
+                $this->queue->acknowledge($queueName, $jobString);
+            }
             return;
         }
 
@@ -230,16 +240,31 @@ class QueueWorkerDaemon
                 $payload['trace'] = $e->getTraceAsString();
                 
                 if ($payload['attempts'] < 3) {
-                    $this->logger->info("Re-queueing job (Attempt {$payload['attempts']}/3)");
-                    sleep(1); // Brief delay before requeue
-                    $this->queue->push($queueName, $handlerClass, $payload);
+                    if ($this->queue instanceof ReliableQueueInterface) {
+                        $delaySeconds = (int) min(300, (pow(2, $payload['attempts']) * 2) + random_int(1, 5));
+                        $this->logger->info("Scheduling job retry (Attempt {$payload['attempts']}/3) with {$delaySeconds}s delay");
+                        $this->queue->pushDelayed($queueName, $handlerClass, $payload, $delaySeconds);
+                    } else {
+                        $this->logger->info("Re-queueing job (Attempt {$payload['attempts']}/3)");
+                        sleep(1); // Brief delay before requeue
+                        $this->queue->push($queueName, $handlerClass, $payload);
+                    }
                 } else {
                     $payload['failed_at'] = $this->clock->now()->format('c');
                     $this->queue->push('failed_jobs', $handlerClass, $payload);
                 }
             } finally {
+                if ($this->queue instanceof ReliableQueueInterface) {
+                    $this->queue->acknowledge($queueName, $jobString);
+                }
                 if (function_exists('pcntl_alarm')) {
                     pcntl_alarm(0);
+                }
+                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
+                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                        $db->disconnect();
+                    }
                 }
                 if ($this->container->has(\Magma\logging\CorrelationIdProvider::class)) {
                     $correlationProvider = $this->container->get(\Magma\logging\CorrelationIdProvider::class);
@@ -253,6 +278,8 @@ class QueueWorkerDaemon
                         $tenantContext->clear();
                     }
                 }
+                // Flush DI container instances after disconnecting and clearing job state
+                $this->container->flushInstances();
             }
         } else {
             $handlerName = is_string($handlerClass) ? $handlerClass : 'UnknownHandler';
@@ -264,6 +291,9 @@ class QueueWorkerDaemon
                 'error' => is_string($handlerClass) ? "Handler class '{$handlerClass}' does not exist" : "Job missing handler key",
                 'failed_at' => $this->clock->now()->format('c'),
             ]);
+            if ($this->queue instanceof ReliableQueueInterface) {
+                $this->queue->acknowledge($queueName, $jobString);
+            }
         }
     }
 }

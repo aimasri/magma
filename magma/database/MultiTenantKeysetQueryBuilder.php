@@ -191,11 +191,33 @@ class MultiTenantKeysetQueryBuilder
         $limit = self::DEFAULT_LIMIT;
         if ($this->pagination !== null) {
             $limit = $this->pagination->limit;
-            if ($this->pagination->lastId !== null) {
-                $operator = $this->direction === 'ASC' ? '>' : '<';
-                $paramCursor = ':builder_last_cursor_id';
-                $conditions[] = "{$prefix}\"{$this->cursorColumn}\" {$operator} {$paramCursor}";
-                $params[$paramCursor] = $this->pagination->lastId;
+            $operator = $this->direction === 'ASC' ? '>' : '<';
+
+            if ($this->cursorColumn === 'id') {
+                if ($this->pagination->lastId !== null) {
+                    $paramCursor = ':builder_last_cursor_id';
+                    $conditions[] = "{$prefix}\"id\" {$operator} {$paramCursor}";
+                    $params[$paramCursor] = $this->pagination->lastId;
+                }
+            } else {
+                $cursorVal = $this->pagination->lastCursor ?? $this->pagination->lastId;
+                $tieBreakerId = $this->pagination->tieBreakerId ?? $this->pagination->lastId;
+
+                if ($cursorVal !== null && $tieBreakerId !== null) {
+                    $paramCursorVal = ':builder_last_cursor_val';
+                    $paramTieBreaker = ':builder_last_tiebreaker_id';
+                    $orderCol = "{$prefix}\"{$this->cursorColumn}\"";
+                    $idCol = "{$prefix}\"id\"";
+
+                    // Composite keyset tie-breaker: (col > :val OR (col = :val AND id > :id))
+                    $conditions[] = "(({$orderCol} {$operator} {$paramCursorVal}) OR ({$orderCol} = {$paramCursorVal} AND {$idCol} {$operator} {$paramTieBreaker}))";
+                    $params[$paramCursorVal] = $cursorVal;
+                    $params[$paramTieBreaker] = $tieBreakerId;
+                } elseif ($cursorVal !== null) {
+                    $paramCursor = ':builder_last_cursor_id';
+                    $conditions[] = "{$prefix}\"{$this->cursorColumn}\" {$operator} {$paramCursor}";
+                    $params[$paramCursor] = $cursorVal;
+                }
             }
         }
 

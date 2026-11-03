@@ -92,7 +92,7 @@ class PasswordResetCompletionService
         
         try {
             $result = $this->transactionManager->transactional(function () use ($hashed, $resetToken) {
-                $record = $this->userTokenRepository->findValidPasswordResetToken($resetToken->getHashedToken());
+                $record = $this->userTokenRepository->findValidPasswordResetToken($resetToken->getHashedToken(), true);
 
                 if (!$record) {
                     return PasswordResetStatus::INVALID_TOKEN;

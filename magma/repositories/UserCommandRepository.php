@@ -56,13 +56,18 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
     {
         try {
             $now = $this->clock->now()->format('Y-m-d H:i:s');
-            return $this->insertAndGetId('users', [
+            $data = [
                 'name' => $registration->getName(),
                 'email' => $registration->getEmail(),
                 'password' => $registration->getHashedPassword(),
                 'created_at' => $now,
                 'updated_at' => $now,
-            ]);
+            ];
+            $tenantId = $this->getTenantId();
+            if ($tenantId !== null) {
+                $data['tenant_id'] = $tenantId;
+            }
+            return $this->insertAndGetId('users', $data);
         } catch (PDOException $e) {
             $code = (string) $e->getCode();
             if ($code === '23000' || $code === '23505') {
@@ -83,10 +88,18 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
     {
         try {
             $changedAtStr = $changedAt ? $changedAt->format('Y-m-d H:i:s') : null;
+            $tenantId = $this->getTenantId();
             
             $sql = "UPDATE \"users\" SET \"password\" = ?, \"password_changed_at\" = ?, \"updated_at\" = ? WHERE \"id\" = ?";
+            $params = [$hashedPassword, $changedAtStr, $this->clock->now()->format('Y-m-d H:i:s'), $userId];
+
+            if ($tenantId !== null) {
+                $sql .= " AND (\"tenant_id\" = ? OR \"tenant_id\" IS NULL)";
+                $params[] = $tenantId;
+            }
+
             $stmt = $this->getDb()->prepare($sql);
-            $stmt->execute([$hashedPassword, $changedAtStr, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
+            $stmt->execute($params);
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException('Database error occurred while updating user password.', 0, $e);
         }
@@ -102,8 +115,17 @@ class UserCommandRepository extends AbstractCommandRepository implements UserCom
     public function updateRole(int $userId, string $role): bool
     {
         try {
-            $stmt = $this->getDb()->prepare("UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = ? WHERE \"id\" = ?");
-            $stmt->execute([$role, $this->clock->now()->format('Y-m-d H:i:s'), $userId]);
+            $tenantId = $this->getTenantId();
+            $sql = "UPDATE \"users\" SET \"role\" = ?, \"updated_at\" = ? WHERE \"id\" = ?";
+            $params = [$role, $this->clock->now()->format('Y-m-d H:i:s'), $userId];
+
+            if ($tenantId !== null) {
+                $sql .= " AND (\"tenant_id\" = ? OR \"tenant_id\" IS NULL)";
+                $params[] = $tenantId;
+            }
+
+            $stmt = $this->getDb()->prepare($sql);
+            $stmt->execute($params);
             return $stmt->rowCount() > 0;
         } catch (\PDOException $e) {
             throw new \Magma\infrastructure\exceptions\DatabaseException('Database error occurred while updating user role.', 0, $e);

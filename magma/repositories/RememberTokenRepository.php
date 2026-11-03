@@ -62,19 +62,22 @@ class RememberTokenRepository extends AbstractCommandRepository implements Remem
     }
 
     /**
+     * @param string $selector
+     * @param bool $forUpdate Whether to acquire an exclusive row-level lock (default false).
      * @return array<string, mixed>|null
      */
-    public function findValidRememberToken(string $selector): ?array
+    public function findValidRememberToken(string $selector, bool $forUpdate = false): ?array
     {
         // Even though this is a find method, we keep it here for simplicity of SRP over CQRS strictness, 
         // or we use the read connection. Since we extend AbstractCommandRepository, we only have write connection.
         // It's acceptable to use write connection for session lookup to prevent replica lag issues on login.
         try {
+            $lockClause = $forUpdate ? ' FOR UPDATE' : '';
             $stmt = $this->getDb()->prepare("
                 SELECT user_id, token_hash as hashed_validator 
                 FROM user_tokens 
                 WHERE selector = ? AND type = 'remember_me' AND expires_at > ?
-                FOR UPDATE
+                {$lockClause}
             ");
             $stmt->execute([$selector, $this->clock->now()->format('Y-m-d H:i:s')]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);

@@ -66,7 +66,17 @@ class RegistrationService
      */
     public function registerUser(\Magma\dto\RegistrationDTO $dto): int
     {
-        $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $dto->password);
+        $hashedPassword = password_hash($dto->password, PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536,
+            'time_cost'   => 4,
+            'threads'     => 1,
+        ]);
+
+        if (!is_string($hashedPassword) || $hashedPassword === '') {
+            throw new \RuntimeException('Failed to securely hash user password.');
+        }
+
+        $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $hashedPassword);
         
         $result = $this->transactionManager->transactional(function () use ($registration) {
             try {
