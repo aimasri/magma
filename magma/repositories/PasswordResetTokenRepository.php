@@ -60,15 +60,18 @@ class PasswordResetTokenRepository extends AbstractCommandRepository implements 
     }
 
     /**
+     * @param string $tokenHash
+     * @param bool $forUpdate Whether to acquire an exclusive row-level lock (default false).
      * @return array<string, mixed>|null
      */
-    public function findValidPasswordResetToken(string $tokenHash): ?array
+    public function findValidPasswordResetToken(string $tokenHash, bool $forUpdate = false): ?array
     {
         try {
+            $lockClause = $forUpdate ? ' FOR UPDATE' : '';
             $stmt = $this->getDb()->prepare("
                 SELECT user_id FROM user_tokens 
                 WHERE token_hash = ? AND type = 'password_reset' AND expires_at > ?
-                FOR UPDATE
+                {$lockClause}
             ");
             $stmt->execute([$tokenHash, $this->clock->now()->format('Y-m-d H:i:s')]);
             $result = $stmt->fetch(\PDO::FETCH_ASSOC);

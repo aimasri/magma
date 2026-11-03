@@ -141,8 +141,16 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
              . '    "lease_expires_at" = :leaseExpiresAt '
              . 'WHERE "id" IN ('
              . '    SELECT "id" FROM "outbox_jobs" '
-             . '    WHERE ("lease_expires_at" IS NULL OR "lease_expires_at" < :nowSelection OR ("locked_at" IS NULL AND "lease_expires_at" IS NULL)) '
-             . '      AND "attempts" >= 0 '
+             . '    WHERE "id" IN ('
+             . '        SELECT "id" FROM ('
+             . '            SELECT "id", ROW_NUMBER() OVER (PARTITION BY "tenant_id" ORDER BY "id" ASC) AS "round_robin_rank" '
+             . '            FROM "outbox_jobs" '
+             . '            WHERE ("lease_expires_at" IS NULL OR "lease_expires_at" < :nowSelection OR ("locked_at" IS NULL AND "lease_expires_at" IS NULL)) '
+             . '              AND "attempts" >= 0 '
+             . '        ) AS "fair_candidates" '
+             . '        ORDER BY "round_robin_rank" ASC, "id" ASC '
+             . '        LIMIT :limit '
+             . '    ) '
              . '    ORDER BY "id" ASC '
              . '    LIMIT :limit '
              . '    FOR UPDATE SKIP LOCKED '
@@ -333,7 +341,21 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         if ($this->transactionManager) {
             $this->transactionManager->transactional($executeChunks);
         } else {
-            $executeChunks();
+            $ownsTx = !$pdo->inTransaction();
+            if ($ownsTx) {
+                $pdo->beginTransaction();
+            }
+            try {
+                $executeChunks();
+                if ($ownsTx) {
+                    $pdo->commit();
+                }
+            } catch (\Throwable $e) {
+                if ($ownsTx && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
         }
     }
 

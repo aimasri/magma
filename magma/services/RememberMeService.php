@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\services;
 
 use Magma\repositories\RememberTokenRepository;
+use Magma\contracts\ClockInterface;
+use Magma\contracts\TransactionManagerInterface;
 
 /**
  * Title: Persistent Authentication Service (Remember Me)
@@ -25,26 +29,28 @@ use Magma\repositories\RememberTokenRepository;
 class RememberMeService
 {
     protected RememberTokenRepository $userTokenRepository;
-    protected \Magma\contracts\ClockInterface $clock;
+    protected ClockInterface $clock;
+    protected ?TransactionManagerInterface $transactionManager;
 
     /**
-     * Initializes the RememberMeService.
+     * Initializes the RememberMeService (strictly adheres to <= 3 injected dependencies).
      *
      * Execution Flow:
-     * 1. Injects the RememberTokenRepository.
-     * 2. Assigns it to the protected property to interact with the persistent token data store.
-     *
-     * Logic behind the logic:
-     * - Repository Pattern: Separates the domain logic of generating/validating tokens
-     *   from the data persistence details.
+     * 1. Injects the RememberTokenRepository, ClockInterface, and optional TransactionManagerInterface.
+     * 2. Assigns them to protected properties to interact with persistence and transaction management.
      *
      * @param RememberTokenRepository $userTokenRepository
-     * @param \Magma\contracts\ClockInterface $clock
+     * @param ClockInterface $clock
+     * @param TransactionManagerInterface|null $transactionManager
      */
-    public function __construct(RememberTokenRepository $userTokenRepository, \Magma\contracts\ClockInterface $clock)
-    {
+    public function __construct(
+        RememberTokenRepository $userTokenRepository,
+        ClockInterface $clock,
+        ?TransactionManagerInterface $transactionManager = null
+    ) {
         $this->userTokenRepository = $userTokenRepository;
         $this->clock = $clock;
+        $this->transactionManager = $transactionManager;
     }
 
     /**
@@ -128,6 +134,14 @@ class RememberMeService
      */
     public function rotateToken(string $oldToken, int $userId): array
     {
+        if ($this->transactionManager !== null) {
+            /** @var array{token: string, expiry: int} */
+            return $this->transactionManager->transactional(function () use ($oldToken, $userId): array {
+                $this->invalidateToken($oldToken);
+                return $this->generateToken($userId);
+            });
+        }
+
         $this->invalidateToken($oldToken);
         return $this->generateToken($userId);
     }

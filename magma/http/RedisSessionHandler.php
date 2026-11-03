@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\http;
 
 use Redis;
@@ -26,6 +28,7 @@ class RedisSessionHandler implements SessionHandlerInterface
     private string $prefix = 'session:';
     private string $lockPrefix = 'session:lock:';
     private ?string $lockedSessionId = null;
+    private ?string $lockToken = null;
 
     /**
      * Initializes the handler with Redis and an absolute maximum TTL.
@@ -111,32 +114,44 @@ class RedisSessionHandler implements SessionHandlerInterface
     private function acquireLock(string $id): void
     {
         $lockKey = $this->lockPrefix . $id;
+        $token = bin2hex(random_bytes(16));
         $retries = 20; // 20 * 50ms = 1.0 second max wait
 
         while ($retries > 0) {
-            $acquired = $this->redis->set($lockKey, '1', ['NX', 'EX' => 10]);
+            $acquired = $this->redis->set($lockKey, $token, ['NX', 'EX' => 10]);
             if ($acquired) {
                 $this->lockedSessionId = $id;
+                $this->lockToken = $token;
                 return;
             }
             usleep(50000); // 50ms backoff
             $retries--;
         }
 
-        // Fall back gracefully if lock times out to avoid blocking the HTTP request indefinitely
-        $this->lockedSessionId = $id;
+        // On spinlock timeout, do NOT claim ownership or assign a lock token.
+        // Leaving lockToken as null ensures releaseLock() will NEVER delete an active lock
+        // held by another concurrent request that acquired it.
+        $this->lockedSessionId = null;
+        $this->lockToken = null;
     }
 
     /**
-     * Releases the acquired Redis session mutex lock.
+     * Releases the acquired Redis session mutex lock using an atomic Lua script to guarantee
+     * that this process only deletes the lock if it still holds the exact ownership token.
      *
      * @param string $id
      */
     private function releaseLock(string $id): void
     {
-        if ($this->lockedSessionId === $id) {
-            $this->redis->del($this->lockPrefix . $id);
+        if ($this->lockedSessionId === $id && $this->lockToken !== null) {
+            $lua = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+            try {
+                $this->redis->eval($lua, [$this->lockPrefix . $id, $this->lockToken], 1);
+            } catch (\Throwable) {
+                // Suppress Redis connection issues during shutdown lock release
+            }
             $this->lockedSessionId = null;
+            $this->lockToken = null;
         }
     }
 

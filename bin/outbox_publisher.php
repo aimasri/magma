@@ -38,6 +38,7 @@ use Magma\database\OutboxJobRepositoryInterface;
 use Magma\database\OutboxJobRepository;
 use Magma\database\DatabaseConnectionManager;
 use Magma\queue\QueueInterface;
+use Magma\queue\ReliableQueueInterface;
 use Magma\config\Config;
 
 /** @var OutboxJobRepositoryInterface $outboxRepo */
@@ -57,6 +58,7 @@ $clock = $container->get(\Magma\contracts\ClockInterface::class);
 $batchSize = (int)Config::get('OUTBOX_BATCH_SIZE', 100);
 $idleSleepMicroseconds = (int)Config::get('OUTBOX_SLEEP_MICROSECONDS', 1000000); // 1 second
 $timeLimit = (int)Config::get('OUTBOX_TIME_LIMIT', 60);
+$maxBackpressureLimit = (int)Config::get('OUTBOX_MAX_QUEUE_BACKPRESSURE', 5000);
 
 // Unique distributed fencing token for this daemon instance
 $workerId = gethostname() . ':' . getmypid() . ':' . bin2hex(random_bytes(4));
@@ -87,35 +89,89 @@ while ($keepRunning) {
         }
         set_time_limit($timeLimit);
 
+        // Backpressure throttling: pause claiming from Postgres if destination queue is backlogged
+        if ($queue instanceof ReliableQueueInterface) {
+            $queueLength = $queue->getQueueLength('emails');
+            if ($queueLength >= $maxBackpressureLimit) {
+                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Queue backlog threshold reached ({$queueLength}/{$maxBackpressureLimit} jobs). Applying backpressure...\n";
+                $dbManager->disconnect();
+                usleep($idleSleepMicroseconds);
+                continue;
+            }
+        }
+
         // Claim pending batch using distributed fencing token and lease expiration
         $jobs = method_exists($outboxRepo, 'claimPending')
             ? $outboxRepo->claimPending($workerId, $batchSize, $timeLimit)
             : $outboxRepo->fetchAndLockPending($batchSize);
 
+        if (function_exists('gc_collect_cycles')) {
+            gc_collect_cycles();
+        }
+        if (memory_get_usage() > 134217728) {
+            echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher memory limit exceeded (128MB). Exiting daemon safely for supervisor restart.\n";
+            $keepRunning = false;
+            break;
+        }
+
         if (empty($jobs)) {
             // Idle state: disconnect database connection and sleep to conserve pool resources
             $dbManager->disconnect();
-            if (function_exists('gc_collect_cycles')) {
-                gc_collect_cycles();
-            }
-            if (memory_get_usage() > 134217728) {
-                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Outbox publisher memory limit exceeded (128MB). Exiting daemon safely for supervisor restart.\n";
-                $keepRunning = false;
-                break;
-            }
             usleep($idleSleepMicroseconds);
             continue;
         }
 
         $publishedIds = [];
-        foreach ($jobs as $job) {
-            try {
-                // Dispatch to destination queue outside database transaction
-                $queue->push($job['queue'], $job['handler'], $job['payload']);
-                $publishedIds[] = $job['id'];
-            } catch (\Throwable $publishError) {
-                echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
-                $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
+        if (method_exists($queue, 'pushBatch')) {
+            // Group jobs by queue and handler to dispatch in bulk
+            $groupedJobs = [];
+            foreach ($jobs as $job) {
+                $groupKey = $job['queue'] . "\0" . $job['handler'];
+                $groupedJobs[$groupKey][] = $job;
+            }
+
+            foreach ($groupedJobs as $group) {
+                $first = $group[0];
+                $targetQueue = $first['queue'];
+                $handlerClass = $first['handler'];
+                $payloads = [];
+                $jobIdsInGroup = [];
+                foreach ($group as $item) {
+                    $payload = is_string($item['payload']) ? json_decode($item['payload'], true) : $item['payload'];
+                    $payloads[] = $payload;
+                    $jobIdsInGroup[] = $item['id'];
+                }
+
+                try {
+                    $queue->pushBatch($targetQueue, $handlerClass, $payloads);
+                    foreach ($jobIdsInGroup as $id) {
+                        $publishedIds[] = $id;
+                    }
+                } catch (\Throwable $batchError) {
+                    echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to batch-publish group ({$targetQueue}/{$handlerClass}): " . $batchError->getMessage() . ". Falling back to individual dispatch...\n";
+                    // Fallback to sequential dispatch to isolate individual failing jobs
+                    foreach ($group as $job) {
+                        try {
+                            $payload = is_string($job['payload']) ? json_decode($job['payload'], true) : $job['payload'];
+                            $queue->push($job['queue'], $job['handler'], $payload);
+                            $publishedIds[] = $job['id'];
+                        } catch (\Throwable $publishError) {
+                            echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
+                            $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
+                        }
+                    }
+                }
+            }
+        } else {
+            foreach ($jobs as $job) {
+                try {
+                    $payload = is_string($job['payload']) ? json_decode($job['payload'], true) : $job['payload'];
+                    $queue->push($job['queue'], $job['handler'], $payload);
+                    $publishedIds[] = $job['id'];
+                } catch (\Throwable $publishError) {
+                    echo "[" . $clock->now()->format('Y-m-d H:i:s') . "] Failed to publish outbox job ID {$job['id']}: " . $publishError->getMessage() . "\n";
+                    $outboxRepo->releaseOrMarkFailed($job['id'], $publishError->getMessage());
+                }
             }
         }
 

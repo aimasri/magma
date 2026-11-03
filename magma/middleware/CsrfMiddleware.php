@@ -65,6 +65,7 @@ class CsrfMiddleware implements MiddlewareInterface
 
         if (in_array($method, self::UNSAFE_METHODS, true)) {
             $submittedToken = $request->request('_token')
+                ?? $request->request('csrf_token')
                 ?? $request->header('X-CSRF-TOKEN')
                 ?? $request->header('X-XSRF-TOKEN');
 
