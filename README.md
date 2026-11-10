@@ -8,7 +8,7 @@
 > **Final Test Results on this Commit:** 8/8 Database & HTTP Integration Tests passed (100%), 22 assertions validated perfectly in <150ms. Zero DB pollution across all rollbacks.  
 
 > **🔥 Recent Core Hardening (The Lava Phase & Concurrency Audits)**  
-> The framework has recently undergone a rigorous architectural and security hardening phase (originally developed on the `lava` branch and now merged directly into `main`). Key upgrades include:
+> The framework has recently undergone a rigorous architectural and security hardening phase (ported upstream to `main` as pure zero-dependency core commits). Key upgrades include:
 > - **Scalability & Performance Remediation:** Multi-tenant schemas strictly enforced at the database level (`tenant_id`), CQRS connection boundaries (Read vs Write) strictly guarded without exception, and daemon polling loops optimized with targeted composite indexes.
 > - **100% PHPStan Level 9 Compliance:** All types are mathematically proven, explicit array shapes are enforced, and ambiguous `mixed` types have been systematically eliminated across all 200+ framework files.
 > - **Zero Legacy Artifacts:** Complete removal of all backward-compatibility facades, legacy middleware, and primitive routing tuples. The framework strictly enforces modern object-oriented interfaces.
