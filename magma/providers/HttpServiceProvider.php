@@ -20,6 +20,9 @@ use Magma\services\RememberMeService;
 use Magma\services\PasswordResetService;
 
 use Magma\middleware\ViewShareMiddleware;
+use Magma\middleware\SessionTimeoutMiddleware;
+use Magma\middleware\RoleMiddleware;
+use Magma\security\PostLoginRedirectResolver;
 
 use Magma\controllers\HomeController;
 use Magma\controllers\LoginController;
@@ -82,6 +85,21 @@ class HttpServiceProvider implements ServiceProviderInterface
             );
         });
 
+        $container->set(SessionTimeoutMiddleware::class, function ($c) {
+            return new SessionTimeoutMiddleware(
+                $c->get(\Magma\http\SessionInterface::class),
+                $c->get(\Magma\contracts\ClockInterface::class),
+                $c->get(\Magma\contracts\RolePolicyInterface::class)
+            );
+        });
+
+        $container->set(RoleMiddleware::class, function ($c) {
+            return new RoleMiddleware(
+                $c->get(AuthenticationService::class),
+                $c->get(\Magma\http\SessionInterface::class)
+            );
+        });
+
         // ------------------------------------------------------------------
         // Controllers
         // ------------------------------------------------------------------
@@ -104,10 +122,10 @@ class HttpServiceProvider implements ServiceProviderInterface
             assert($auth instanceof AuthenticationService);
             $html = $c->get(\Magma\view\HtmlResponseBuilderInterface::class);
             assert($html instanceof \Magma\view\HtmlResponseBuilderInterface);
-            $session = $c->get(\Magma\http\SessionInterface::class);
-            assert($session instanceof \Magma\http\SessionInterface);
+            $resolver = $c->get(\Magma\security\PostLoginRedirectResolver::class);
+            assert($resolver instanceof \Magma\security\PostLoginRedirectResolver);
             
-            return new LoginController($auth, $html, $session);
+            return new LoginController($auth, $html, $resolver);
         });
 
         $container->set(RegisterController::class, function ($c) {

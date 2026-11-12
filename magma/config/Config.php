@@ -238,4 +238,15 @@ class Config
             'from_name'   => self::getString('MAIL_FROM_NAME', 'Magma Framework'),
         ];
     }
+
+    /**
+     * Get the administrator notification email address from environment configuration.
+     *
+     * @param string $default Optional fallback address when ADMIN_NOTIFICATION_EMAIL is unset.
+     * @return string
+     */
+    public static function getAdminNotificationEmail(string $default = ''): string
+    {
+        return self::getString('ADMIN_NOTIFICATION_EMAIL', $default);
+    }
 }

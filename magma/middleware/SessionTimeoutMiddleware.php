@@ -1,68 +1,62 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\middleware;
 
+use Magma\contracts\ClockInterface;
+use Magma\contracts\RolePolicyInterface;
+use Magma\http\RedirectResponse;
 use Magma\http\Request;
 use Magma\http\Response;
-use Magma\http\Session;
+use Magma\http\SessionInterface;
 
 /**
  * Title: Session Timeout Middleware
  *
  * Purpose:
- * - Enforce inactivity timeouts for authenticated users.
- * - Allow dynamic expiration times based on user roles (e.g., Admins get longer sessions).
+ * - Enforce inactivity timeouts for authenticated users based on application role policy.
+ * - Allow dynamic expiration times decoupled from hardcoded framework role enums.
  *
  * Why / Why this design:
- * - This adheres to the Single Responsibility Principle. The low-level Session Handler 
- *   manages raw persistence up to an absolute maximum TTL, while this Middleware handles 
- *   complex business rules regarding user inactivity.
+ * - Single Responsibility Principle (SRP): Isolates session inactivity enforcement from raw session persistence.
+ * - Dependency Inversion Principle (DIP): Injects `SessionInterface`, `ClockInterface`, and `RolePolicyInterface` (exactly 3 dependencies).
+ * - Open/Closed Principle (OCP): Dynamic timeout calculation delegates to `RolePolicyInterface`, enabling applications to configure custom role timeouts without modifying middleware code.
  *
  * Teaching notes:
- * - Inactivity timeouts are critical for security compliance (like PCI-DSS or HIPAA), 
- *   ensuring that if a user walks away from their terminal, an attacker cannot hijack 
- *   their active session indefinitely.
+ * - Server-side `last_activity` timestamp validation guarantees inactive sessions are destroyed even if client-side cookies persist.
  */
 class SessionTimeoutMiddleware implements MiddlewareInterface
 {
-    private Session $session;
-    private int $standardTimeout = 1800; // 30 minutes
-    private int $adminTimeout = 7200; // 2 hours
-
-    private \Magma\contracts\ClockInterface $clock;
-
     /**
-     * Initializes the middleware with the required session handler.
+     * Initializes the middleware with required session, clock, and role policy dependencies.
      *
-     * Execution Flow:
-     * 1. Stores the provided Session instance for state management.
-     *
-     * Logic behind the logic:
-     * - Passing the Session instance via constructor injection complies with the Dependency Inversion Principle, decoupling the middleware from global session state or static helpers.
-     *
-     * @param Session $session The session handler.
-     * @param \Magma\contracts\ClockInterface $clock The application clock.
+     * @param SessionInterface $session The session service.
+     * @param ClockInterface $clock Deterministic system clock.
+     * @param RolePolicyInterface $rolePolicy Policy resolving role-specific session inactivity limits.
      */
-    public function __construct(Session $session, \Magma\contracts\ClockInterface $clock)
-    {
-        $this->session = $session;
-        $this->clock = $clock;
-    }
+    public function __construct(
+        private readonly SessionInterface $session,
+        private readonly ClockInterface $clock,
+        private readonly RolePolicyInterface $rolePolicy
+    ) {}
 
     /**
-     * Processes the request and enforces session timeouts.
+     * Processes the request and enforces session inactivity timeouts.
      *
      * Execution Flow:
-     * 1. Check if the user is authenticated. If not, pass the request down the chain.
-     * 2. Retrieve the last activity timestamp.
-     * 3. Determine the allowed timeout duration based on the user's role.
-     * 4. If the inactivity exceeds the allowed duration, destroy the session and redirect.
-     * 5. Otherwise, update the `last_activity` timestamp to `time()` and continue.
+     * 1. Checks if the user is authenticated in the session. If not, passes request to `$next`.
+     * 2. Retrieves the `last_activity` timestamp and current time from `ClockInterface`.
+     * 3. Resolves the allowed timeout duration for the user's role via `RolePolicyInterface::resolveSessionTimeout()`.
+     * 4. If inactivity exceeds allowed threshold, destroys session, clears `remember_user` cookie, and returns a 401 JSON response (for API requests) or 302 redirect to `/login` (for web navigation).
+     * 5. Otherwise updates `last_activity` timestamp to current time and passes request to `$next`.
      *
      * Logic behind the logic:
-     * - We track the timestamp of the last request server-side (`last_activity`) rather than 
-     *   relying on cookie expiration. Cookies can be hijacked; server-side timestamp 
-     *   validation guarantees inactive sessions are irrevocably destroyed.
+     * - Checking both `isJsonExpected()` and standard browser navigation ensures SPA/AJAX consumers receive structured 401 responses instead of HTML redirects.
+     *
+     * @param Request $request Incoming HTTP request.
+     * @param callable $next Downstream middleware handler.
+     * @return Response Resulting HTTP response.
      */
     public function process(Request $request, callable $next): Response
     {
@@ -70,21 +64,28 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
 
         if (is_array($user)) {
             $lastActivity = $this->session->get('last_activity');
-            $lastActivity = is_numeric($lastActivity) ? (int)$lastActivity : null;
+            $lastActivity = is_numeric($lastActivity) ? (int) $lastActivity : null;
             $currentTime = $this->clock->now()->getTimestamp();
-            
-            $allowedTimeout = $this->standardTimeout;
-            
-            $role = isset($user['role']) && is_scalar($user['role']) ? (string)$user['role'] : null;
-            if (\Magma\enums\UserRole::isTenantRole($role)) {
-                $allowedTimeout = $this->adminTimeout;
-            }
 
-            if ($lastActivity && ($currentTime - $lastActivity > $allowedTimeout)) {
+            $role = isset($user['role']) && is_scalar($user['role']) ? (string) $user['role'] : null;
+            $allowedTimeout = $this->rolePolicy->resolveSessionTimeout($role);
+
+            if ($lastActivity !== null && ($currentTime - $lastActivity > $allowedTimeout)) {
                 // Timeout exceeded. Destroy session and redirect to login.
                 $this->session->destroy();
-                
-                return (new \Magma\http\RedirectResponse('/login'))
+
+                if ($request->isJsonExpected() || $request->expectsJson()) {
+                    $payload = json_encode([
+                        'success' => false,
+                        'error'   => 'Session expired due to inactivity.',
+                        'code'    => 401,
+                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+                    $response = new Response($payload, 401, ['Content-Type' => 'application/json; charset=utf-8']);
+                    return $response->withCookie('remember_user', '', $currentTime - 3600);
+                }
+
+                return (new RedirectResponse('/login'))
                     ->withCookie('remember_user', '', $currentTime - 3600);
             }
 

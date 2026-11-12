@@ -52,6 +52,18 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new \Magma\config\ConfigWrapper();
         });
 
+        $container->bind(
+            \Magma\contracts\RolePolicyInterface::class,
+            \Magma\security\ConfigRolePolicy::class
+        );
+
+        $container->set(\Magma\security\PostLoginRedirectResolver::class, function ($c) {
+            return new \Magma\security\PostLoginRedirectResolver(
+                $c->get(\Magma\http\SessionInterface::class),
+                $c->get(\Magma\contracts\RolePolicyInterface::class)
+            );
+        });
+
         $container->set(\Magma\security\TenantContextProviderInterface::class, function ($c) {
             return new \Magma\security\DomainTenantContextProvider(
                 $c->get(\Magma\database\DatabaseConnectionManager::class)
