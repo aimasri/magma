@@ -10,21 +10,18 @@ use Magma\http\RedirectResponse;
 use Magma\services\AuthenticationService;
 use Magma\services\AuthenticationResult;
 use Magma\requests\LoginRequest;
-use Magma\validation\Validator;
-use Magma\view\TemplateEngine;
-use Magma\security\RedirectSanitizer;
-use Magma\middleware\AuthMiddleware;
+use Magma\security\PostLoginRedirectResolver;
 
 /**
  * Title: Login Controller
  *
  * Purpose:
  * - Handles user login presentation and authentication workflow.
- * - Manages session creation, cookie handling, and post-authentication intended destination redirection.
+ * - Coordinates authentication orchestration, cookie application, and post-authentication redirection.
  *
  * Why / Why this design:
- * - Separation of Concerns (SoC): Coordinates HTTP transport mechanics while delegating credential verification to `AuthenticationService` and URL safety validation to `RedirectSanitizer`.
- * - Deep Link UX: Restores user deep links and query string redirects safely while guarding against open-redirect exploits.
+ * - Separation of Concerns (SoC): Coordinates HTTP transport mechanics while delegating credential verification to `AuthenticationService` and destination resolution / flash management to `PostLoginRedirectResolver`.
+ * - Single Responsibility Principle (SRP): Restricted to exactly 3 injected dependencies (`AuthenticationService`, `HtmlResponseBuilderInterface`, `PostLoginRedirectResolver`), eliminating direct session state manipulation from the controller.
  *
  * Teaching notes:
  * - Always apply auth results (`applyAuthResult`) to set or clear remember-me cookies when authentication state changes.
@@ -33,37 +30,32 @@ class LoginController
 {
     use \Magma\controllers\traits\AppliesAuthenticationCookiesTrait;
 
-    private AuthenticationService $authService;
-    private \Magma\view\HtmlResponseBuilderInterface $html;
-    private \Magma\http\SessionInterface $session;
-
     /**
-     * Initializes the LoginController with required dependencies.
+     * Initializes the LoginController with required services.
+     *
+     * Execution Flow:
+     * 1. Stores injected authentication service, HTML view builder, and redirect resolver.
      *
      * Logic behind the logic:
-     * - Injects the authentication service, HTML response builder, and session interface via Constructor Injection, avoiding hidden global state.
+     * - Restricting constructor injection to exactly 3 focused domain services complies strictly with Magma architectural guidelines.
      *
      * @param AuthenticationService $authService
      * @param \Magma\view\HtmlResponseBuilderInterface $html
-     * @param \Magma\http\SessionInterface $session
+     * @param PostLoginRedirectResolver $redirectResolver
      */
     public function __construct(
-        AuthenticationService $authService,
-        \Magma\view\HtmlResponseBuilderInterface $html,
-        \Magma\http\SessionInterface $session
-    ) {
-        $this->authService = $authService;
-        $this->html = $html;
-        $this->session = $session;
-    }
+        private readonly AuthenticationService $authService,
+        private readonly \Magma\view\HtmlResponseBuilderInterface $html,
+        private readonly PostLoginRedirectResolver $redirectResolver
+    ) {}
 
     /**
      * Handles the GET request for the login page.
      *
      * Execution Flow:
      * 1. Checks for a "remember_user" cookie and attempts automated persistent login.
-     * 2. If auto-login succeeds, redirects user to their intended destination or dashboard.
-     * 3. Checks if an authenticated user session is already active; if so, redirects to intended destination or dashboard.
+     * 2. If auto-login succeeds, redirects user to their intended destination or role dashboard.
+     * 3. Checks if an authenticated user session is already active via `AuthenticationService`; if so, redirects immediately.
      * 4. Otherwise, renders the login view.
      *
      * Logic behind the logic:
@@ -81,7 +73,7 @@ class LoginController
             if ($result->isSuccessful()) {
                 $user = $result->getUser();
                 if ($user !== null) {
-                    return $this->applyAuthResult($result, $this->redirectToDestination($user, $request), $request);
+                    return $this->applyAuthResult($result, $this->redirectResolver->redirectAfterAuthentication($user, $request), $request);
                 }
             }
             
@@ -89,16 +81,9 @@ class LoginController
             return $this->applyAuthResult($result, $response, $request);
         }
 
-        $sessionUser = $this->session->get('user');
-        if (is_array($sessionUser)) {
-            $userData = [];
-            foreach ($sessionUser as $k => $v) {
-                if (is_string($k)) {
-                    $userData[$k] = $v;
-                }
-            }
-            $authUser = new \Magma\domain\AuthUser($userData);
-            return $this->redirectToDestination($authUser, $request);
+        $authUser = $this->authService->getAuthenticatedUser();
+        if ($authUser !== null) {
+            return $this->redirectResolver->redirectAfterAuthentication($authUser, $request);
         }
 
         return $this->html->render('auth/login', [
@@ -112,12 +97,12 @@ class LoginController
      * Execution Flow:
      * 1. Extracts validated credentials DTO from the LoginRequest.
      * 2. Delegates authentication attempt to the AuthenticationService.
-     * 3. If unsuccessful, flashes old input and errors to session and redirects back to /login.
-     * 4. If successful, resolves and sanitizes the intended redirect destination.
+     * 3. If unsuccessful, delegates failed redirect and error flashing to `PostLoginRedirectResolver`.
+     * 4. If successful, resolves and sanitizes the destination via `PostLoginRedirectResolver`.
      * 5. Applies authentication cookies and redirects the user.
      *
      * Logic behind the logic:
-     * - Preserving session `intended_url` on failed attempts allows users to mistype credentials without losing their original target destination.
+     * - Flashing session errors and old inputs is delegated to `PostLoginRedirectResolver`, preserving intended destination deep-links across retries while keeping this controller decoupled from session primitives.
      *
      * @param LoginRequest $loginRequest
      * @param Request $request
@@ -132,81 +117,21 @@ class LoginController
         $result = $this->authService->attempt($dto->email, $dto->password, $dto->rememberMe);
 
         if (!$result->isSuccessful()) {
-            $this->session->set('old', ['email' => $dto->email]);
-            $this->session->set('errors', ['auth' => 'Invalid credentials']);
-            return new RedirectResponse('/login');
+            return $this->redirectResolver->redirectAfterFailedLogin($dto->email, 'Invalid credentials');
         }
 
         $user = $result->getUser();
         if ($user !== null) {
-            return $this->applyAuthResult($result, $this->redirectToDestination($user, $request), $request);
+            return $this->applyAuthResult($result, $this->redirectResolver->redirectAfterAuthentication($user, $request), $request);
         }
 
         return new RedirectResponse('/login');
     }
 
     /**
-     * Resolves the post-authentication redirect destination, sanitizing against open-redirect exploits.
+     * Handles the GET request to log the user out.
      *
      * Execution Flow:
-     * 1. Checks for an explicit redirect target in the POST request body.
-     * 2. If absent, checks query string parameters (`redirect` or `return_to`).
-     * 3. If absent, retrieves and removes the session-stored intended URL.
-     * 4. Sanitizes candidate URL using `RedirectSanitizer::sanitize()` enforcing RFC 3986 path-absolute constraints.
-     * 5. If valid, returns a RedirectResponse to the sanitized target; otherwise falls back to the user's role dashboard.
-     *
-     * Logic behind the logic:
-     * - Strictly sanitizing before issuing redirect headers completely neutralizes protocol-relative (`//evil.com`) and backslash exploits while ensuring deep links and query parameters are seamlessly preserved.
-     *
-     * @param \Magma\domain\AuthUser $user
-     * @param Request $request
-     * @return RedirectResponse
-     */
-    private function redirectToDestination(\Magma\domain\AuthUser $user, Request $request): RedirectResponse
-    {
-        // 1. Inspect POST body parameter
-        $postRedirect = $request->request('redirect');
-        $candidate = is_string($postRedirect) && trim($postRedirect) !== '' ? trim($postRedirect) : null;
-
-        // 2. Inspect Query string parameter
-        if ($candidate === null) {
-            $queryRedirect = $request->query('redirect', $request->query('return_to'));
-            $candidate = is_string($queryRedirect) && trim($queryRedirect) !== '' ? trim($queryRedirect) : null;
-        }
-
-        // 3. Inspect and consume session-captured deep link
-        $sessionIntended = $this->session->get(AuthMiddleware::INTENDED_URL_SESSION_KEY);
-        if ($this->session->has(AuthMiddleware::INTENDED_URL_SESSION_KEY)) {
-            $this->session->remove(AuthMiddleware::INTENDED_URL_SESSION_KEY);
-        }
-
-        if ($candidate === null && is_string($sessionIntended) && trim($sessionIntended) !== '') {
-            $candidate = trim($sessionIntended);
-        }
-
-        // 4. Sanitize candidate target with RFC 3986 validation
-        $sanitizedUrl = RedirectSanitizer::sanitize($candidate);
-
-        if ($sanitizedUrl !== null) {
-            return new RedirectResponse($sanitizedUrl);
-        }
-
-        return $this->redirectToDashboard($user);
-    }
-
-    /**
-     * Redirects the user to their default dashboard based on role.
-     *
-     * @param \Magma\domain\AuthUser $user
-     * @return RedirectResponse
-     */
-    private function redirectToDashboard(\Magma\domain\AuthUser $user): RedirectResponse
-    {
-        return new RedirectResponse(\Magma\enums\UserRole::dashboardPath($user->getRole()));
-    }
-
-    /**
-     * Handles the GET request to log the user out.
      * 1. Retrieves the 'remember_user' cookie if present.
      * 2. Delegates the logout process to the AuthenticationService.
      * 3. Applies the auth result to clear cookies and redirects to /login.
@@ -224,4 +149,3 @@ class LoginController
         return $this->applyAuthResult($result, new RedirectResponse('/login'), $request);
     }
 }
-

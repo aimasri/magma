@@ -81,6 +81,7 @@ class Container
      */
     public function set(string $id, callable $concrete): void
     {
+        unset($this->aliases[$id]);
         $this->definitions[$id] = $concrete;
     }
 
@@ -99,6 +100,7 @@ class Container
      */
     public function bind(string $alias, string $concrete): void
     {
+        unset($this->definitions[$alias]);
         $this->aliases[$alias] = $concrete;
     }
 
