@@ -21,7 +21,7 @@ class Response
     private int $statusCode;
     /** @var array<string, string> */
     private array $headers;
-    /** @var array<int, array{name: string, value: string, expires: int, path: string, domain: string, secure: bool, httponly: bool}> */
+    /** @var array<int, array{name: string, value: string, expires: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}> */
     private array $cookies = [];
 
     /**
@@ -159,7 +159,7 @@ class Response
                     'domain'   => (string)$cookie['domain'], 
                     'secure'   => (bool)$cookie['secure'], 
                     'httponly' => (bool)$cookie['httponly'],
-                    'samesite' => (string)($cookie['samesite'] ?? 'Lax'),
+                    'samesite' => $cookie['samesite'],
                 ]
             );
         }

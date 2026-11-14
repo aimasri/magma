@@ -341,6 +341,7 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
         if ($this->transactionManager) {
             $this->transactionManager->transactional($executeChunks);
         } else {
+            $pdo = $this->dbManager->getWriteConnection();
             $ownsTx = !$pdo->inTransaction();
             if ($ownsTx) {
                 $pdo->beginTransaction();

@@ -46,13 +46,14 @@ class Session implements SessionInterface
                 session_set_save_handler($handler, true);
             }
 
+            $isHttps = (isset($_SERVER['HTTPS']) && is_scalar($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && is_scalar($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+                || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && is_scalar($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) === 'on');
+
             session_set_cookie_params([
                 'httponly' => true,
                 'samesite' => 'Lax',
-                // @phpstan-ignore-next-line
-                'secure'   => (isset($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
-                    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
-                    || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) === 'on'),
+                'secure'   => $isHttps,
                 'path'     => '/',
             ]);
             session_start();
@@ -61,12 +62,9 @@ class Session implements SessionInterface
         if ($storage !== null) {
             $this->storage = &$storage;
         } else {
-            // @phpstan-ignore-next-line
             if (!isset($_SESSION)) {
-                // @phpstan-ignore-next-line
                 $_SESSION = [];
             }
-            // @phpstan-ignore-next-line
             $this->storage = &$_SESSION;
         }
     }
