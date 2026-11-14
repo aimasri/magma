@@ -267,7 +267,7 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
 
         return [
             'Method'       => $request->getMethod(),
-            'URI'          => $request->getUri(),
+            'Path'         => $request->getPath(),
             'Client IP'    => is_scalar($remoteAddr) ? (string) $remoteAddr : '127.0.0.1',
             'User Agent'   => $request->header('User-Agent', 'Unknown') ?? 'Unknown',
             'Query Params' => is_array($query) && $query !== [] ? self::sanitizePayload($query) : '(Empty)',
@@ -278,18 +278,35 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
     }
 
     /**
-     * Redacts credentials, secrets, CSRF tokens, and authorization headers recursively.
+     * Redacts credentials, secrets, CSRF tokens, cookies, and authorization headers recursively.
      *
      * @param array<string|int, mixed> $payload
      * @return array<string|int, mixed>
      */
     private static function sanitizePayload(array $payload): array
     {
-        $sensitiveKeys = ['password', 'password_confirmation', 'secret', 'token', 'csrf_token', '_token', 'api_key', 'authorization', 'cookie'];
+        $sensitiveKeys = [
+            'password',
+            'password_confirmation',
+            'secret',
+            'token',
+            'csrf_token',
+            '_token',
+            'api_key',
+            'x_api_key',
+            'authorization',
+            'cookie',
+            'remember_user',
+        ];
         $sanitized = [];
 
         foreach ($payload as $k => $v) {
-            if (in_array(strtolower((string) $k), $sensitiveKeys, true)) {
+            $normalizedKey = str_replace('-', '_', strtolower((string) $k));
+            if (str_starts_with($normalizedKey, 'http_')) {
+                $normalizedKey = substr($normalizedKey, 5);
+            }
+
+            if (in_array($normalizedKey, $sensitiveKeys, true)) {
                 $sanitized[$k] = '******** [REDACTED]';
             } elseif (is_array($v)) {
                 $sanitized[$k] = self::sanitizePayload($v);
