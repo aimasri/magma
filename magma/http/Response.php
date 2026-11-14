@@ -21,7 +21,7 @@ class Response
     private int $statusCode;
     /** @var array<string, string> */
     private array $headers;
-    /** @var array<int, array{name: string, value: string, expires: int, path: string, domain: string, secure: bool, httponly: bool, samesite: string}> */
+    /** @var array<int, array{name: string, value: string, expires: int, path: string, domain: string, secure: bool, httponly: bool, samesite: 'Lax'|'lax'|'None'|'none'|'Strict'|'strict'}> */
     private array $cookies = [];
 
     /**
@@ -113,6 +113,8 @@ class Response
      * Logic behind the logic:
      * - By buffering cookies internally rather than emitting them immediately, we 
      *   prevent "headers already sent" errors and maintain strict MVC encapsulation.
+     *
+     * @param 'Lax'|'lax'|'None'|'none'|'Strict'|'strict' $samesite
      */
     public function withCookie(
         string $name, 
