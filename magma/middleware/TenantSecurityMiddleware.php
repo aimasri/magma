@@ -6,6 +6,7 @@ namespace Magma\middleware;
 
 use Magma\http\RequestInterface;
 use Magma\http\Response;
+use Magma\security\AuthTenantMode;
 use Magma\security\TenantContext;
 use Magma\security\TenantContextProviderInterface;
 use Magma\services\AuthenticationService;
@@ -29,29 +30,33 @@ class TenantSecurityMiddleware implements MiddlewareInterface
     private TenantContext $tenantContext;
     private ?AuthenticationService $authService;
     private ?TenantContextProviderInterface $provider;
+    private AuthTenantMode $authMode;
 
     /**
      * Initializes the middleware with tenant context and optional resolution dependencies.
      *
      * Execution Flow:
      * 1. Stores the primary TenantContext where resolved tenant IDs will be bound.
-     * 2. Stores the optional AuthenticationService and TenantContextProviderInterface for fallback resolution strategies.
+     * 2. Stores the optional AuthenticationService, TenantContextProviderInterface, and AuthTenantMode policy.
      *
      * Logic behind the logic:
-     * - Accepting optional dependencies allows the middleware to be flexible. It can attempt to resolve tenants based on the environment (e.g., custom headers via provider or session state via authentication), supporting different architectural needs seamlessly.
+     * - Accepting optional dependencies and an explicit `AuthTenantMode` allows the middleware to enforce both per-domain white-label SSO handoffs (`TenantScoped`) and single-portal SaaS session tenant rebinding (`GlobalGateway`).
      *
      * @param TenantContext $tenantContext The global tenant context store.
      * @param AuthenticationService|null $authService The service to retrieve authenticated domain users.
      * @param TenantContextProviderInterface|null $provider A custom strategy for resolving tenant identifiers from requests.
+     * @param AuthTenantMode $authMode Tenant resolution policy (`TenantScoped` vs `GlobalGateway`).
      */
     public function __construct(
         TenantContext $tenantContext,
         ?AuthenticationService $authService = null,
-        ?TenantContextProviderInterface $provider = null
+        ?TenantContextProviderInterface $provider = null,
+        AuthTenantMode $authMode = AuthTenantMode::TenantScoped
     ) {
         $this->tenantContext = $tenantContext;
         $this->authService = $authService;
         $this->provider = $provider;
+        $this->authMode = $authMode;
     }
 
     /**
@@ -118,11 +123,19 @@ class TenantSecurityMiddleware implements MiddlewareInterface
             }
         }
 
-        // Cross-domain mismatch check & SSO redirect
-        if ($this->tenantContext->hasTenantId() && $this->authService !== null) {
+        // Cross-domain mismatch check (TenantScoped) or authoritative session rebinding (GlobalGateway)
+        if ($this->authMode === AuthTenantMode::GlobalGateway && $this->authService !== null) {
             $user = $this->authService->getAuthenticatedUser();
             if ($user !== null && $user->hasTenantId()) {
-                $userTenantId = (int)$user->getTenantId();
+                $this->tenantContext->setTenantId((int) $user->getTenantId());
+                if (method_exists($user, 'getVenueId') && $user->getVenueId() !== null) {
+                    $this->tenantContext->setVenueId((int) $user->getVenueId());
+                }
+            }
+        } elseif ($this->tenantContext->hasTenantId() && $this->authService !== null) {
+            $user = $this->authService->getAuthenticatedUser();
+            if ($user !== null && $user->hasTenantId()) {
+                $userTenantId = (int) $user->getTenantId();
                 if ($userTenantId !== $this->tenantContext->getTenantId()) {
                     if ($this->provider !== null) {
                         $currentHost = $request->server('HTTP_HOST');
@@ -139,7 +152,7 @@ class TenantSecurityMiddleware implements MiddlewareInterface
                             $query['sso'] = $ssoData['token'];
                             $queryString = http_build_query($query);
                             $scheme = $request->isSecure() ? 'https' : 'http';
-                            
+
                             $redirectUrl = "{$scheme}://{$correctDomain}{$path}?{$queryString}";
                             $html = sprintf(
                                 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=%1$s"></head><body><script>window.location.href="%1$s";</script></body></html>',
@@ -148,6 +161,9 @@ class TenantSecurityMiddleware implements MiddlewareInterface
                             return new Response($html, 200, ['Content-Type' => 'text/html; charset=utf-8']);
                         }
                     }
+
+                    // Strict TenantScoped fail-safe: destroy mismatched session when no SSO target domain exists
+                    $this->authService->logout();
                 }
             }
         }

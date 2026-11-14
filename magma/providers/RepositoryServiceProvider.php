@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\providers;
 
 use Magma\container\Container;
@@ -95,10 +97,14 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(UserQueryInterface::class, function ($c) {
+        $container->set(UserQueryInterface::class, function (Container $c) {
+            $authMode = $c->has(\Magma\security\AuthTenantMode::class)
+                ? $c->get(\Magma\security\AuthTenantMode::class)
+                : \Magma\security\AuthTenantMode::TenantScoped;
             return new UserQueryRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
+                $c->get(\Magma\security\TenantContext::class),
+                $authMode instanceof \Magma\security\AuthTenantMode ? $authMode : \Magma\security\AuthTenantMode::TenantScoped
             );
         });
         

@@ -22,11 +22,18 @@ namespace Magma\logging;
  */
 class NativeLogger implements LoggerInterface
 {
-    private ?\Magma\security\TenantContext $tenantContext;
+    /** @var \Magma\security\TenantContext|callable|null */
+    private mixed $tenantContext;
     private ?CorrelationIdProviderInterface $correlationIdProvider;
 
+    /**
+     * Initializes the NativeLogger with an optional TenantContext (or lazy resolver callable) and CorrelationIdProvider.
+     *
+     * @param \Magma\security\TenantContext|callable|null $tenantContext
+     * @param CorrelationIdProviderInterface|null $correlationIdProvider
+     */
     public function __construct(
-        ?\Magma\security\TenantContext $tenantContext = null,
+        \Magma\security\TenantContext|callable|null $tenantContext = null,
         ?CorrelationIdProviderInterface $correlationIdProvider = null
     ) {
         $this->tenantContext = $tenantContext;
@@ -85,7 +92,8 @@ class NativeLogger implements LoggerInterface
      */
     private function log(string $level, string $message, array $context): void
     {
-        $tenantId = ($this->tenantContext !== null && $this->tenantContext->hasTenantId()) ? $this->tenantContext->getTenantId() : 'System';
+        $tenant = is_callable($this->tenantContext) ? ($this->tenantContext)() : $this->tenantContext;
+        $tenantId = ($tenant instanceof \Magma\security\TenantContext && $tenant->hasTenantId()) ? $tenant->getTenantId() : 'System';
         $traceId = $this->correlationIdProvider !== null ? $this->correlationIdProvider->getCorrelationId() : 'N/A';
         
         // Sanitize CRLF to prevent log injection

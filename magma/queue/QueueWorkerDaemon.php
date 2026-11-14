@@ -104,6 +104,9 @@ class QueueWorkerDaemon
         }
 
         while ($this->running) {
+            // Flush DI container state before each poll to prevent tenant data leakage across jobs
+            $this->container->flushInstances();
+
             try {
                 // 2-second blocking timeout prevents CPU spinning while allowing responsive signal handling
                 if ($this->queue instanceof ReliableQueueInterface) {
@@ -135,9 +138,13 @@ class QueueWorkerDaemon
         }
 
         if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
-            $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
-            if ($db instanceof \Magma\database\DatabaseConnectionManager) {
-                $db->disconnect();
+            try {
+                $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+                if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                    $db->disconnect();
+                }
+            } catch (\Throwable) {
+                // Suppress if DatabaseConnectionManager is not resolvable on shutdown
             }
         }
 
@@ -260,12 +267,6 @@ class QueueWorkerDaemon
                 if (function_exists('pcntl_alarm')) {
                     pcntl_alarm(0);
                 }
-                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
-                    $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
-                    if ($db instanceof \Magma\database\DatabaseConnectionManager) {
-                        $db->disconnect();
-                    }
-                }
                 if ($this->container->has(\Magma\logging\CorrelationIdProvider::class)) {
                     $correlationProvider = $this->container->get(\Magma\logging\CorrelationIdProvider::class);
                     if ($correlationProvider instanceof \Magma\logging\CorrelationIdProvider) {
@@ -276,6 +277,16 @@ class QueueWorkerDaemon
                     $tenantContext = $this->container->get(\Magma\security\TenantContext::class);
                     if ($tenantContext instanceof \Magma\security\TenantContext) {
                         $tenantContext->clear();
+                    }
+                }
+                if ($this->container->has(\Magma\database\DatabaseConnectionManager::class)) {
+                    try {
+                        $db = $this->container->get(\Magma\database\DatabaseConnectionManager::class);
+                        if ($db instanceof \Magma\database\DatabaseConnectionManager) {
+                            $db->disconnect();
+                        }
+                    } catch (\Throwable) {
+                        // Suppress if DatabaseConnectionManager is not resolvable in container
                     }
                 }
                 // Flush DI container instances after disconnecting and clearing job state

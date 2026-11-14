@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\providers;
 
 use Magma\container\Container;
@@ -63,7 +65,21 @@ class DomainServiceProvider implements ServiceProviderInterface
      */
     public function register(Container $container): void
     {
-        $container->set(\Magma\services\MailTransportInterface::class, function ($c) {
+        $container->set(\Magma\services\MailTransportInterface::class, function (Container $c) {
+            $config = Config::getMailerSettings();
+            $host = trim($config['host']);
+            if ($host !== '' && strtolower($host) !== 'none') {
+                $smtpConfig = array_merge($config, [
+                    'verify_tls' => Config::getBool('MAIL_VERIFY_TLS', true),
+                ]);
+                $clock = $c->has(\Magma\contracts\ClockInterface::class)
+                    ? $c->get(\Magma\contracts\ClockInterface::class)
+                    : null;
+                return new \Magma\services\SmtpMailTransport(
+                    $smtpConfig,
+                    $clock instanceof \Magma\contracts\ClockInterface ? $clock : null
+                );
+            }
             return new \Magma\services\NativeMailTransport();
         });
 

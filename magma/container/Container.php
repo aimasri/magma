@@ -133,7 +133,7 @@ class Container
             if (count(self::$classExistsCache) >= 1000) {
                 unset(self::$classExistsCache[array_key_first(self::$classExistsCache)]);
             }
-            self::$classExistsCache[$id] = class_exists($id, true);
+            self::$classExistsCache[$id] = class_exists($id, true) && !enum_exists($id, false);
         }
 
         return self::$classExistsCache[$id];

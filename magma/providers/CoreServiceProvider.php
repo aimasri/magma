@@ -52,6 +52,12 @@ class CoreServiceProvider implements ServiceProviderInterface
             return new \Magma\config\ConfigWrapper();
         });
 
+        $container->set(\Magma\security\AuthTenantMode::class, function () {
+            return \Magma\security\AuthTenantMode::fromString(
+                Config::getString('AUTH_TENANT_MODE', \Magma\security\AuthTenantMode::TenantScoped->value)
+            );
+        });
+
         $container->bind(
             \Magma\contracts\RolePolicyInterface::class,
             \Magma\security\ConfigRolePolicy::class
