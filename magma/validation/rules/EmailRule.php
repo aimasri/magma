@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\validation\rules;
 
 /**
@@ -28,7 +30,7 @@ class EmailRule
      */
     public function __invoke(string $field, mixed $value, array $params, array $data): ?string
     {
-        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        if (!is_string($value) || !filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return "The {$field} must be a valid email address.";
         }
         return null;

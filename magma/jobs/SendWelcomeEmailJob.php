@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\jobs;
 
 use Magma\queue\JobInterface;

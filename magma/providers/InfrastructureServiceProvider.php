@@ -16,7 +16,6 @@ use Magma\cache\RedisCache;
 use Magma\cache\ArrayCache;
 use Magma\infrastructure\storage\StorageInterface;
 use Magma\infrastructure\storage\LocalStorageService;
-use Magma\infrastructure\storage\S3StorageService;
 
 /**
  * Title: InfrastructureServiceProvider
@@ -57,24 +56,6 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(StorageInterface::class, function (Container $c) {
-            $driver = Config::get('STORAGE_DRIVER', 'local');
-            if ($driver === 's3') {
-                $bucket = Config::get('AWS_BUCKET', 'magma-uploads');
-                $region = Config::get('AWS_DEFAULT_REGION', 'us-east-1');
-                $key = Config::get('AWS_ACCESS_KEY_ID', '');
-                $secret = Config::get('AWS_SECRET_ACCESS_KEY', '');
-                $endpoint = Config::get('AWS_ENDPOINT');
-                $url = Config::get('AWS_URL');
-                
-                return new S3StorageService(
-                    is_scalar($bucket) ? (string)$bucket : 'magma-uploads',
-                    is_scalar($region) ? (string)$region : 'us-east-1',
-                    is_scalar($key) ? (string)$key : '',
-                    is_scalar($secret) ? (string)$secret : '',
-                    is_scalar($endpoint) ? (string)$endpoint : null,
-                    is_scalar($url) ? (string)$url : null
-                );
-            }
             $local = $c->get(LocalStorageService::class);
             assert($local instanceof StorageInterface);
             return $local;

@@ -15,10 +15,6 @@ use Magma\interfaces\cqrs\TenantCommandInterface;
 use Magma\repositories\TenantQueryRepository;
 use Magma\interfaces\cqrs\TenantQueryInterface;
 use Magma\repositories\CachedTenantQueryRepository;
-use Modules\Reviews\repositories\SiteReviewQueryRepository;
-use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
-use Modules\Reviews\repositories\SiteReviewCommandRepository;
-use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\repositories\UserQueryRepository;
 use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\repositories\UserCommandRepository;
@@ -80,20 +76,6 @@ class RepositoryServiceProvider implements ServiceProviderInterface
             return new \Magma\repositories\InMemoryTenantQueryRepository(
                 $redisRepo, 
                 $limit
-            );
-        });
-
-        $container->set(\Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface::class, function ($c) {
-            return new SiteReviewQueryRepository(
-                $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
-            );
-        });
-        
-        $container->set(\Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface::class, function ($c) {
-            return new SiteReviewCommandRepository(
-                $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class)
             );
         });
 

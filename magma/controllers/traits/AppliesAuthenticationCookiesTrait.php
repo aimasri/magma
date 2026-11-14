@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\controllers\traits;
 
 use Magma\http\Response;

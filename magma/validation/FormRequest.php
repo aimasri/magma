@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\validation;
 
 use Magma\http\RequestInterface;
@@ -60,9 +62,14 @@ abstract class FormRequest implements ValidatableRequestInterface
      */
     public function validate(): bool
     {
-        $requestData = $this->request->request();
-        if (!is_array($requestData)) {
-            $requestData = [];
+        $rawRequestData = $this->request->request();
+        $requestData = [];
+        if (is_array($rawRequestData)) {
+            foreach ($rawRequestData as $key => $value) {
+                if (is_string($key)) {
+                    $requestData[$key] = $value;
+                }
+            }
         }
         
         $this->validator->validateOrFail($requestData, $this->rules());

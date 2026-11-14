@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Title: Application Bootstrap — Service Configuration
  *
@@ -56,7 +58,7 @@ $providers = [
     new HttpServiceProvider(),
     new \Magma\providers\EventServiceProvider(),
     new \App\providers\AppServiceProvider(),
-    // Uncomment to enable the Inventory module
+    // Module service providers are registered via App\providers\AppServiceProvider.
 ];
 
 foreach ($providers as $provider) {

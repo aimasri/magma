@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\domain\events;
 
 use Magma\interfaces\EventInterface;

@@ -4,96 +4,81 @@ declare(strict_types=1);
 
 namespace Magma\services;
 
-use Magma\repositories\RememberTokenRepository;
 use Magma\contracts\ClockInterface;
 use Magma\database\TransactionManagerInterface;
+use Magma\interfaces\repositories\RememberTokenRepositoryInterface;
 
 /**
- * Title: Persistent Authentication Service (Remember Me)
+ * Title: Persistent Authentication Token Service (Remember Me & Short-Lived SSO)
  *
  * Purpose:
- * - Manage the generation, validation, and invalidation of long-lived persistent login tokens.
- * - Implement the Selector/Validator pattern to prevent timing attacks and database leak exploitation.
+ * - Manages generation, constant-time validation, atomic consumption/rotation, and invalidation
+ *   of selector/validator persistent login tokens.
  *
  * Why / Why this design:
- * - This service is entirely transport-agnostic; it does not read from `$_COOKIE` or modify 
- *   HTTP responses. By keeping transport mechanisms out of domain services, it maintains a 
- *   Single Responsibility and stays highly decoupled, making it usable in CLI or testing.
+ * - Selector/Validator Split: Lookups occur by public selector while the validator is compared in
+ *   constant time (`hash_equals`) against a SHA-256 digest, preventing timing side-channels and
+ *   neutralizing read-only database leaks.
+ * - Atomic Rotation (`consumeAndRotate`): Wraps token validation, user lookup, deletion, and
+ *   replacement token issuance inside a single `SERIALIZABLE` transaction when a `TransactionManagerInterface`
+ *   is provided, eliminating concurrent auto-login TOCTOU race conditions.
  *
  * Teaching notes:
- * - The Selector/Validator pattern is an industry standard for "Remember Me" functionality. 
- *   If an attacker steals the `remember_tokens` database table, they cannot hijack active 
- *   sessions because the database only contains the hashed validator, while the user's 
- *   cookie contains the plain-text validator.
+ * - Depending on `RememberTokenRepositoryInterface` rather than a concrete repository adheres to DIP
+ *   and allows deterministic in-memory unit testing alongside live PostgreSQL integration tests.
  */
 class RememberMeService
 {
-    protected RememberTokenRepository $userTokenRepository;
-    protected ClockInterface $clock;
-    protected ?TransactionManagerInterface $transactionManager;
-
     /**
-     * Initializes the RememberMeService (strictly adheres to <= 3 injected dependencies).
+     * Initializes the persistent token service.
      *
-     * Execution Flow:
-     * 1. Injects the RememberTokenRepository, ClockInterface, and optional TransactionManagerInterface.
-     * 2. Assigns them to protected properties to interact with persistence and transaction management.
-     *
-     * @param RememberTokenRepository $userTokenRepository
-     * @param ClockInterface $clock
-     * @param TransactionManagerInterface|null $transactionManager
+     * @param RememberTokenRepositoryInterface $userTokenRepository Token persistence contract.
+     * @param ClockInterface $clock Deterministic wall-clock source.
+     * @param TransactionManagerInterface|null $transactionManager Optional transaction manager for atomic token rotation.
      */
     public function __construct(
-        RememberTokenRepository $userTokenRepository,
-        ClockInterface $clock,
-        ?TransactionManagerInterface $transactionManager = null
-    ) {
-        $this->userTokenRepository = $userTokenRepository;
-        $this->clock = $clock;
-        $this->transactionManager = $transactionManager;
-    }
+        protected RememberTokenRepositoryInterface $userTokenRepository,
+        protected ClockInterface $clock,
+        protected ?TransactionManagerInterface $transactionManager = null
+    ) {}
 
     /**
-     * Validates a persistent token and returns the associated user ID.
-     * 
-     * @param string $token The raw token string (format: "selector:validator")
-     * @return int|null The user ID if valid, null otherwise
+     * Validates a raw `"selector:validator"` token and returns the associated user ID.
+     *
+     * @param string $token Raw cookie token string (`selector:validator`).
+     * @return int|null Associated user ID when valid, or null otherwise.
      */
     public function validateToken(string $token): ?int
     {
-        if (strpos($token, ':') === false) return null;
+        if (!str_contains($token, ':')) {
+            return null;
+        }
 
-        [$selector, $validator] = explode(':', $token);
+        [$selector, $validator] = explode(':', $token, 2);
+        if ($selector === '' || $validator === '') {
+            return null;
+        }
+
         $tokenRecord = $this->userTokenRepository->findValidRememberToken($selector);
 
-        $expectedHash = $tokenRecord && isset($tokenRecord['hashed_validator']) && is_string($tokenRecord['hashed_validator']) 
-            ? $tokenRecord['hashed_validator'] 
+        $expectedHash = $tokenRecord !== null && isset($tokenRecord['hashed_validator']) && is_string($tokenRecord['hashed_validator'])
+            ? $tokenRecord['hashed_validator']
             : hash('sha256', 'dummy_validator_to_prevent_timing_attacks');
 
         if (hash_equals($expectedHash, hash('sha256', $validator))) {
-            return $tokenRecord && isset($tokenRecord['user_id']) && is_scalar($tokenRecord['user_id']) ? (int) $tokenRecord['user_id'] : null;
+            return $tokenRecord !== null && isset($tokenRecord['user_id']) && is_scalar($tokenRecord['user_id'])
+                ? (int) $tokenRecord['user_id']
+                : null;
         }
 
         return null;
     }
 
     /**
-     * Generates and stores a new persistent login token.
-     * 
-     * Execution Flow:
-     * 1. Generate a random 12-byte Selector.
-     * 2. Generate a random 32-byte Validator.
-     * 3. Calculate an expiration timestamp (e.g., 30 days in the future).
-     * 4. Hash the Validator using SHA-256.
-     * 5. Store the Selector and the Hashed Validator in the database.
-     * 6. Return the plain-text "Selector:Validator" string to be stored in the user's cookie.
-     * 
-     * Logic behind the logic:
-     * - We use `bin2hex(random_bytes())` to ensure cryptographically secure pseudo-random 
-     *   string generation, preventing attackers from predicting session tokens.
-     * 
-     * @param int $userId The user ID to issue the token for
-     * @param int $ttlSeconds Time to live in seconds (default 30 days)
+     * Generates and persists a new selector/validator token.
+     *
+     * @param int $userId User ID receiving the token.
+     * @param int $ttlSeconds Time-to-live in seconds (defaults to 30 days).
      * @return array{token: string, expiry: int}
      */
     public function generateToken(int $userId, int $ttlSeconds = 2592000): array
@@ -105,29 +90,21 @@ class RememberMeService
         $expiryDate = $now->setTimestamp($expiryTimestamp);
 
         $this->userTokenRepository->saveRememberToken(
-            $userId, 
-            $selector, 
-            hash('sha256', $validator), 
+            $userId,
+            $selector,
+            hash('sha256', $validator),
             $expiryDate->format('Y-m-d H:i:s')
         );
 
         return [
-            'token' => "$selector:$validator",
-            'expiry' => $expiryTimestamp
+            'token'  => "{$selector}:{$validator}",
+            'expiry' => $expiryTimestamp,
         ];
     }
 
     /**
-     * Rotates a persistent token by invalidating the old one and issuing a new one.
-     * 
-     * Execution Flow:
-     * 1. Invalidate the old token (if it exists).
-     * 2. Generate and return a new token payload.
-     * 
-     * Logic behind the logic:
-     * - This encapsulates the token rotation lifecycle entirely within the domain service, 
-     *   preventing the Controller from needing to orchestrate multiple domain actions.
-     * 
+     * Rotates an existing persistent token by invalidating it and issuing a fresh replacement.
+     *
      * @param string $oldToken
      * @param int $userId
      * @return array{token: string, expiry: int}
@@ -135,11 +112,12 @@ class RememberMeService
     public function rotateToken(string $oldToken, int $userId): array
     {
         if ($this->transactionManager !== null) {
-            /** @var array{token: string, expiry: int} */
-            return $this->transactionManager->transactional(function () use ($oldToken, $userId): array {
+            /** @var array{token: string, expiry: int} $rotated */
+            $rotated = $this->transactionManager->transactional(function () use ($oldToken, $userId): array {
                 $this->invalidateToken($oldToken);
                 return $this->generateToken($userId);
             });
+            return $rotated;
         }
 
         $this->invalidateToken($oldToken);
@@ -147,15 +125,63 @@ class RememberMeService
     }
 
     /**
-     * Invalidates an existing persistent token.
-     * 
-     * @param string $token The raw token string
+     * Atomically validates a persistent token, resolves the user via callback, and rotates the token.
+     *
+     * Execution Flow:
+     * 1. Runs inside a single database transaction when `$this->transactionManager` is present.
+     * 2. Validates the selector/validator pair in constant time.
+     * 3. Resolves the active user record; aborts without rotating if the user no longer exists.
+     * 4. Deletes the consumed token and persists a newly generated selector/validator pair.
+     *
+     * @template TUser of object
+     * @param string $token Raw `"selector:validator"` token string.
+     * @param callable(int): (?TUser) $userResolver Callback returning the user domain object for a user ID.
+     * @return array{user: TUser, tokenData: array{token: string, expiry: int}}|null
+     */
+    public function consumeAndRotate(string $token, callable $userResolver): ?array
+    {
+        $operation = function () use ($token, $userResolver): ?array {
+            $userId = $this->validateToken($token);
+            if ($userId === null) {
+                return null;
+            }
+
+            $user = $userResolver($userId);
+            if ($user === null) {
+                return null;
+            }
+
+            $this->invalidateToken($token);
+            $tokenData = $this->generateToken($userId);
+
+            return [
+                'user'      => $user,
+                'tokenData' => $tokenData,
+            ];
+        };
+
+        if ($this->transactionManager !== null) {
+            /** @var array{user: TUser, tokenData: array{token: string, expiry: int}}|null $result */
+            $result = $this->transactionManager->transactional($operation);
+            return $result;
+        }
+
+        return $operation();
+    }
+
+    /**
+     * Deletes a persistent token by its selector component.
+     *
+     * @param string $token Raw `"selector:validator"` string.
+     * @return void
      */
     public function invalidateToken(string $token): void
     {
-        if (strpos($token, ':') !== false) {
-            [$selector] = explode(':', $token);
-            $this->userTokenRepository->deleteRememberToken($selector);
+        if (str_contains($token, ':')) {
+            [$selector] = explode(':', $token, 2);
+            if ($selector !== '') {
+                $this->userTokenRepository->deleteRememberToken($selector);
+            }
         }
     }
 }
