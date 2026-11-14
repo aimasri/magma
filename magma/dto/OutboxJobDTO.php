@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Magma\dto;
@@ -7,25 +8,30 @@ namespace Magma\dto;
  * Title: Outbox Job DTO
  *
  * Purpose:
- * - Represents a standardized job payload intended for the transactional outbox table.
+ * - Represents an immutable job payload queued into the PostgreSQL transactional outbox table.
  *
- * Why this design:
- * - Uses immutable DTOs to enforce strict data boundaries between the event listeners and the database outbox layer, ensuring the payload is serializable and structure-checked before insertion.
+ * Why / Why this design:
+ * - `readonly class` guarantees that domain event listeners hand a strictly typed, tamper-proof
+ *   payload across the transactional persistence boundary.
  *
  * Teaching notes:
- * - Keeping DTOs read-only guarantees they aren't mutated mid-flight by middlewares or queue dispatchers.
+ * - Keeping `tenantId` explicit on the DTO preserves multi-tenant context when outbox workers
+ *   rehydrate and dispatch background jobs asynchronously.
  */
-class OutboxJobDTO
+readonly class OutboxJobDTO
 {
     /**
-     * @param array<string, mixed> $payload
-     * @param array<string, mixed> $headers
+     * @param string $queue Logical queue channel name.
+     * @param string $handlerClass Fully-qualified `JobInterface` handler class name.
+     * @param array<string, mixed> $payload Serializable job arguments.
+     * @param array<string, mixed> $headers Metadata headers (e.g. correlation IDs).
+     * @param int|null $tenantId Owning tenant identifier, or null for global system jobs.
      */
     public function __construct(
-        public readonly string $queue,
-        public readonly string $handlerClass,
-        public readonly array $payload,
-        public readonly array $headers = [],
-        public readonly ?int $tenantId = null
+        public string $queue,
+        public string $handlerClass,
+        public array $payload,
+        public array $headers = [],
+        public ?int $tenantId = null
     ) {}
 }

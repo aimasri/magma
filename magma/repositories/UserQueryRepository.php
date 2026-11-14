@@ -84,7 +84,7 @@ class UserQueryRepository extends AbstractQueryRepository implements UserQueryIn
      * 3. Executes and fetches the raw associative array.
      *
      * Logic behind the logic:
-     * - Intentionally returns a raw array to expose the password hash strictly to `CredentialAuthenticationService`.
+     * - Intentionally returns a raw array to expose the password hash strictly to `AuthenticationService`.
      *
      * @return array<string, mixed>|null
      */

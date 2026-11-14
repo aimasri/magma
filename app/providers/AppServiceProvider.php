@@ -45,5 +45,9 @@ class AppServiceProvider implements ServiceProviderInterface
             \App\services\SystemDiagnosticsServiceInterface::class,
             \App\services\SystemDiagnosticsService::class
         );
+
+        if (class_exists(\Modules\Reviews\providers\ReviewServiceProvider::class)) {
+            (new \Modules\Reviews\providers\ReviewServiceProvider())->register($container);
+        }
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\events\concerns;
 
 /**
@@ -44,7 +46,8 @@ trait InterpretsEventPayload
 
         // If the event object has a getPayload method, use it
         if (method_exists($event, 'getPayload')) {
-            return $event->getPayload();
+            $payload = $event->getPayload();
+            return is_array($payload) ? $payload : [];
         }
 
         // Otherwise, extract public properties as a fallback

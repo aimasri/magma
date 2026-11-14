@@ -43,12 +43,11 @@ class ReviewController
      * - Uses Method Injection to receive dynamic services from the router.
      */
     public function submitReview(
-        ReviewRequest $reviewRequest, 
+        ReviewRequest $reviewRequest,
         \Magma\security\TenantContext $tenantContext,
         ReviewSubmissionServiceInterface $reviewSubmissionService,
-        \Magma\http\SessionInterface $session,
-        \Magma\http\ResponseFactoryInterface $responseFactory
-    ): Response 
+        \Magma\http\SessionInterface $session
+    ): Response
     {
         // Validation is automatically handled by RouteParameterResolver for the ReviewRequest parameter.
 
@@ -57,9 +56,9 @@ class ReviewController
         $reviewSubmissionService->submit($dto, $tenantId);
 
         $session->set(
-            \App\constants\AppConstants::SESSION_SUCCESS_MESSAGE, 
+            \App\constants\AppConstants::SESSION_SUCCESS_MESSAGE,
             \Modules\Reviews\constants\ReviewConstants::MSG_REVIEW_SUBMITTED
         );
-        return $responseFactory->createRedirectResponse('/');
+        return new RedirectResponse('/');
     }
 }

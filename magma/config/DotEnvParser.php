@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\config;
 
 /**
@@ -49,7 +51,8 @@ class DotEnvParser
         }
 
         // Prevent memory exhaustion from large accidental file dumps
-        if (filesize($path) > 65536) { // 64KB limit
+        $size = filesize($path);
+        if ($size !== false && $size > 65536) { // 64KB limit
             return [];
         }
 

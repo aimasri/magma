@@ -1,58 +1,56 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\services;
 
+use Magma\domain\AuthUser;
+
 /**
- * Title: Authentication Result DTO
+ * Title: Authentication Result Value Object
  *
  * Purpose:
- * - Encapsulate the result of an authentication attempt (success/failure).
- * - Transport persistence instructions (cookies to set or clear) from the domain 
- *   service layer back to the HTTP Controller layer without coupling the domain 
- *   to the HTTP Response object.
- * 
+ * - Encapsulates the immutable outcome of an authentication or logout operation.
+ * - Transports cookie persistence instructions (`cookiesToSet`, `cookiesToClear`) from the domain
+ *   service layer back to the HTTP controller layer without coupling services to `Response`.
+ *
  * Why / Why this design:
- * - Using a dedicated Result object prevents the Controller from having to micromanage 
- *   token rotation and cookie clearing logic. The Service dictates *what* persistence 
- *   needs to happen, and the Controller simply applies it to the HTTP Response.
- * 
+ * - Immutability (`readonly class`): Prevents mid-flight mutation bugs; `withCookie()` and `clearCookie()`
+ *   return new `AuthenticationResult` instances with the appended instruction.
+ * - Transport Agnosticism: Keeps `AuthenticationService` reusable across HTTP, CLI, and test contexts.
+ *
  * Teaching notes:
- * - By decoupling this DTO from `core\http\Response`, the domain logic remains 
- *   entirely transport-agnostic. It could theoretically be used in a CLI or WebSocket 
- *   context where cookies are translated into different persistence mechanisms.
+ * - Because `AuthenticationResult` is a `readonly` Value Object, always capture the returned instance
+ *   when chaining `$result = $result->withCookie(...)` or `$result->clearCookie(...)`.
  */
-class AuthenticationResult
+readonly class AuthenticationResult
 {
-    private ?\Magma\domain\AuthUser $user;
-    /** @var array<int, array{name: string, value: string, expiry: int}> */
-    private array $cookiesToSet = [];
-    
-    /** @var array<int, string> */
-    private array $cookiesToClear = [];
-
     /**
-     * Initializes a new authentication result encapsulating the authenticated user.
+     * Initializes an immutable authentication result.
      *
-     * @param \Magma\domain\AuthUser|null $user
+     * @param AuthUser|null $user Authenticated domain user when successful, or null on failure/logout.
+     * @param array<int, array{name: string, value: string, expiry: int}> $cookiesToSet Cookies to attach to the HTTP response.
+     * @param array<int, string> $cookiesToClear Cookie names to expire on the HTTP response.
      */
-    public function __construct(?\Magma\domain\AuthUser $user = null)
-    {
-        $this->user = $user;
-    }
+    public function __construct(
+        private ?AuthUser $user = null,
+        private array $cookiesToSet = [],
+        private array $cookiesToClear = []
+    ) {}
 
     /**
-     * Factory method to create a successful authentication result.
+     * Creates a successful authentication result for the given user.
      *
-     * @param \Magma\domain\AuthUser $user
+     * @param AuthUser $user
      * @return self
      */
-    public static function success(\Magma\domain\AuthUser $user): self
+    public static function success(AuthUser $user): self
     {
         return new self($user);
     }
 
     /**
-     * Factory method to create a failed authentication result.
+     * Creates a failed (or logged-out) authentication result.
      *
      * @return self
      */
@@ -62,7 +60,7 @@ class AuthenticationResult
     }
 
     /**
-     * Determines whether the authentication attempt was successful.
+     * Indicates whether the authentication attempt succeeded.
      *
      * @return bool
      */
@@ -72,39 +70,47 @@ class AuthenticationResult
     }
 
     /**
-     * Retrieves the authenticated user, if available.
+     * Returns the authenticated user entity, if any.
      *
-     * @return \Magma\domain\AuthUser|null
+     * @return AuthUser|null
      */
-    public function getUser(): ?\Magma\domain\AuthUser
+    public function getUser(): ?AuthUser
     {
         return $this->user;
     }
 
     /**
-     * Queues a cookie to be set in the HTTP response.
+     * Returns a new instance with an additional cookie queued to be set on the HTTP response.
      *
      * @param string $name
      * @param string $value
-     * @param int $expiry
+     * @param int $expiry Unix expiration timestamp.
      * @return self
      */
     public function withCookie(string $name, string $value, int $expiry): self
     {
-        $this->cookiesToSet[] = compact('name', 'value', 'expiry');
-        return $this;
+        $cookies = $this->cookiesToSet;
+        $cookies[] = [
+            'name'   => $name,
+            'value'  => $value,
+            'expiry' => $expiry,
+        ];
+
+        return new self($this->user, $cookies, $this->cookiesToClear);
     }
 
     /**
-     * Queues a cookie to be cleared in the HTTP response.
+     * Returns a new instance with an additional cookie name queued for expiration.
      *
      * @param string $name
      * @return self
      */
     public function clearCookie(string $name): self
     {
-        $this->cookiesToClear[] = $name;
-        return $this;
+        $cleared = $this->cookiesToClear;
+        $cleared[] = $name;
+
+        return new self($this->user, $this->cookiesToSet, $cleared);
     }
 
     /**

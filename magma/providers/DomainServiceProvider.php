@@ -15,15 +15,10 @@ use Magma\database\TransactionManagerInterface;
 
 use Magma\interfaces\cqrs\UserQueryInterface;
 use Magma\interfaces\cqrs\UserCommandInterface;
-use Magma\repositories\UserTokenRepository;
-use Magma\repositories\UserTokenRepositoryInterface;
-use Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface;
 use Magma\services\MailerService;
 use Magma\services\AuthenticationService;
 use Magma\services\RegistrationService;
-use Magma\services\PasswordResetService;
 use Magma\services\RememberMeService;
-use Modules\Reviews\services\ReviewSubmissionService;
 use Magma\services\PaginationService;
 
 
@@ -115,44 +110,35 @@ class DomainServiceProvider implements ServiceProviderInterface
             );
         });
 
-        $container->set(\Magma\services\SessionAuthenticationService::class, function ($c) {
-            return new \Magma\services\SessionAuthenticationService(
-                $c->get(Session::class),
-                $c->get(\Magma\contracts\ClockInterface::class)
-            );
-        });
+        $container->set(RememberMeService::class, function (Container $c) {
+            $tokenRepo = $c->get(\Magma\interfaces\repositories\RememberTokenRepositoryInterface::class);
+            assert($tokenRepo instanceof \Magma\interfaces\repositories\RememberTokenRepositoryInterface);
+            $clock = $c->get(\Magma\contracts\ClockInterface::class);
+            assert($clock instanceof \Magma\contracts\ClockInterface);
+            $tx = $c->has(TransactionManagerInterface::class)
+                ? $c->get(TransactionManagerInterface::class)
+                : null;
 
-        $container->set(\Magma\services\CredentialAuthenticationService::class, function ($c) {
-            return new \Magma\services\CredentialAuthenticationService(
-                $c->get(UserQueryInterface::class),
-                $c->get(UserCommandInterface::class),
-                $c->get(\Magma\services\SessionAuthenticationService::class),
-                $c->get(\Magma\contracts\ClockInterface::class)
-            );
-        });
-
-        $container->set(\Magma\services\PersistentAuthenticationService::class, function ($c) {
-            return new \Magma\services\PersistentAuthenticationService(
-                $c->get(RememberMeService::class),
-                $c->get(\Magma\services\SessionAuthenticationService::class),
-                $c->get(UserQueryInterface::class),
-                $c->get(TransactionManagerInterface::class)
-            );
-        });
-
-        $container->set(AuthenticationService::class, function ($c) {
-            return new AuthenticationService(
-                $c->get(\Magma\services\CredentialAuthenticationService::class),
-                $c->get(\Magma\services\PersistentAuthenticationService::class),
-                $c->get(\Magma\services\SessionAuthenticationService::class)
-            );
-        });
-
-        $container->set(RememberMeService::class, function ($c) {
             return new RememberMeService(
-                $c->get(\Magma\repositories\RememberTokenRepository::class),
-                $c->get(\Magma\contracts\ClockInterface::class)
+                $tokenRepo,
+                $clock,
+                $tx instanceof TransactionManagerInterface ? $tx : null
             );
+        });
+
+        $container->set(AuthenticationService::class, function (Container $c) {
+            $userQuery = $c->get(UserQueryInterface::class);
+            assert($userQuery instanceof UserQueryInterface);
+            $userCommand = $c->get(UserCommandInterface::class);
+            assert($userCommand instanceof UserCommandInterface);
+            $rememberMe = $c->get(RememberMeService::class);
+            assert($rememberMe instanceof RememberMeService);
+            $session = $c->get(\Magma\http\SessionInterface::class);
+            assert($session instanceof \Magma\http\SessionInterface);
+            $clock = $c->get(\Magma\contracts\ClockInterface::class);
+            assert($clock instanceof \Magma\contracts\ClockInterface);
+
+            return new AuthenticationService($userQuery, $userCommand, $rememberMe, $session, $clock);
         });
 
         $container->set(RegistrationService::class, function ($c) {
@@ -166,18 +152,7 @@ class DomainServiceProvider implements ServiceProviderInterface
             return new RegistrationService($cmd, $evt, $tx);
         });
 
-        $container->set(\Modules\Reviews\interfaces\ReviewFactoryInterface::class, function ($c) {
-            return new \Modules\Reviews\domain\ReviewFactory();
-        });
-
-        $container->set(ReviewSubmissionService::class, function ($c) {
-            return new ReviewSubmissionService(
-                $c->get(SiteReviewCommandInterface::class),
-                $c->get(\Modules\Reviews\interfaces\ReviewFactoryInterface::class)
-            );
-        });
-
-        $container->set(PaginationService::class, function ($c) {
+        $container->set(PaginationService::class, function () {
             return new PaginationService();
         });
 
