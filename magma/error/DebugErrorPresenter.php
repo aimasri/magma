@@ -251,15 +251,25 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
         }
 
         $query = $request->query();
-        $post = $request->post();
+        $post = $request->request();
         $cookies = $request->cookie();
-        $headers = $request->headers();
+        $server = $request->server();
+        $remoteAddr = $request->server('REMOTE_ADDR', '127.0.0.1');
+
+        $headers = [];
+        if (is_array($server)) {
+            foreach ($server as $srvKey => $srvVal) {
+                if (is_string($srvKey) && (str_starts_with($srvKey, 'HTTP_') || in_array($srvKey, ['CONTENT_TYPE', 'CONTENT_LENGTH'], true))) {
+                    $headers[$srvKey] = $srvVal;
+                }
+            }
+        }
 
         return [
             'Method'       => $request->getMethod(),
             'URI'          => $request->getUri(),
-            'Client IP'    => (string) ($request->server('REMOTE_ADDR', '127.0.0.1') ?? '127.0.0.1'),
-            'User Agent'   => (string) ($request->header('User-Agent', 'Unknown') ?? 'Unknown'),
+            'Client IP'    => is_scalar($remoteAddr) ? (string) $remoteAddr : '127.0.0.1',
+            'User Agent'   => $request->header('User-Agent', 'Unknown') ?? 'Unknown',
             'Query Params' => is_array($query) && $query !== [] ? self::sanitizePayload($query) : '(Empty)',
             'Body Params'  => is_array($post) && $post !== [] ? self::sanitizePayload($post) : '(Empty)',
             'Cookies'      => is_array($cookies) && $cookies !== [] ? self::sanitizePayload($cookies) : '(Empty)',
@@ -326,7 +336,7 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
             'Max Execution'     => (string) ini_get('max_execution_time') . 's',
             'OPcache'           => $opcacheState,
             'Core Extensions'   => implode(', ', $extensions),
-            'Active Tenant'     => $tenant !== null ? "{$tenant->name} (#{$tenant->id}, slug: {$tenant->slug})" : 'Unbound / System Context',
+            'Active Tenant'     => $tenant !== null ? "{$tenant->name} (#{$tenant->id}, status: {$tenant->subscription_status})" : 'Unbound / System Context',
         ];
 
         return $metrics;

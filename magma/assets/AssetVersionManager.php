@@ -102,7 +102,9 @@ class AssetVersionManager
             return $this->urlCache[$normalizedInput];
         }
 
-        [$cleanPath, $existingQuery] = array_pad(explode('?', $normalizedInput, 2), 2, null);
+        $parts = explode('?', $normalizedInput, 2);
+        $cleanPath = $parts[0];
+        $existingQuery = $parts[1] ?? null;
 
         if ($this->releaseVersion !== null && $this->releaseVersion !== '') {
             $url = $this->appendVersion($cleanPath, $existingQuery, urlencode($this->releaseVersion));
