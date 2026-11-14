@@ -29,7 +29,7 @@ echo "====================================================\n";
 echo " Magma Framework: Route Manifest Pre-Compiler\n";
 echo "====================================================\n\n";
 
-$cacheFile = ROOT_DIR . '/magma/config/routes.cache.php';
+$cacheFile = \Magma\config\Config::getString('ROUTE_CACHE_PATH', ROOT_DIR . '/magma/config/routes.cache.php');
 
 echo "Discovering route definitions dynamically...\n";
 
