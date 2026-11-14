@@ -41,6 +41,17 @@ final class SuperglobalBanRule implements Rule
     ];
 
     /**
+     * Canonical boundary adapters whose sole responsibility is encapsulating PHP superglobals.
+     *
+     * @var array<string, bool>
+     */
+    private array $allowedBoundaryAdapters = [
+        \Magma\http\Request::class => true,
+        \Magma\http\Session::class => true,
+        \Magma\config\Config::class => true,
+    ];
+
+    /**
      * Returns the PhpParser AST node class inspected by this rule.
      */
     public function getNodeType(): string
@@ -58,6 +69,11 @@ final class SuperglobalBanRule implements Rule
     public function processNode(Node $node, Scope $scope): array
     {
         if (!is_string($node->name)) {
+            return [];
+        }
+
+        $className = $scope->getClassReflection()?->getName();
+        if ($className !== null && isset($this->allowedBoundaryAdapters[$className])) {
             return [];
         }
 

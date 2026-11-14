@@ -5,6 +5,7 @@ parameters:
     paths:
         - magma
         - app
+        - tests/PHPStan
 
 rules:
     - Tests\PHPStan\SuperglobalBanRule
