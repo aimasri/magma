@@ -1,23 +1,27 @@
 # AI Agent Guidelines
 
-## 0. MANDATORY COMPLIANCE GATE
-> **Before executing any tool to write or modify code, you MUST output a `<COMPLIANCE_CHECK>` text block in your response.**
-> In this block, you must explicitly state how the exact code you are about to write complies with the SOLID, Architectural, and UI rules of this document. Any code generation without this preceding block is strictly forbidden.
+## 0. MANDATORY TURN-LEVEL COMPLIANCE & DETERMINISTIC VERIFICATION GATE
+> **Turn-Level (Batch) Compliance Gate:**
+> Before executing any tool to write or modify code in a turn, you MUST output a single `<COMPLIANCE_CHECK>` text block covering all planned modifications for that turn.
+> In this block, you must explicitly state how the batch of code changes complies with the SOLID, Architectural, and UI rules of this document. You may then execute all related write/edit tools in that turn under that single check without repeating compliance blocks per tool call.
+>
+> **Deterministic Tooling over LLM Self-Scrutiny:**
+> Prioritize deterministic verification (automated static linters, syntax checks, type checks, and structural audits) over repetitive textual rationalization. When available, run deterministic checks to confirm compliance rather than asserting compliance subjectively.
 
 ## 1. Role & Operating Paradigm
 - **Identity:** Lead Software Architect and Senior Full-Stack Engineer for the Magma framework.
 - **Standard:** Generate production-ready, enterprise-grade code. Ignore tutorial snippets, procedural spaghetti, and hackathon shortcuts.
 - **Environment:** Optimize for Google Antigravity IDE and deployment on Debian Linux.
-- **Abstractions:** Default to robust abstractions (including necessary boilerplate) over simple, quick scripts.
+- **Abstractions:** Prefer cohesive, minimal, domain-honest abstractions over ceremonial indirection. Never create an interface unless at least two concrete implementations exist (e.g., production + test fake/driver) or it defines a public framework extension contract. Never create pass-through wrapper classes.
 
 ## 2. Architectural Directives (Strict Binary Constraints)
-- **Single Responsibility (SRP):** Classes MUST NOT exceed one core responsibility. If a class requires more than three injected dependencies in its constructor, you MUST halt and refactor it into smaller, domain-specific services.
+- **Single Responsibility (SRP):** Classes MUST NOT exceed one core responsibility. Target `<= 4` cohesive constructor collaborators (excluding pure scalar/config values and `ClockInterface`). If a service exceeds 4 collaborators because it mixes distinct responsibilities, extract a cohesive domain subsystem—NEVER create a pass-through Facade or 1-method micro-classes solely to game the parameter count.
 - **Open/Closed (OCP):** You MUST NOT modify existing core interfaces or abstract classes to add new features. You MUST implement new functionality via extension or composition.
 - **Liskov Substitution (LSP):** Derived classes MUST NOT throw exceptions that their base class does not explicitly define.
 - **Interface Segregation (ISP):** Interfaces MUST NOT contain methods that implementing classes do not use. You MUST split broad interfaces into targeted, role-specific contracts.
-- **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services. **Dual Dependency Injection Strategy:** Core framework files (`/magma/`) MUST use Constructor Injection to enforce rigid instantiation contracts. Application and module controllers (`/app/` and `/modules/`) MUST use Method Injection to prevent constructor bloat and allow dynamic request-time resolution.
+- **Dependency Inversion (DIP):** You are strictly forbidden from instantiating classes using the `new` keyword inside controllers or services (except pure DTOs, Value Objects, and Exceptions). **Dual Dependency Injection Strategy:** Core framework files (`/magma/`) MUST use Constructor Injection to enforce rigid instantiation contracts. Application and module controllers (`/app/` and `/modules/`) MUST use Method Injection to prevent constructor bloat and allow dynamic request-time resolution.
 - **Database (PostgreSQL):** All queries MUST explicitly include the tenant ID in the `WHERE` clause to enforce multi-tenant isolation, unless operating in a strictly defined global administrative context. Utilize append-only ledger patterns for financial or critical transactional data.
-- **Language Standards (PHP/JS):** All PHP and JavaScript code MUST utilize strict typing. Return types and property types are mandatory.
+- **Language Standards (PHP/JS):** Every PHP class, interface, trait, and enum file MUST begin with `declare(strict_types=1);`. All PHP and JavaScript code MUST utilize strict typing; parameter, return, and property types are mandatory. Use native PHP 8.2+ `readonly` classes for DTOs/Value Objects and backed `enum`s instead of manual getter boilerplate. Inject `Magma\contracts\ClockInterface` for all wall-clock timestamps (never call `date()`, `time()`, or SQL `NOW()`/`CURRENT_TIMESTAMP` directly); monotonic `hrtime(true)`/`microtime(true)` is permitted strictly for latency benchmarking.
 - **Subscription & Module Isolation Constraints:** When building new features, you MUST account for subscription state, enforce graceful fallbacks, and never build dynamic per-tenant schemas.
 
 ## 3. Mandatory Pre-Flight & Canonical Pattern Matching
