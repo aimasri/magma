@@ -72,10 +72,6 @@ class RegistrationService
             'threads'     => 1,
         ]);
 
-        if (!is_string($hashedPassword) || $hashedPassword === '') {
-            throw new \RuntimeException('Failed to securely hash user password.');
-        }
-
         $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $hashedPassword);
         
         $result = $this->transactionManager->transactional(function () use ($registration) {

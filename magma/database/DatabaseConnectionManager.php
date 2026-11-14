@@ -34,17 +34,17 @@ class DatabaseConnectionManager
     private ?PDO $writeInstance = null;
     private ?PDO $readInstance = null;
 
-    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} */
+    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string, lock_timeout?: int|string, statement_timeout?: int|string} */
     private array $writeSettings;
-    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} */
+    /** @var array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string, lock_timeout?: int|string, statement_timeout?: int|string} */
     private array $readSettings;
     private bool $emulatePrepares;
 
     private bool $forceWrite = false;
 
     /**
-     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $writeSettings
-     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $readSettings
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string, lock_timeout?: int|string, statement_timeout?: int|string} $writeSettings
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string, lock_timeout?: int|string, statement_timeout?: int|string} $readSettings
      * @param bool $emulatePrepares
      */
     public function __construct(array $writeSettings, array $readSettings, bool $emulatePrepares = true)
@@ -130,7 +130,7 @@ class DatabaseConnectionManager
      * - Explicitly executing `SET TIME ZONE 'UTC'` prevents timezone drift and ensures consistent
      *   timestamp retrieval across distributed database instances.
      *
-     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string} $settings The connection settings.
+     * @param array{driver?: string, host: string, port: int|string, dbname: string, user: string, password: string, lock_timeout?: int|string, statement_timeout?: int|string} $settings The connection settings.
      * @return PDO The configured connection.
      */
     private function createConnection(array $settings): PDO

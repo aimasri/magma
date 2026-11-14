@@ -116,8 +116,7 @@ class Application
         // Send headers and body to the client
         $response->send();
         if ($bufferedOutput !== '') {
-            $isJson = $response instanceof \Magma\http\JsonResponse
-                || str_contains(strtolower($response->getHeaders()['Content-Type'] ?? $response->getHeaders()['content-type'] ?? ''), 'application/json');
+            $isJson = str_contains(strtolower($response->getHeaders()['Content-Type'] ?? $response->getHeaders()['content-type'] ?? ''), 'application/json');
 
             if (!$isJson) {
                 echo $bufferedOutput;

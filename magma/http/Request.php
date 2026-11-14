@@ -368,12 +368,9 @@ class Request implements RequestInterface
             }
 
             if (function_exists('apache_request_headers')) {
-                $apacheHeaders = apache_request_headers();
-                if (is_array($apacheHeaders)) {
-                    foreach ($apacheHeaders as $hKey => $hVal) {
-                        if (strcasecmp((string)$hKey, 'Authorization') === 0 && is_scalar($hVal)) {
-                            return (string)$hVal;
-                        }
+                foreach (apache_request_headers() as $hKey => $hVal) {
+                    if (strcasecmp((string)$hKey, 'Authorization') === 0 && is_scalar($hVal)) {
+                        return (string)$hVal;
                     }
                 }
             }

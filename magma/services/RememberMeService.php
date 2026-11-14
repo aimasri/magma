@@ -6,7 +6,7 @@ namespace Magma\services;
 
 use Magma\repositories\RememberTokenRepository;
 use Magma\contracts\ClockInterface;
-use Magma\contracts\TransactionManagerInterface;
+use Magma\database\TransactionManagerInterface;
 
 /**
  * Title: Persistent Authentication Service (Remember Me)

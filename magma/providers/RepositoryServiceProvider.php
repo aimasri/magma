@@ -91,8 +91,7 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         $container->set(\Modules\Reviews\interfaces\cqrs\SiteReviewCommandInterface::class, function ($c) {
             return new SiteReviewCommandRepository(
                 $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class),
-                $c->get(\Magma\contracts\ClockInterface::class)
+                $c->get(\Magma\security\TenantContext::class)
             );
         });
 

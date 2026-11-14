@@ -211,17 +211,9 @@ class RedisQueue implements ReliableQueueInterface
 
         try {
             // Modern Redis 6.2+ atomic pop from head of active to tail of processing
-            if (method_exists($this->redis, 'blmove')) {
-                $result = $this->redis->blmove($sourceKey, $processingKey, 'LEFT', 'RIGHT', $timeout);
-                if (is_string($result) && $result !== '') {
-                    return $result;
-                }
-            } else {
-                // Fallback to classic BRPOPLPUSH across older Redis engines
-                $result = $this->redis->brpoplpush($sourceKey, $processingKey, $timeout);
-                if (is_string($result) && $result !== '') {
-                    return $result;
-                }
+            $result = $this->redis->blmove($sourceKey, $processingKey, 'LEFT', 'RIGHT', $timeout);
+            if (is_string($result) && $result !== '') {
+                return $result;
             }
 
             return null;
