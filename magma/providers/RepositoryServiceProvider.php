@@ -98,12 +98,17 @@ class RepositoryServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(UserQueryInterface::class, function (Container $c) {
+            $db = $c->get(\Magma\database\DatabaseConnectionManager::class);
+            assert($db instanceof \Magma\database\DatabaseConnectionManager);
+            $tenantContext = $c->has(\Magma\security\TenantContext::class)
+                ? $c->get(\Magma\security\TenantContext::class)
+                : null;
             $authMode = $c->has(\Magma\security\AuthTenantMode::class)
                 ? $c->get(\Magma\security\AuthTenantMode::class)
                 : \Magma\security\AuthTenantMode::TenantScoped;
             return new UserQueryRepository(
-                $c->get(\Magma\database\DatabaseConnectionManager::class),
-                $c->get(\Magma\security\TenantContext::class),
+                $db,
+                $tenantContext instanceof \Magma\security\TenantContext ? $tenantContext : null,
                 $authMode instanceof \Magma\security\AuthTenantMode ? $authMode : \Magma\security\AuthTenantMode::TenantScoped
             );
         });
