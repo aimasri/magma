@@ -150,21 +150,34 @@ class InfrastructureServiceProvider implements ServiceProviderInterface
             return new \Magma\logging\CorrelationIdProvider();
         });
 
-        $container->set(\Magma\logging\LoggerInterface::class, function ($c) {
-            $tenantContext = $c->has(\Magma\security\TenantContext::class) 
-                ? $c->get(\Magma\security\TenantContext::class) 
-                : null;
+        $container->set(\Magma\logging\LoggerInterface::class, function (Container $c) {
             $corrProvider = $c->has(\Magma\logging\CorrelationIdProviderInterface::class)
                 ? $c->get(\Magma\logging\CorrelationIdProviderInterface::class)
                 : null;
             return new \Magma\logging\NativeLogger(
-                $tenantContext instanceof \Magma\security\TenantContext ? $tenantContext : null,
+                function () use ($c): ?\Magma\security\TenantContext {
+                    try {
+                        $ctx = $c->has(\Magma\security\TenantContext::class)
+                            ? $c->get(\Magma\security\TenantContext::class)
+                            : null;
+                        return $ctx instanceof \Magma\security\TenantContext ? $ctx : null;
+                    } catch (\Throwable) {
+                        return null;
+                    }
+                },
                 $corrProvider instanceof \Magma\logging\CorrelationIdProviderInterface ? $corrProvider : null
             );
         });
 
-        $container->set(QueueInterface::class, function ($c) {
-            return new RedisQueue($c->get(\Redis::class));
+        $container->set(QueueInterface::class, function (Container $c) {
+            $prefix = Config::getString('QUEUE_PREFIX', 'queue:');
+            $redis = $c->get(\Redis::class);
+            assert($redis instanceof \Redis);
+            return new RedisQueue($redis, $prefix !== '' ? $prefix : 'queue:');
+        });
+
+        $container->set(\Magma\queue\ReliableQueueInterface::class, function (Container $c) {
+            return $c->get(QueueInterface::class);
         });
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Magma\config;
 
 /**
@@ -111,6 +113,37 @@ class Config
     {
         $val = self::get($key, $default);
         return is_scalar($val) ? (int)$val : $default;
+    }
+
+    /**
+     * Retrieves a configuration value as a boolean safely.
+     *
+     * @param string $key
+     * @param bool $default
+     * @return bool
+     */
+    public static function getBool(string $key, bool $default = false): bool
+    {
+        $val = self::get($key);
+        if ($val === null) {
+            return $default;
+        }
+        if (is_bool($val)) {
+            return $val;
+        }
+        if (is_int($val) || is_float($val)) {
+            return (bool) $val;
+        }
+        if (is_string($val)) {
+            $normalized = strtolower(trim($val));
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+            if (in_array($normalized, ['0', 'false', 'no', 'off', ''], true)) {
+                return false;
+            }
+        }
+        return $default;
     }
 
     /**
@@ -229,12 +262,12 @@ class Config
     public static function getMailerSettings(): array
     {
         return [
-            'host'        => self::getRequired('MAIL_HOST'),
-            'port'        => self::getInt('MAIL_PORT', 2525),
-            'username'    => self::getRequired('MAIL_USERNAME'),
-            'password'    => self::getRequired('MAIL_PASSWORD'),
+            'host'        => self::getString('MAIL_HOST', ''),
+            'port'        => self::getInt('MAIL_PORT', 587),
+            'username'    => self::getString('MAIL_USERNAME', ''),
+            'password'    => self::getString('MAIL_PASSWORD', ''),
             'encryption'  => self::getString('MAIL_ENCRYPTION', 'tls'),
-            'from_email'  => self::getRequired('MAIL_FROM_ADDRESS'),
+            'from_email'  => self::getString('MAIL_FROM_ADDRESS', ''),
             'from_name'   => self::getString('MAIL_FROM_NAME', 'Magma Framework'),
         ];
     }
