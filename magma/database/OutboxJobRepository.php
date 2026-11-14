@@ -352,8 +352,11 @@ class OutboxJobRepository implements OutboxJobRepositoryInterface
                     $pdo->commit();
                 }
             } catch (\Throwable $e) {
-                if ($ownsTx && $pdo->inTransaction()) {
-                    $pdo->rollBack();
+                if ($ownsTx) {
+                    try {
+                        $pdo->rollBack();
+                    } catch (\PDOException) {
+                    }
                 }
                 throw $e;
             }
