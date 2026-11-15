@@ -61,8 +61,13 @@ jobs:
         run: |
           PGPASSWORD=password psql -h 127.0.0.1 -U magma -d magma -f magma/database/schema.sql
 
-      - name: Run PHPUnit (Integration Testsuite)
-        run: vendor/bin/phpunit --testsuite Integration
+      - name: Verify Magma Core SHA-256 Manifest
+        run: |
+          php bin/magma_manifest.php --verify
+          sha256sum --quiet -c magma/manifest.sha256
+
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit
 
       - name: Run PHPStan
-        run: vendor/bin/phpstan analyze
+        run: vendor/bin/phpstan analyze --no-progress

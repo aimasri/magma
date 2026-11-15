@@ -268,6 +268,62 @@ final class Gate2CCoreDeBloatAndAuthTest extends TestCase
     }
 
     /**
+     * Verifies `MiddlewareInterface` and all core middlewares type-hint `RequestInterface`,
+     * `DebugErrorPresenter` honors `MockClock` with zero inline DOM handlers, and `magma/manifest.sha256` passes verification.
+     */
+    public function testMiddlewareRequestInterfaceDipDebugClockAndCoreManifest(): void
+    {
+        $repoRoot = dirname(__DIR__, 3);
+        $middlewareDir = $repoRoot . '/magma/middleware';
+
+        $checkedCount = 0;
+        foreach (glob($middlewareDir . '/*.php') ?: [] as $file) {
+            $base = basename($file, '.php');
+            if ($base === 'MiddlewareResolver') {
+                continue;
+            }
+            $fqcn = 'Magma\\middleware\\' . $base;
+            $ref = new \ReflectionClass($fqcn);
+            if ($fqcn !== \Magma\middleware\MiddlewareInterface::class && !$ref->implementsInterface(\Magma\middleware\MiddlewareInterface::class)) {
+                continue;
+            }
+            $method = $ref->getMethod('process');
+            $firstParam = $method->getParameters()[0] ?? null;
+            $this->assertNotNull($firstParam, "Missing \$request parameter on {$fqcn}::process()");
+            $type = $firstParam->getType();
+            $this->assertInstanceOf(\ReflectionNamedType::class, $type);
+            $this->assertSame(
+                \Magma\http\RequestInterface::class,
+                $type->getName(),
+                "{$fqcn}::process() must type-hint RequestInterface rather than concrete Request"
+            );
+            $checkedCount++;
+        }
+        $this->assertGreaterThanOrEqual(14, $checkedCount);
+
+        $frozenClock = new \Magma\infrastructure\time\MockClock(
+            new \DateTimeImmutable('2026-11-15T18:45:00+00:00')
+        );
+        $presenter = new DebugErrorPresenter(null, $frozenClock);
+        $html = $presenter->present(self::buildSampleException(), null, 500)->getContent();
+
+        $this->assertStringContainsString('2026-11-15 18:45:00 UTC', $html);
+        $this->assertStringContainsString('id="magma-debug-payload"', $html);
+        $this->assertStringContainsString('data-debug-action="copy-json"', $html);
+        $this->assertDoesNotMatchRegularExpression('/\bon(?:click|keyup)\s*=/i', $html);
+
+        $output = [];
+        $exitCode = 1;
+        exec(
+            escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($repoRoot . '/bin/magma_manifest.php') . ' --verify 2>&1',
+            $output,
+            $exitCode
+        );
+        $this->assertSame(0, $exitCode, implode("\n", $output));
+        $this->assertStringContainsString('[OK] Magma core manifest verified', implode("\n", $output));
+    }
+
+    /**
      * Constructs a sample exception well outside assertion lines so source-snippet extraction does not echo test literals.
      */
     private static function buildSampleException(): RuntimeException
