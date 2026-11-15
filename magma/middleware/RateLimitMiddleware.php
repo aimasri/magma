@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\security\RateLimiterInterface;
 
@@ -80,7 +80,7 @@ class RateLimitMiddleware implements MiddlewareInterface
      * 5. If limit exceeded, return HTTP 429 Too Many Requests response immediately.
      * 6. Pass the request to the next middleware or controller via the `$next` callable.
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         // Bypass rate limiting in development to prevent locking out developers
         if (defined('ENVIRONMENT') && ENVIRONMENT === 'development') {
@@ -127,7 +127,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         return $response;
     }
 
-    private function resolveClientIp(Request $request): ?string
+    private function resolveClientIp(RequestInterface $request): ?string
     {
         $remoteAddrVal = $request->server('REMOTE_ADDR');
         $remoteAddr = (is_string($remoteAddrVal) && $remoteAddrVal !== '') ? trim($remoteAddrVal) : null;

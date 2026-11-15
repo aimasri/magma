@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\http\RedirectResponse;
 
@@ -47,11 +47,11 @@ class GuestMiddleware implements MiddlewareInterface
      * Logic behind the logic:
      * This middleware acts as a UX optimization and a defensive measure against authenticated users inadvertently submitting guest-only forms like registration or login, which could pollute session state.
      * 
-     * @param Request $request
+     * @param RequestInterface $request
      * @param callable $next
      * @return Response
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         $user = $this->session->get('user');
         if (is_array($user)) {

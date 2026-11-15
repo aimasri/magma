@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 
 /**
@@ -12,7 +12,7 @@ use Magma\http\Response;
  *
  * Purpose:
  * - Define a uniform interface for all middleware components.
- * - Guarantee that every middleware can intercept an incoming `Request` and an outgoing `Response`.
+ * - Guarantee that every middleware can intercept an incoming `RequestInterface` and an outgoing `Response`.
  *
  * Why / Why this design:
  * - Implements the Chain of Responsibility pattern. By ensuring all middleware adhere to 
@@ -37,9 +37,9 @@ interface MiddlewareInterface
      * Logic behind the logic:
      * Passing a callable `$next` provides complete control over the execution stack, allowing middleware to perform actions both before and after the downstream handlers execute, commonly known as the "Onion Architecture".
      *
-     * @param Request $request
+     * @param RequestInterface $request
      * @param callable $next
      * @return Response
      */
-    public function process(Request $request, callable $next): Response;
+    public function process(RequestInterface $request, callable $next): Response;
 }

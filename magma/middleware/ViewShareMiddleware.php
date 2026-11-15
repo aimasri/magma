@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\view\TemplateEngine;
 use Magma\interfaces\cqrs\TenantQueryInterface;
@@ -68,7 +68,7 @@ class ViewShareMiddleware implements MiddlewareInterface
      * - By calling `share()`, these variables become implicitly available to every 
      *   `render()` or `partial()` call, eliminating boilerplate in the controllers.
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         if ($this->tenantContext->hasTenantId()) {
             $tenant = $this->tenantRepository->find($this->tenantContext->getTenantId());

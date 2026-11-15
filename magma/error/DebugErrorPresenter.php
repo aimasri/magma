@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Magma\error;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Magma\container\Container;
+use Magma\contracts\ClockInterface;
 use Magma\dto\TenantDTO;
 use Magma\http\RequestInterface;
 use Magma\http\Response;
@@ -35,11 +38,15 @@ use Throwable;
 class DebugErrorPresenter implements DebugErrorPresenterInterface
 {
     /**
-     * Initializes the Debug Error Presenter with an optional dependency container.
+     * Initializes the Debug Error Presenter with an optional dependency container and deterministic clock.
      *
      * @param Container|null $container Nullable container supporting early-boot exception rendering.
+     * @param ClockInterface|null $clock Optional deterministic clock for UTC diagnostic timestamps.
      */
-    public function __construct(private readonly ?Container $container = null) {}
+    public function __construct(
+        private readonly ?Container $container = null,
+        private readonly ?ClockInterface $clock = null
+    ) {}
 
     /**
      * Renders an interactive HTML debug page for an unhandled Throwable.
@@ -64,7 +71,7 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
             'rawTrace'        => $e->getTraceAsString(),
             'availableRoutes' => [],
             'requestData'     => self::gatherRequestContext($request),
-            'environmentData' => self::gatherEnvironmentMetrics($tenant),
+            'environmentData' => $this->gatherEnvironmentMetrics($tenant),
             'activeTenant'    => $tenant,
         ]);
 
@@ -96,7 +103,7 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
             'rawTrace'        => $e !== null ? $e->getTraceAsString() : '',
             'availableRoutes' => self::formatRoutesList($availableRoutes),
             'requestData'     => self::gatherRequestContext($request),
-            'environmentData' => self::gatherEnvironmentMetrics($tenant),
+            'environmentData' => $this->gatherEnvironmentMetrics($tenant),
             'activeTenant'    => $tenant,
         ]);
 
@@ -323,7 +330,7 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
      *
      * @return array<string, string>
      */
-    private static function gatherEnvironmentMetrics(?TenantDTO $tenant): array
+    private function gatherEnvironmentMetrics(?TenantDTO $tenant): array
     {
         $peakMb = round(memory_get_peak_usage(true) / (1024 * 1024), 2);
         $currMb = round(memory_get_usage(true) / (1024 * 1024), 2);
@@ -341,12 +348,14 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
             $extensions[] = $ext . ':' . (extension_loaded($ext) ? 'loaded' : 'missing');
         }
 
+        $nowUtc = $this->resolveUtcNow();
+
         $metrics = [
             'Framework'         => 'Magma Core',
             'App Environment'   => defined('ENVIRONMENT') ? (string) ENVIRONMENT : (getenv('APP_ENV') ?: 'development'),
             'PHP Version'       => PHP_VERSION . ' (' . PHP_SAPI . ')',
             'Operating System'  => php_uname('s') . ' (' . php_uname('m') . ')',
-            'Server Time (UTC)' => gmdate('Y-m-d H:i:s') . ' UTC',
+            'Server Time (UTC)' => $nowUtc->format('Y-m-d H:i:s') . ' UTC',
             'Current Memory'    => "{$currMb} MB",
             'Peak Memory Usage' => "{$peakMb} MB",
             'Memory Limit'      => (string) (ini_get('memory_limit') ?: 'N/A'),
@@ -357,6 +366,34 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
         ];
 
         return $metrics;
+    }
+
+    /**
+     * Resolves the current UTC timestamp via `ClockInterface` (with a pre-boot `DateTimeImmutable` fallback).
+     */
+    private function resolveUtcNow(): DateTimeImmutable
+    {
+        $utc = new DateTimeZone('UTC');
+        $clock = $this->clock;
+
+        if ($clock === null && $this->container !== null) {
+            try {
+                if ($this->container->has(ClockInterface::class)) {
+                    $resolved = $this->container->get(ClockInterface::class);
+                    if ($resolved instanceof ClockInterface) {
+                        $clock = $resolved;
+                    }
+                }
+            } catch (Throwable) {
+                $clock = null;
+            }
+        }
+
+        if ($clock !== null) {
+            return $clock->now()->setTimezone($utc);
+        }
+
+        return new DateTimeImmutable('now', $utc);
     }
 
     /**
@@ -482,15 +519,26 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
         /** @var array<string, string> $environmentData */
         $environmentData = is_array($context['environmentData'] ?? null) ? $context['environmentData'] : [];
 
-        $rawTraceJson = json_encode($context['rawTrace'] ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '""';
-        $fullDiagnosticsJson = json_encode([
-            'status'      => $statusCode,
-            'exception'   => $exceptionClass,
-            'message'     => $message,
-            'location'    => "{$displayFile}:{$line}",
-            'request'     => $requestData,
-            'environment' => $environmentData,
-        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $payloadJson = json_encode([
+            'rawTrace'        => is_string($context['rawTrace'] ?? null) ? $context['rawTrace'] : '',
+            'fullDiagnostics' => [
+                'status'      => $statusCode,
+                'exception'   => $exceptionClass,
+                'message'     => $message,
+                'location'    => "{$displayFile}:{$line}",
+                'request'     => $requestData,
+                'environment' => $environmentData,
+            ],
+        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?: '{"rawTrace":"","fullDiagnostics":{}}';
+
+        $stylesheetPath = __DIR__ . '/assets/debug_error.css';
+        $clientScriptPath = __DIR__ . '/assets/debug_error.js';
+        $stylesheetCss = is_file($stylesheetPath) && is_readable($stylesheetPath)
+            ? (file_get_contents($stylesheetPath) ?: '')
+            : '';
+        $clientScriptJs = is_file($clientScriptPath) && is_readable($clientScriptPath)
+            ? (file_get_contents($clientScriptPath) ?: '')
+            : '';
 
         $templateFile = __DIR__ . '/templates/debug_error.php';
         $render = static function () use (
@@ -510,8 +558,9 @@ class DebugErrorPresenter implements DebugErrorPresenterInterface
             $availableRoutes,
             $requestData,
             $environmentData,
-            $rawTraceJson,
-            $fullDiagnosticsJson
+            $stylesheetCss,
+            $clientScriptJs,
+            $payloadJson
         ): string {
             $level = ob_get_level();
             ob_start();

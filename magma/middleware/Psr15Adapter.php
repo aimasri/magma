@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use RuntimeException;
 
@@ -62,11 +62,11 @@ class Psr15Adapter implements MiddlewareInterface
      * - The anonymous handler class fulfills the PSR-15 `RequestHandlerInterface` structural contract, 
      *   allowing the third-party middleware to delegate back into Magma's onion pipeline naturally.
      *
-     * @param Request $request The incoming Magma HTTP Request.
+     * @param RequestInterface $request The incoming Magma HTTP Request.
      * @param callable $next The next middleware layer in the pipeline.
      * @return Response
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         // Construct an anonymous request handler wrapping the callable $next.
         $handler = new class($next) {

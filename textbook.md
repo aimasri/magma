@@ -862,16 +862,16 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 
 interface MiddlewareInterface
 {
-    public function process(Request $request, callable $next): Response;
+    public function process(RequestInterface $request, callable $next): Response;
 }
 ```
 
-It receives the incoming `Request` (or `RequestInterface` via parameter contravariance) and a closure `$next`. The Middleware has absolute power to decide what to do:
+It receives the incoming `RequestInterface` (directly enforcing the Dependency Inversion Principle rather than relying on parameter contravariance from a concrete `Request`) and a closure `$next`. The Middleware has absolute power to decide what to do:
 1. **Pass:** It can inspect the Request, decide everything is fine, and call `$next($request)` to pass the request deeper into the onion.
 2. **Reject:** It can inspect the Request, find a problem, and instantly return a `RedirectResponse` or a `401` JSON `Response`, **completely blocking the request from ever reaching the controller**.
 
@@ -941,7 +941,7 @@ class AuthMiddleware implements MiddlewareInterface
 }
 ```
 
-Similarly, `Magma\middleware\SessionTimeoutMiddleware` (`magma/middleware/SessionTimeoutMiddleware.php`) implements `MiddlewareInterface::process(Request $request, callable $next): Response` using injected `SessionInterface`, `ClockInterface`, and `RolePolicyInterface`, returning `new RedirectResponse('/login')` (with a cleared `remember_user` cookie) when inactivity exceeds the role's configured timeout. Because `SessionTimeoutMiddleware` is registered globally in `www/index.php` (`$app->addMiddleware(SessionTimeoutMiddleware::class);`), individual controllers don't have to know that session timeouts even exist.
+Similarly, `Magma\middleware\SessionTimeoutMiddleware` (`magma/middleware/SessionTimeoutMiddleware.php`) implements `MiddlewareInterface::process(RequestInterface $request, callable $next): Response` using injected `SessionInterface`, `ClockInterface`, and `RolePolicyInterface`, returning `new RedirectResponse('/login')` (with a cleared `remember_user` cookie) when inactivity exceeds the role's configured timeout. Because `SessionTimeoutMiddleware` is registered globally in `www/index.php` (`$app->addMiddleware(SessionTimeoutMiddleware::class);`), individual controllers don't have to know that session timeouts even exist.
 
 #### Analyzing the Principles: The Power of the Pipeline
 This pattern is formally known as the **Pipeline Pattern**. 
@@ -1798,7 +1798,7 @@ class ErrorHandler implements ErrorHandlerInterface
         // 2. Return 422 JSON or flash ValidationException errors & redirect
         // 3. Log technical details securely
         // 4. Content-negotiate JSON via JsonErrorPresenterInterface when expected
-        // 5. If $this->debug is true, render magma/error/templates/debug_error.php via DebugErrorPresenterInterface
+        // 5. If $this->debug is true, render magma/error/templates/debug_error.php (paired with magma/error/assets/debug_error.css and debug_error.js) via DebugErrorPresenterInterface
         // 6. Otherwise call $this->renderError($code, $message, null, $request) -> app/views/404.php or 500.php
     }
 }
@@ -1807,7 +1807,7 @@ class ErrorHandler implements ErrorHandlerInterface
 #### Analyzing the Principles: Security, Content Negotiation, and Observability
 This architecture separates concerns across environments and client types:
 
-By tying debug diagnostics to `APP_DEBUG` and `ENVIRONMENT` (and isolating output rendering inside `DebugErrorPresenter` -> `magma/error/templates/debug_error.php` vs. production `app/views/404.php` and `app/views/500.php`), an attacker can never purposefully crash the site in production just to read a stack trace.
+By tying debug diagnostics to `APP_DEBUG` and `ENVIRONMENT` (and isolating output rendering inside `DebugErrorPresenter` -> `magma/error/templates/debug_error.php` paired with standalone offline diagnostic assets `magma/error/assets/debug_error.css` and `magma/error/assets/debug_error.js`, vs. production `app/views/404.php` and `app/views/500.php`), an attacker can never purposefully crash the site in production just to read a stack trace.
 
 Meanwhile, API clients (`Accept: application/json` or `/api/*` routes) automatically receive structured JSON payloads from `JsonErrorPresenterInterface`, while `NativeLogger` (`magma/logging/NativeLogger.php`) and `CorrelationIdProvider` (`magma/logging/CorrelationIdProvider.php`) preserve full technical diagnostics for engineers.
 
