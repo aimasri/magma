@@ -7,7 +7,7 @@ namespace Magma\middleware;
 use Magma\contracts\ClockInterface;
 use Magma\contracts\RolePolicyInterface;
 use Magma\http\RedirectResponse;
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\http\SessionInterface;
 
@@ -54,11 +54,11 @@ class SessionTimeoutMiddleware implements MiddlewareInterface
      * Logic behind the logic:
      * - Checking both `isJsonExpected()` and standard browser navigation ensures SPA/AJAX consumers receive structured 401 responses instead of HTML redirects.
      *
-     * @param Request $request Incoming HTTP request.
+     * @param RequestInterface $request Incoming HTTP request.
      * @param callable $next Downstream middleware handler.
      * @return Response Resulting HTTP response.
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         $user = $this->session->get('user');
 

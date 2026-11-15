@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Magma\middleware;
 
 use Magma\http\RedirectResponse;
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 use Magma\http\SessionInterface;
 use Magma\services\AuthenticationService;
@@ -73,11 +73,11 @@ class RoleMiddleware implements MiddlewareInterface
      * Logic behind the logic:
      * - We do NOT overwrite `intended_url` when an authenticated user lacks the required role; otherwise redirecting an authenticated user from a restricted area to a fallback path would pollute their post-login destination.
      *
-     * @param Request $request Incoming HTTP request.
+     * @param RequestInterface $request Incoming HTTP request.
      * @param callable $next Downstream middleware handler.
      * @return Response Resulting HTTP response.
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         $user = $this->authService->getAuthenticatedUser();
 

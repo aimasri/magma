@@ -188,7 +188,15 @@ $view = <<<VIEW
 <?php
 /**
  * Title: Syllabus View
- * Purpose: Renders the textbook / syllabus page.
+ *
+ * Purpose:
+ * - Renders the 16-module Masterclass Textbook (`/syllabus`) as a standalone HTML curriculum view.
+ *
+ * Teaching notes:
+ * - Generated from `textbook.md` and rendered standalone without wrapping in a global application layout.
+ * - Uses scoped CSS classes (`/css/app.css` and `/css/components/syllabus.css`) with zero static inline styles.
+ *
+ * @var array{title?: string|null} \$data Encapsulated view data payload.
  */
 \$pageTitle = \$data['title'] ?? 'Architectural Syllabus';
 ?>

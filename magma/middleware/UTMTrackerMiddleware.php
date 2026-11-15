@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Magma\middleware;
 
-use Magma\http\Request;
+use Magma\http\RequestInterface;
 use Magma\http\Response;
 
 /**
@@ -57,7 +57,7 @@ class UTMTrackerMiddleware implements MiddlewareInterface
      * - Storing in both the session and request attributes ensures the data is available 
      *   both asynchronously (future requests) and synchronously (this exact request).
      */
-    public function process(Request $request, callable $next): Response
+    public function process(RequestInterface $request, callable $next): Response
     {
         $utmParams = [
             'utm_source',

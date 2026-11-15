@@ -152,7 +152,10 @@ class CoreServiceProvider implements ServiceProviderInterface
         });
 
         $container->set(\Magma\interfaces\DebugErrorPresenterInterface::class, function ($c) {
-            return new \Magma\error\DebugErrorPresenter($c);
+            return new \Magma\error\DebugErrorPresenter(
+                $c,
+                $c->has(\Magma\contracts\ClockInterface::class) ? $c->get(\Magma\contracts\ClockInterface::class) : null
+            );
         });
 
         $container->set(ErrorHandlerInterface::class, function ($c) {
