@@ -32,9 +32,9 @@ To achieve this in the Magma Framework framework, we apply the following princip
 2.  **Agnostic Core Domain:** The core application doesn't care about a specific tenant's business. It only understands abstract concepts: `Vendors`, `Products`, `Orders`, and `Inventory`. The specifics are data, not code.
 3.  **Configuration over Hardcoding:** If a vendor has a specific rule, we abstract this into a configurable business rule associated with the vendor's profile, rather than burying it in `if/else` statements within our services.
 
-**Code Example: Hardcoding vs. Abstraction**
+**Conceptual OOP Illustration: Hardcoding vs. Abstraction**
 
-Imagine a specific vendor ("Vendor A") does not allow orders to be placed on Sundays. 
+Imagine a hypothetical `OrderService` where a specific vendor ("Vendor A") does not allow orders to be placed on Sundays: 
 
 *The Wrong Way (Hardcoded Logic):*
 ```php
@@ -128,23 +128,37 @@ This looks clean! But what is `Cache`? It's a static proxy. Behind the scenes, t
 3.  **Testing Nightmare:** Mocking static methods for unit tests requires complex reflection or specialized testing libraries (like Mockery), rather than simply passing a fake object into a constructor.
 
 #### The "Why" & Framework Comparison: The Explicit Alternative
-In the Magma Framework architecture, we demand **Explicit Dependencies**. If your class needs a cache, you must ask for it in the constructor.
+In the Magma Framework architecture, we demand **Explicit Dependencies**. If a core controller or service needs an authentication service or cache, it must declare it explicitly in its constructor (or method signature for application/module controllers); never instantiate hidden infrastructure inside business logic.
 
 ```php
-// The Explicit "Magma" Way
-class ProductService 
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\Reviews\controllers;
+
+use Magma\http\Response;
+use Magma\http\RedirectResponse;
+use Modules\Reviews\requests\ReviewRequest;
+use Modules\Reviews\interfaces\ReviewSubmissionServiceInterface;
+
+// The Explicit "Magma" Way (from modules/Reviews/controllers/ReviewController.php)
+class ReviewController
 {
-    private CacheInterface $cache;
+    public function submitReview(
+        ReviewRequest $reviewRequest,
+        \Magma\security\TenantContext $tenantContext,
+        ReviewSubmissionServiceInterface $reviewSubmissionService,
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $dto = $reviewRequest->toDTO();
+        $reviewSubmissionService->submit($dto, $tenantContext->getTenantId());
 
-    // We explicitly demand our dependency!
-    public function __construct(CacheInterface $cache) 
-    {
-        $this->cache = $cache;
-    }
-
-    public function getProduct() 
-    {
-        $value = $this->cache->get('key');
+        $session->set(
+            \App\constants\AppConstants::SESSION_SUCCESS_MESSAGE,
+            \Modules\Reviews\constants\ReviewConstants::MSG_REVIEW_SUBMITTED
+        );
+        return new RedirectResponse('/');
     }
 }
 ```
@@ -152,15 +166,15 @@ class ProductService
 **The Danger of the `new` Keyword (Tight Coupling)**
 You asked earlier why using `$mailer = new SmtpMailer();` inside a controller is almost as bad as using a Facade. 
 
-The answer is **Tight Coupling**. If you write `new SmtpMailer()` directly inside your code, your controller is permanently glued to that exact SMTP class. If tomorrow the business says, "We are switching to the Mailgun API," you have to open the controller and rewrite the code.
+The answer is **Tight Coupling**. If you write `new SmtpMailer()` directly inside your code, your controller is permanently glued to that exact SMTP class. If tomorrow the business says, "We are switching to another mail transport," you have to open the controller and rewrite the code.
 
-If instead you injected a `MailerInterface` into the constructor, you would simply change the configuration in your Dependency Injection Container (which we will cover in Module 3), and the controller *never has to change*. The `new` keyword prevents your code from being flexible!
+If instead you injected a contract like `ReviewSubmissionServiceInterface` or `CacheInterface` (`Magma\interfaces\CacheInterface`), you would simply change the binding in your Service Provider (which we will cover in Module 3), and the controller *never has to change*. The `new` keyword prevents your code from being flexible!
 
 **The Comparison Summary:**
 Why do we choose explicit injection? 
-*   **Readability:** The constructor acts as an honest contract. Anyone looking at the class instantly knows exactly what external systems it relies on.
-*   **Testability:** To test `ProductService`, we simply instantiate it and pass in a `new DummyArrayCache()`. No complex mocking frameworks required.
-*   **Swappability:** Because we ask for an `Interface`, we can swap out a Redis cache for a Memcached system without changing a single line of code inside `ProductService`.
+*   **Readability:** The signature acts as an honest contract. Anyone looking at `ReviewController::submitReview()` instantly knows every subsystem it relies on.
+*   **Testability:** To test code depending on `CacheInterface`, we simply inject an in-memory `ArrayCache` instead of a live `RedisCache`. No global state or complex mocking frameworks required.
+*   **Swappability:** Because we ask for an `Interface`, we can swap `RedisCache` for `ArrayCache` in configuration without changing a single line of business logic.
 
 By forcing ourselves to be explicit, we are forced to think about the design of our system, leading to naturally looser coupling and higher cohesion.
 
@@ -248,59 +262,61 @@ Let's look at the actual code for our Front Controller. This is pulled directly 
 ```php
 <?php
 
-/**
- * The Front Controller.
- * 
- * This is the only file in the entire application that should be publicly 
- * accessible to the web. It serves as the gateway that initiates the 
- * bootstrapping process and hands control over to the Application kernel.
- */
+use Magma\Application;
+use Magma\middleware\CsrfMiddleware;
+use Magma\middleware\UTMTrackerMiddleware;
+use Magma\middleware\ViewShareMiddleware;
+use Magma\middleware\SessionTimeoutMiddleware;
+use Magma\middleware\SecurityHeadersMiddleware;
 
-// 1. Leave the public directory immediately
-require __DIR__ . '/../magma/core/config/bootstrap.php';
+try {
+    // 1. Leave the public directory immediately
+    require_once __DIR__ . '/../magma/config/bootstrap.php';
 
-// 2. Define our environment
-define('ENVIRONMENT', \core\config\Config::get('APP_ENV', 'production'));
+    // 2. Define our environment
+    define('ENVIRONMENT', \Magma\config\Config::get('APP_ENV', 'production'));
 
-use core\Application;
-use core\middleware\CsrfMiddleware;
-use core\middleware\UTMTrackerMiddleware;
-use core\middleware\ViewShareMiddleware;
-use core\middleware\SessionTimeoutMiddleware;
+    // 3. Resolve the application and add security layers (first in, outermost layer)
+    $app = $container->get(Application::class);
+    $app->addMiddleware(\Magma\middleware\TenantSecurityMiddleware::class);
+    $app->addMiddleware(CsrfMiddleware::class);
+    $app->addMiddleware(UTMTrackerMiddleware::class);
+    $app->addMiddleware(ViewShareMiddleware::class);
+    $app->addMiddleware(SessionTimeoutMiddleware::class);
+    $app->addMiddleware(SecurityHeadersMiddleware::class);
 
-// 3. Resolve the application and add security layers
-$app = $container->get(Application::class);
-$app->addMiddleware(UTMTrackerMiddleware::class);
-$app->addMiddleware(CsrfMiddleware::class);
-$app->addMiddleware(SessionTimeoutMiddleware::class);
-$app->addMiddleware(ViewShareMiddleware::class);
-
-// 4. Run the application!
-$app->run();
+    // 4. Execute the request!
+    $app->run();
+} catch (\Throwable $e) {
+    error_log("CRITICAL BOOT FAILURE: " . $e->getMessage());
+    http_response_code(500);
+    echo "A critical system error occurred during initialization.";
+    exit(1);
+}
 ```
 
 #### Analyzing the Principles: The Public Boundary
-The most crucial line in this file is the very first one:
-`require __DIR__ . '/../magma/core/config/bootstrap.php';`
+The most crucial line inside the boot block is:
+`require_once __DIR__ . '/../magma/config/bootstrap.php';`
 
-Notice the directory structure. The web server (like Nginx or Apache) is configured to serve files *only* from the `www/` directory. However, all of our actual code, business logic, and configuration files live in `magma/`, which sits completely outside the document root.
+Notice the directory structure. The web server (like Nginx or Apache) is configured to serve files *only* from the `www/` directory. However, all of our actual code, business logic, and configuration files live in `magma/`, `app/`, and `modules/`, which sit completely outside the document root.
 
-By executing that `require` statement, we immediately "jump" out of the public folder and into our secure application container. 
+By executing that `require_once` statement, we immediately "jump" out of the public folder and into our secure application container.
 
-This is the ultimate Separation of Concerns regarding security. Even if the web server suffers a catastrophic misconfiguration and accidentally serves `.php` files as raw text instead of executing them, an attacker could only see the contents of `index.php`. They cannot reach our database credentials because those files simply do not exist within the server's public path.
+This is the ultimate Separation of Concerns regarding security. Even if the web server suffers a catastrophic misconfiguration and accidentally serves `.php` files as raw text instead of executing them, an attacker could only see the contents of `www/index.php`. They cannot reach our database credentials or `.env` configuration because those files simply do not exist within the server's public path.
 
 #### The "Why" & Framework Comparison
-Both Laravel (`public/index.php`) and Symfony (`public/index.php`) use this exact pattern, and for good reason. It provides a centralized location to enforce rules. 
+Both Laravel (`public/index.php`) and Symfony (`public/index.php`) use this exact pattern, and for good reason. It provides a centralized location to enforce rules.
 
-Because we add our `SessionTimeoutMiddleware` and `CsrfMiddleware` directly into the `$app` right here at the gateway, we absolutely guarantee that no controller deep inside the application can ever be reached without passing those security checks first. If we used the old multiple-file pattern, we could never make that guarantee.
+Because we add `TenantSecurityMiddleware`, `CsrfMiddleware`, `SessionTimeoutMiddleware`, and `SecurityHeadersMiddleware` directly into `$app` right here at the gateway, we absolutely guarantee that no controller deep inside the application can ever be reached without passing those security checks first. If we used the old multiple-file pattern, we could never make that guarantee.
 
 #### Common Questions and Answers
 
-> **Q: What is the security risk of having the core application folder (e.g. `magma/`, which contains the `.env` file) inside the public `www/` directory?**
+> **Q: What is the security risk of having the core application folder (e.g., `magma/` or the root `.env` file) inside the public `www/` directory?**
 > 
-> **A:** If those files are in the public domain, the database credentials and secret keys become easily accessible. If a web server misconfiguration occurs, an attacker could navigate directly to `website.com/magma/.env` and download your passwords as plain text. Keeping them strictly outside the document root eliminates this vector entirely.
+> **A:** If those files are in the public domain, the database credentials and secret keys become easily accessible. If a web server misconfiguration occurs, an attacker could navigate directly to `website.com/.env` and download your passwords as plain text. Keeping them strictly outside the document root eliminates this vector entirely.
 
-> **Q: Looking at `index.php`, why does it make sense to attach "global" middleware (like CSRF and Session checks) here at the entrance, rather than waiting until the Router decides which Controller to execute?**
+> **Q: Looking at `www/index.php`, why does it make sense to attach "global" middleware (like Tenant Security, CSRF, Session Timeout, and Security Headers) here at the entrance, rather than waiting until the Router decides which Controller to execute?**
 > 
 > **A:** Think of it like a bag check at the entrance of the festival gates, rather than having one at every stall. By performing the security check once at the absolute perimeter, we guarantee that no malicious payload even reaches the inner workings of our application. We enforce security by default, rather than relying on individual controllers to remember to check it.
 
@@ -309,26 +325,31 @@ Because we add our `SessionTimeoutMiddleware` and `CsrfMiddleware` directly into
 ### Chapter 2.2: Bootstrapping the Application
 
 #### Subject & Intent: Waking Up the Application
-If `index.php` is the front door, `bootstrap.php` is the process of turning on the lights, booting up the computers, and unlocking the cash register before the customers arrive. 
+If `www/index.php` is the front door, `magma/config/bootstrap.php` is the process of turning on the lights, booting up the computers, and unlocking the cash register before the customers arrive.
 
-When execution jumps out of the `www/` directory via that `require` statement, it lands in `./magma/core/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
+When execution jumps out of the `www/` directory via that `require_once` statement, it lands in `magma/config/bootstrap.php`. This file is responsible for preparing the environment so that our business logic has everything it needs to execute.
 
-#### File Walkthrough: `bootstrap.php`
+#### File Walkthrough: `magma/config/bootstrap.php`
 
 Let's look at the critical sections of this file:
 
 ```php
 <?php
-// ... docblocks omitted ...
+
+declare(strict_types=1);
 
 // 1. The Autoloader
 require_once __DIR__ . '/autoload.php';
 
-use core\container\Container;
-use core\config\Config;
-use core\providers\CoreServiceProvider;
-use core\providers\RepositoryServiceProvider;
-// ...
+use Magma\container\Container;
+use Magma\config\Config;
+use Magma\providers\CoreServiceProvider;
+use Magma\providers\DatabaseServiceProvider;
+use Magma\providers\InfrastructureServiceProvider;
+use Magma\providers\RoutingServiceProvider;
+use Magma\providers\RepositoryServiceProvider;
+use Magma\providers\DomainServiceProvider;
+use Magma\providers\HttpServiceProvider;
 
 // 2. Load Environment Variables
 Config::initialize();
@@ -336,12 +357,22 @@ Config::initialize();
 // 3. Initialize the Service Container
 $container = new Container();
 
+$container->set(Container::class, function () use ($container) {
+    return $container;
+});
+
 // 4. Register Service Providers
 $providers = [
     new CoreServiceProvider(),
+    new InfrastructureServiceProvider(),
+    new DatabaseServiceProvider(),
+    new RoutingServiceProvider(),
     new RepositoryServiceProvider(),
     new DomainServiceProvider(),
     new HttpServiceProvider(),
+    new \Magma\providers\EventServiceProvider(),
+    new \App\providers\AppServiceProvider(),
+    // Module service providers are registered via App\providers\AppServiceProvider.
 ];
 
 foreach ($providers as $provider) {
@@ -352,20 +383,20 @@ foreach ($providers as $provider) {
 #### Analyzing the Principles
 
 **1. The PSR-4 Autoloader**
-Before PHP 5.3, if you wanted to use 10 different classes in a file, you had to write 10 `require 'path/to/class.php';` statements at the top of your file. It was a nightmare. 
-Today, we use an **Autoloader** (specifically adhering to the PSR-4 standard). We require the autoloader *once* here in the bootstrap file. From then on, whenever PHP sees `new core\container\Container()`, the autoloader intercepts it, maps the namespace `core\container` to the physical folder path, and includes the file automatically behind the scenes.
+Before PHP 5.3, if you wanted to use 10 different classes in a file, you had to write 10 `require 'path/to/class.php';` statements at the top of your file. It was a nightmare.
+Today, we use an **Autoloader** (specifically adhering to the PSR-4 standard, implemented in `magma/config/autoload.php`). We require the autoloader *once* here in the bootstrap file. From then on, whenever PHP sees `new Magma\container\Container()`, the autoloader intercepts it, maps the `Magma\` namespace prefix to `magma/` (and `App\` to `app/`, `Modules\` to `modules/`), and includes `magma/container/Container.php` automatically behind the scenes.
 
 **2. Centralized Configuration**
-`Config::initialize()` parses our hidden `.env` file (which contains our database passwords and API keys). Crucially, it loads them into a centralized `Config` object. We do this early so the rest of the application can simply ask the `Config` object for settings, rather than interacting with the raw filesystem or server globals.
+`Config::initialize()` parses our hidden `.env` file (which contains our database passwords and API keys). Crucially, it loads them into a centralized `\Magma\config\Config` class (and wraps them behind `ConfigInterface` via `ConfigWrapper`). We do this early so the rest of the application can simply ask `Config` for settings, rather than interacting with the raw filesystem or server globals.
 
 **3. The Service Providers**
-To keep our bootstrap file from becoming 5,000 lines long, we use the **Service Provider Pattern**. We group our setup logic into logical chunks (Core, Repository, Domain, Http). The bootstrap file simply loops over them and tells them to register themselves with the Dependency Injection Container. 
+To keep our bootstrap file from becoming 5,000 lines long, we use the **Service Provider Pattern**. We group our setup logic into logical chunks (`CoreServiceProvider`, `InfrastructureServiceProvider`, `DatabaseServiceProvider`, `RoutingServiceProvider`, `RepositoryServiceProvider`, `DomainServiceProvider`, `HttpServiceProvider`, `EventServiceProvider`, and `AppServiceProvider`). The bootstrap file simply loops over them and tells them to register themselves with the Dependency Injection Container.
 
 #### The "Why" & Framework Comparison
-Why keep `index.php` and `bootstrap.php` separate? Why not just put all the bootstrap logic directly in `index.php`?
+Why keep `www/index.php` and `magma/config/bootstrap.php` separate? Why not just put all the bootstrap logic directly in `www/index.php`?
 
 **Testing and CLI access.**
-If we put all the boot logic inside `index.php`, we couldn't run automated tests or command-line (CLI) scripts without faking an HTTP web request. By isolating the boot sequence into `bootstrap.php`, our web gateway (`index.php`), our CLI worker daemon (`worker.php`), and our PHPUnit test suite can all simply `require 'bootstrap.php'` to wake up the application securely and consistently!
+If we put all the boot logic inside `www/index.php`, we couldn't run automated tests or command-line (CLI) scripts without faking an HTTP web request. By isolating the boot sequence into `magma/config/bootstrap.php`, our web gateway (`www/index.php`), our CLI worker daemon (`bin/worker.php`), and our PHPUnit test suite on the `lava` branch can all simply `require 'magma/config/bootstrap.php'` to wake up the application securely and consistently!
 
 #### Common Questions and Answers
 
@@ -382,16 +413,16 @@ If we put all the boot logic inside `index.php`, we couldn't run automated tests
 ### Chapter 2.3: Containerization & Execution
 
 #### Subject & Intent: Passing the Baton
-We have left the `www/` directory and we have bootstrapped our environment. We now have an autoloader and a populated `Config` object. 
+We have left the `www/` directory and we have bootstrapped our environment. We now have an autoloader and a populated `Config` object.
 
-The final responsibility of the Front Controller phase is to **build the Dependency Injection Container** and **execute the Application**. This is the exact moment where the static "setup" phase ends, and the dynamic "runtime" phase begins. 
+The final responsibility of the Front Controller phase is to **build the Dependency Injection Container** and **execute the Application**. This is the exact moment where the static "setup" phase ends, and the dynamic "runtime" phase begins.
 
 #### File Walkthrough: The Handoff
 
-If we look back at the final lines of our `bootstrap.php` file, we see this:
+If we look back at the final lines of our `magma/config/bootstrap.php` file, we see this:
 
 ```php
-// magma/core/config/bootstrap.php
+// magma/config/bootstrap.php
 
 // The Container is instantiated
 $container = new Container();
@@ -402,7 +433,7 @@ foreach ($providers as $provider) {
 }
 ```
 
-At this exact millisecond, the `$container` object holds a complete "map" of every interface in our application and the concrete class it should use (e.g., "If someone asks for `DatabaseInterface`, give them `PostgresConnection`"). We will dive deeply into *how* the container works in Module 3, but for now, just understand that it is our master factory.
+At this exact millisecond, the `$container` object holds a complete "map" of every interface in our application and the concrete class or factory closure it should use (for example, `TransactionManagerInterface::class` -> `DatabaseTransactionManager`, or `CacheInterface::class` -> `RedisCache`). We will dive deeply into *how* the container works in Module 3, but for now, just understand that it is our master factory.
 
 Now, execution returns to `www/index.php` for the finale:
 
@@ -412,10 +443,13 @@ Now, execution returns to `www/index.php` for the finale:
 // 1. We ask the container to build the Application Kernel for us
 $app = $container->get(Application::class);
 
-// 2. We attach our security middleware
-$app->addMiddleware(UTMTrackerMiddleware::class);
+// 2. We attach our security middleware (outermost to innermost)
+$app->addMiddleware(\Magma\middleware\TenantSecurityMiddleware::class);
 $app->addMiddleware(CsrfMiddleware::class);
+$app->addMiddleware(UTMTrackerMiddleware::class);
+$app->addMiddleware(ViewShareMiddleware::class);
 $app->addMiddleware(SessionTimeoutMiddleware::class);
+$app->addMiddleware(SecurityHeadersMiddleware::class);
 
 // 3. We pull the trigger.
 $app->run();
@@ -457,8 +491,8 @@ Modern enterprise applications don't just respond to web browsers. They process 
 If we tied all our bootstrapping logic (like session starting or header parsing) directly into the core, our background workers would crash, because a background CLI script does not have an HTTP Session or an IP Address!
 
 To solve this, Magma implements **Dual-Mode Kernels**:
-1.  **The Application Kernel (`Application.php`):** Resolves the HTTP Request, dispatches it through the Middleware Onion, and returns an HTTP Response. It is strictly for web traffic.
-2.  **The CLI Kernel (`CliKernel.php` or raw Bin Scripts):** Initializes the exact same Dependency Container, but completely bypasses the Router and Middleware. It expects console arguments instead of HTTP Requests.
+1.  **The Application Kernel (`magma/Application.php`):** Resolves the HTTP Request, dispatches it through the Middleware Onion, and returns an HTTP Response. It is strictly for web traffic.
+2.  **CLI Entrypoints (`bin/worker.php`, `bin/outbox_publisher.php`, `bin/cache_routes.php`):** Boot the exact same `magma/config/bootstrap.php` Dependency Container, but completely bypass the HTTP Router and HTTP Middleware. They execute long-running daemons or build-time tasks directly against domain services and repositories.
 
 > [!TIP]
 > **The Magma Analogy:** Think of the underlying Dependency Container and Services as the engine of a car. The HTTP Kernel is the steering wheel, while the CLI Kernel is an autonomous driving script. Both interact with the exact same engine (the core domain), but their input mechanisms (drivers) are completely isolated.
@@ -542,51 +576,52 @@ The answer is an incredibly powerful, native PHP feature called **Reflection**.
 Reflection is an API that allows PHP code to "look in the mirror" and analyze itself at runtime. With Reflection, you can write code that asks questions like: *"Hey PHP, what methods does this class have? What parameters does its constructor require? What types are those parameters?"*
 
 #### The Theory: How Auto-Wiring Works
-In the Magma Framework framework, we use an advanced container technique called **Auto-Wiring**. We don't manually tell the container how to build every single class. Instead, the container uses Reflection to figure it out on the fly.
+In the Magma Framework, we use an advanced container technique called **Auto-Wiring** (`magma/container/Container.php`). We don't manually tell the container how to build every single class. Instead, the container uses Reflection to figure it out on the fly.
 
-Here is a simplified example of what the Magma Container is doing inside its `get()` method when you ask it for a class:
+Here is a simplified example of what `Magma\container\Container` is doing inside its `get()` / `resolve()` methods when you ask it for a real framework class such as `Magma\controllers\LoginController`:
 
 ```php
-// You ask the container for the OrderController
-$container->get(OrderController::class);
+// You ask the container for LoginController
+$container->get(\Magma\controllers\LoginController::class);
 ```
 
-Behind the scenes, the Container uses the `ReflectionClass`:
+Behind the scenes, the Container uses PHP's `ReflectionClass`:
 
 ```php
 // 1. The Container reflects upon the requested class
-$reflection = new ReflectionClass(OrderController::class);
+$reflection = new ReflectionClass(\Magma\controllers\LoginController::class);
 
 // 2. It looks at the constructor
 $constructor = $reflection->getConstructor();
 
 // 3. It asks: "What parameters do you require?"
+// LoginController demands: AuthenticationService, HtmlResponseBuilderInterface, PostLoginRedirectResolver
 $parameters = $constructor->getParameters();
 
 $dependencies = [];
 
 // 4. It loops through the required parameters
 foreach ($parameters as $parameter) {
-    // It finds that the constructor needs an "OrderService" type!
-    $dependencyType = $parameter->getType()->getName(); 
-    
-    // 5. RECURSION! The container calls ITSELF to build the OrderService!
-    $dependencies[] = $this->get($dependencyType); 
+    // It inspects the type hint (e.g., AuthenticationService::class)
+    $dependencyType = $parameter->getType()->getName();
+
+    // 5. RECURSION! The container calls ITSELF to build each dependency!
+    $dependencies[] = $this->get($dependencyType);
 }
 
-// 6. Finally, it builds the OrderController, passing in the newly built dependencies.
+// 6. Finally, it builds LoginController, passing in the newly built dependencies.
 return $reflection->newInstanceArgs($dependencies);
 ```
 
 #### Analyzing the Principles
-This is the moment the "Magic" becomes **Science**. 
+This is the moment the "Magic" becomes **Science**.
 
-When a framework automatically injects dependencies into your controllers, it isn't using actual magic. It's just using `ReflectionClass` to read your constructor's type hints, building those dependencies recursively, and then handing you the fully assembled object. 
+When a framework automatically injects dependencies into your controllers, it isn't using actual magic. It's just using `ReflectionClass` to read your constructor's type hints, building those dependencies recursively, and then handing you the fully assembled object.
 
-Because we demand **Strict Typing** (Pillar 4), our constructors always look like this:
-`public function __construct(OrderService $service)`
+Because we demand **Strict Typing** (Pillar 4), our constructors look like `Magma\controllers\LoginController::__construct`:
+`public function __construct(private readonly AuthenticationService $authService, private readonly HtmlResponseBuilderInterface $html, private readonly PostLoginRedirectResolver $redirectResolver)`
 
-Because we strictly typed the `$service` parameter as an `OrderService`, the Reflection API can read that type hint and know exactly what to build. If we didn't use strict typing, Reflection would have no idea what to inject, and auto-wiring would fail entirely!
+Because we strictly typed every parameter, the Reflection API can read those type hints and know exactly what to build (or look up via interface bindings). If we didn't use strict typing, Reflection would have no idea what to inject, and auto-wiring would fail entirely!
 
 #### The "Why" & Framework Comparison
 In older or simpler frameworks, you don't use auto-wiring. Instead, you have to write a massive configuration array manually defining how to build *every single class* in your application.
@@ -615,61 +650,86 @@ By utilizing PHP Reflection, our Container becomes "smart." We don't have to con
 ### Chapter 3.3: Interface Binding (The Service Providers)
 
 #### Subject & Intent: The Limits of Reflection
-In Chapter 3.2, we saw that Auto-Wiring is incredibly smart. If a controller's constructor asks for an `OrderService`, the Container uses Reflection, finds the `OrderService` class, and builds it.
+In Chapter 3.2, we saw that Auto-Wiring is incredibly smart. If `LoginController`'s constructor asks for `AuthenticationService`, the Container uses Reflection to inspect its dependencies and build it.
 
-But what happens when we follow the Dependency Inversion Principle (Pillar 1) properly? 
-What if our constructor looks like this?
+But what happens when we follow the Dependency Inversion Principle (Pillar 1) properly?
+What if a constructor looks like `Magma\middleware\SessionTimeoutMiddleware::__construct` or `Magma\services\RegistrationService::__construct`?
 
 ```php
-public function __construct(DatabaseInterface $database)
+public function __construct(
+    UserCommandInterface $userCommandRepository,
+    EventDispatcherInterface $dispatcher,
+    TransactionManagerInterface $transactionManager
+)
 ```
 
-**Reflection hits a wall.** It looks at `DatabaseInterface` and realizes it cannot instantiate an Interface. An interface is just a contract; it has no actual code. If Reflection tries to write `$db = new DatabaseInterface();`, PHP will throw a Fatal Error.
+**Reflection hits a wall.** It looks at `TransactionManagerInterface` and realizes it cannot instantiate an Interface. An interface is just a contract; it has no actual code. If Reflection tries to instantiate an interface directly, PHP throws an error (`Target class [...] is not instantiable`).
 
-The Container needs to know *which specific concrete class* to use when someone asks for that interface. 
+The Container needs to know *which specific concrete class* to use when someone asks for that interface.
 
 #### File Walkthrough: The Service Providers
-To solve this, we give the Container a manual "map." We say: *"Hey Container, whenever someone asks for `DatabaseInterface`, I want you to give them an instance of `PostgresConnection`."*
+To solve this, we give the Container a manual "map." We say: *"Hey Container, whenever someone asks for `TransactionManagerInterface`, give them `DatabaseTransactionManager`; whenever someone asks for `RolePolicyInterface`, give them `ConfigRolePolicy`; whenever someone asks for `ConfigInterface`, give them `ConfigWrapper`."*
 
-We call this **Binding**. In Magma Framework, we organize our bindings into **Service Providers**.
+We call this **Binding**. In Magma Framework, we organize our bindings into **Service Providers** implementing `Magma\container\ServiceProviderInterface`.
 
-Let's look at `magma/core/providers/CoreServiceProvider.php`:
+Let's look at real bindings from `magma/providers/DatabaseServiceProvider.php` and `magma/providers/CoreServiceProvider.php`:
 
 ```php
-namespace core\providers;
+<?php
 
-use core\container\Container;
-use core\interfaces\DatabaseInterface;
-use core\database\PostgresConnection;
+declare(strict_types=1);
 
-class CoreServiceProvider
+namespace Magma\providers;
+
+use Magma\container\Container;
+use Magma\container\ServiceProviderInterface;
+use Magma\database\DatabaseTransactionManager;
+use Magma\database\TransactionManagerInterface;
+
+// From magma/providers/DatabaseServiceProvider.php
+class DatabaseServiceProvider implements ServiceProviderInterface
 {
-    /**
-     * Register core bindings into the container.
-     */
     public function register(Container $container): void
     {
-        // We tell the container exactly how to resolve the interface!
-        $container->bind(DatabaseInterface::class, PostgresConnection::class);
-        
-        // ... other bindings ...
+        // Alias an interface directly to a concrete class
+        $container->bind(TransactionManagerInterface::class, DatabaseTransactionManager::class);
     }
 }
 ```
 
-If you recall Chapter 2.2 (Bootstrapping), our `bootstrap.php` file loops through these Service Providers and executes their `register()` methods right before the application runs.
+And in `magma/providers/CoreServiceProvider.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Magma\providers;
+
+// Excerpt from CoreServiceProvider::register(Container $container)
+$container->set(\Magma\config\ConfigInterface::class, function ($c) {
+    return new \Magma\config\ConfigWrapper();
+});
+
+$container->bind(
+    \Magma\contracts\RolePolicyInterface::class,
+    \Magma\security\ConfigRolePolicy::class
+);
+```
+
+If you recall Chapter 2.2 (Bootstrapping), `magma/config/bootstrap.php` loops through these Service Providers and executes their `register($container)` methods right before the application runs.
 
 #### Analyzing the Principles: The Power of Swappability
 By separating the *request* for an object (in the constructor) from the *configuration* of that object (in the Service Provider), we achieve ultimate architectural flexibility.
 
-This is the very essence of the **Open/Closed Principle (OCP)**. 
+This is the very essence of the **Open/Closed Principle (OCP)**.
 
-Imagine the business wants to switch their cache system from Redis to Memcached. 
-1. We write a new `MemcachedCache` class that implements `CacheInterface`.
-2. We go to our `CoreServiceProvider` and change one line of code:
-   `$container->bind(CacheInterface::class, MemcachedCache::class);`
+Imagine a service depends on `CacheInterface` (`magma/interfaces/CacheInterface.php`).
+1. In production, `InfrastructureServiceProvider` binds `CacheInterface::class` to `RedisCache`.
+2. In isolated unit tests without Redis, we swap one binding line to `ArrayCache` (`magma/cache/ArrayCache.php`):
+   `$container->bind(CacheInterface::class, ArrayCache::class);`
 
-**That's it.** We don't have to touch the `ProductService`, the `OrderController`, or any of the hundreds of files that use the Cache. The Container simply starts handing out the new Memcached object to anyone who asks for the Interface.
+**That's it.** We don't have to touch any domain service or controller that uses `CacheInterface`. The Container simply starts handing out the `ArrayCache` instance to anyone who asks for the Interface.
 
 #### The "Why" & Framework Comparison
 Some frameworks allow you to bind interfaces using configuration arrays (like YAML or XML files). We explicitly choose to use PHP classes (Service Providers) for our bindings. 
@@ -693,7 +753,7 @@ Why? Because PHP code can be statically analyzed by your IDE. If you have a typo
 
 As the application grows, resolving hundreds of dependencies per request can become slow and consume massive amounts of RAM.
 
-Magma's Container manages memory efficiently using a **Singleton Cache** for stateless services. When a `DatabaseConnectionManager` is resolved for the first time, the Container caches the instance. If five different Repositories ask for a `DatabaseConnectionManager`, they all receive the exact same instance reference in memory (O(1) memory overhead).
+Magma's Container manages memory efficiently using a **Singleton Cache** (`$this->instances`) for explicit factory definitions registered via `$container->set(...)` (while leaving auto-wired classes transient by default so request-scoped objects/DTOs do not leak across daemon iterations). When `DatabaseConnectionManager` is resolved for the first time via `DatabaseServiceProvider`, the Container caches the instance. If five different Repositories ask for `DatabaseConnectionManager`, they all receive the exact same instance reference in memory (O(1) memory overhead), and constructor reflection metadata is memoized in `self::$reflectionCache`.
 
 By preventing the redundant instantiation of heavy services, Magma keeps its memory footprint entirely flat, allowing it to serve thousands of requests concurrently on minimal hardware.
 
@@ -701,7 +761,7 @@ By preventing the redundant instantiation of heavy services, Magma keeps its mem
 
 A classic architectural bug occurs when `ServiceA` requires `ServiceB`, but `ServiceB` requires `ServiceA`. If left unchecked, the Reflection engine will enter an infinite loop, crashing the server with a Stack Overflow or an Out Of Memory (OOM) error.
 
-Magma's `Container` physically protects against this by tracking resolution paths. If it detects a circular dependency (e.g., trying to resolve `ServiceA` while `ServiceA` is already in the 'resolving' stack), it immediately aborts and throws a `CircularDependencyException`.
+Magma's `Container` (`magma/container/Container.php`) physically protects against this by tracking resolution paths in `$this->resolving`. If it detects a circular dependency (e.g., trying to resolve `ServiceA` while `ServiceA` is already in the `$this->resolving` stack), it immediately aborts and throws a `\RuntimeException("Circular dependency detected while resolving [{$id}].")`.
 ## Module 4: Routing & The HTTP Request
 
 ### Chapter 4.1: The Router - Mapping URLs to Controllers
@@ -716,55 +776,56 @@ The answer is the **Router**.
 The Router is the "Traffic Cop" of the application. Its sole responsibility is to look at the incoming URL (the URI) and the HTTP Method (GET, POST, PUT, DELETE), and match it against a predefined list of "Routes" to determine which **Controller** should handle the request.
 
 #### The Theory: Defining Routes
-Before the Router can route traffic, we have to give it a map. In the Magma Framework framework, we explicitly define this map in a dedicated routes file.
+Before the Router can route traffic, we have to give it a map. In the Magma Framework, we explicitly define this map using fluent `RouteDefinition` Value Object builders inside dedicated routes files (such as `magma/config/routes.php`, `app/routes.php`, and `modules/Reviews/routes.php`).
 
-A typical route definition looks like this:
+Here is a real excerpt from `magma/config/routes.php`:
 
 ```php
-// If the user makes a GET request to '/products', 
-// execute the 'index' method on the 'ProductController' class.
+<?php
 
-$router->get('/products', [ProductController::class, 'index']);
+declare(strict_types=1);
 
-// If they make a POST request to '/checkout' (submitting a form),
-// execute the 'process' method on the 'CheckoutController' class.
+use Magma\controllers\LoginController;
+use Magma\middleware\RateLimitMiddleware;
+use Magma\routing\RouteDefinition;
 
-$router->post('/checkout', [CheckoutController::class, 'process']);
+return [
+    // GET '/login' -> LoginController::login()
+    RouteDefinition::get('/login', [LoginController::class, 'login']),
+
+    // POST '/login' -> LoginController::authenticate() with parameterized rate-limit middleware
+    RouteDefinition::post('/login', [LoginController::class, 'authenticate'])
+        ->middleware([RateLimitMiddleware::class, 5, 60]),
+];
 ```
 
 #### File Walkthrough: The Execution Flow
-Let's look at exactly what happens inside the `Application::run()` method when that request comes in:
+Let's look at what happens inside `Magma\Application::run()` (`magma/Application.php`) and `Magma\routing\Router::dispatch()` (`magma/routing/Router.php`) when that request arrives:
 
-1. **Capture the Request:** The application creates an `HttpRequest` object containing all the details from the user's browser (the URL, the POST data, headers).
-2. **Hand it to the Router:** The application passes this request object to the `Router`.
-3. **Find the Match:** The `Router` loops through all the registered routes (like the ones we defined above). It sees the user is asking for `GET /products`, and it finds a matching route!
-4. **Resolve the Controller:** The Router sees that this route points to `ProductController::class`. It asks the **DI Container** (from Module 3) to build the `ProductController`.
-5. **Execute the Method:** The Router takes the fully built `ProductController` and calls the `index()` method on it.
-
-```php
-// A simplified view of what the Router does internally:
-$controllerInstance = $container->get($route->getControllerClass());
-return $controllerInstance->{$route->getMethodName()}();
-```
+1. **Capture the Request:** `Application::run()` resolves `RequestInterface` from the DI Container (bound in `CoreServiceProvider` to `Request::createFromGlobals()`).
+2. **Hand it to the Router:** `Application::handle()` passes the `RequestInterface` and global middleware list to `RouterInterface::dispatch($request, $this->middleware)`.
+3. **Find the Match:** `Router::dispatch()` checks `matchStaticRoute()` first (an O(1) hash lookup), then falls back to `matchDynamicRoute()` using the compiled PCRE mega-regex. If no route matches, it checks for `405 Method Not Allowed` or throws `RouteNotFoundException`.
+4. **Resolve the Controller & Middleware:** `RouteDispatcher::dispatch()` builds the middleware onion and asks the **DI Container** (from Module 3) to instantiate `LoginController`.
+5. **Execute the Method:** `RouteParameterResolver` auto-wires any method-injected parameters (including `FormRequest` validation) and invokes the controller method, returning a `Response`.
 
 #### Analyzing the Principles: Separation of Concerns
-You might wonder: *Why do we have a dedicated Router class? Why can't we just put a giant `if/else` statement inside `index.php`?*
+You might wonder: *Why do we have a dedicated Router class? Why can't we just put a giant `if/else` statement inside `www/index.php`?*
 
 ```php
 // The Bad Way (Violating SRP)
-if ($_SERVER['REQUEST_URI'] === '/products') {
-    $controller = new ProductController();
-    $controller->index();
-} elseif ($_SERVER['REQUEST_URI'] === '/checkout') {
+if ($_SERVER['REQUEST_URI'] === '/login') {
+    $controller = new LoginController(...);
+    $controller->login($request);
+} elseif ($_SERVER['REQUEST_URI'] === '/reviews') {
     // ...
 }
 ```
 
-This violates the **Single Responsibility Principle (SRP)**. If we put routing logic inside the `index.php` or `Application` class, those files would grow to thousands of lines long as the application scales. By extracting routing into its own dedicated `Router` object, we keep our code modular, testable, and extremely clean. 
+This violates the **Single Responsibility Principle (SRP)**. If we put routing logic inside `www/index.php` or `Application`, those files would grow to thousands of lines long as the application scales. By extracting routing into `Magma\routing\Router`, `RouteCollection`, `RouteCompiler`, and `RouteDispatcher`, we keep our code modular, testable, and extremely clean.
 
-Furthermore, a dedicated Router can handle complex scenarios like dynamic parameters:
-`$router->get('/products/{id}', [ProductController::class, 'show']);`
-Here, the Router is smart enough to extract `{id}` from the URL (like `/products/5`) and pass the `5` as an argument directly into the controller's `show($id)` method!
+Furthermore, `RouteDefinition` can handle dynamic parameters with regex constraints:
+`RouteDefinition::get('/users/{id}', [UserController::class, 'show'])->where('id', '\d+');`
+Here, the Router extracts `{id}` from the URL (like `/users/5`), validates it against `\d+`, and passes it directly into the controller's method parameters!
 
 #### Common Questions and Answers
 
@@ -792,50 +853,95 @@ We can visualize Middleware as an **Onion**.
 * The resulting HTTP Response must pass *outward* through every layer before returning to the user's browser.
 
 #### The Theory: The Contract of Middleware
-Every single Middleware class in the Magma framework follows a strict contract. It receives the incoming Request, and a special function called `$next`.
-
-The Middleware has absolute power to decide what to do:
-1. **Pass:** It can inspect the Request, decide everything is fine, and call `$next($request)` to pass the request deeper into the onion.
-2. **Reject:** It can inspect the Request, find a problem, and instantly return a redirect or an Error Page, **completely blocking the request from ever reaching the controller**.
-
-#### File Walkthrough: `SessionTimeoutMiddleware`
-Let's look at a concrete example. We want to automatically log out users if they have been inactive for 30 minutes. 
-
-We *could* write this check at the top of every single Controller, but that violates DRY (Don't Repeat Yourself) and SRP. Instead, we write a single Middleware:
+Every single Middleware class in the Magma framework implements `Magma\middleware\MiddlewareInterface` (`magma/middleware/MiddlewareInterface.php`):
 
 ```php
-namespace core\middleware;
+<?php
 
-use core\http\Request;
-use core\http\Response;
+declare(strict_types=1);
 
-class SessionTimeoutMiddleware 
+namespace Magma\middleware;
+
+use Magma\http\Request;
+use Magma\http\Response;
+
+interface MiddlewareInterface
 {
-    public function handle(Request $request, callable $next): Response 
-    {
-        // 1. Inspect the Request context (the session)
-        $lastActivity = $_SESSION['last_activity'] ?? time();
-        $timeoutLimit = 1800; // 30 minutes in seconds
+    public function process(Request $request, callable $next): Response;
+}
+```
 
-        if (time() - $lastActivity > $timeoutLimit) {
-            // 2. REJECT! We do NOT call $next. 
-            // The Controller is never reached. We immediately return a redirect.
-            session_destroy();
-            return Response::redirect('/login?error=timeout');
+It receives the incoming `Request` (or `RequestInterface` via parameter contravariance) and a closure `$next`. The Middleware has absolute power to decide what to do:
+1. **Pass:** It can inspect the Request, decide everything is fine, and call `$next($request)` to pass the request deeper into the onion.
+2. **Reject:** It can inspect the Request, find a problem, and instantly return a `RedirectResponse` or a `401` JSON `Response`, **completely blocking the request from ever reaching the controller**.
+
+#### File Walkthrough: `AuthMiddleware` & `SessionTimeoutMiddleware`
+Let's look at a concrete example from `magma/middleware/AuthMiddleware.php`. Instead of repeating session authentication checks at the top of every protected Controller, we enforce them once in a single Middleware:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Magma\middleware;
+
+use Magma\http\RequestInterface;
+use Magma\http\Response;
+use Magma\http\RedirectResponse;
+use Magma\http\SessionInterface;
+
+class AuthMiddleware implements MiddlewareInterface
+{
+    public const INTENDED_URL_SESSION_KEY = 'intended_url';
+
+    public function __construct(
+        private SessionInterface $session,
+        private \Magma\interfaces\cqrs\UserQueryInterface $userRepository
+    ) {}
+
+    public function process(RequestInterface $request, callable $next): Response
+    {
+        $user = $this->session->get('user');
+
+        if (!is_array($user)) {
+            // REJECT! The Controller is never reached.
+            return $this->handleUnauthorized($request);
         }
 
-        // 3. Update the activity timer
-        $_SESSION['last_activity'] = time();
+        // Verify password timestamp against DB to invalidate stale sessions
+        $loginTime = $this->session->get('login_time');
+        $userId = $user['id'] ?? null;
 
-        // 4. PASS! Hand the request to the next layer of the onion
+        if (is_numeric($userId) && is_numeric($loginTime)) {
+            $passwordChangedAt = $this->userRepository->getPasswordChangedAt((int) $userId);
+            if ($passwordChangedAt && $passwordChangedAt > $loginTime) {
+                $this->session->destroy();
+                return $this->handleUnauthorized($request);
+            }
+        }
+
+        // PASS! Hand the request to the next layer of the onion
         return $next($request);
+    }
+
+    private function handleUnauthorized(RequestInterface $request): Response
+    {
+        if ($request->isJsonExpected() || $request->expectsJson()) {
+            $payload = json_encode([
+                'success' => false,
+                'error'   => 'Unauthenticated access.',
+                'code'    => 401,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+            return new Response($payload, 401, ['Content-Type' => 'application/json; charset=utf-8']);
+        }
+
+        return new RedirectResponse('/login');
     }
 }
 ```
 
-If you remember from `index.php`, we register this globally: `$app->addMiddleware(SessionTimeoutMiddleware::class);`
-
-Because this is registered globally, our `ProductController` doesn't have to know that session timeouts even exist. It can safely assume that if a request reached it, the session is active.
+Similarly, `Magma\middleware\SessionTimeoutMiddleware` (`magma/middleware/SessionTimeoutMiddleware.php`) implements `MiddlewareInterface::process(Request $request, callable $next): Response` using injected `SessionInterface`, `ClockInterface`, and `RolePolicyInterface`, returning `new RedirectResponse('/login')` (with a cleared `remember_user` cookie) when inactivity exceeds the role's configured timeout. Because `SessionTimeoutMiddleware` is registered globally in `www/index.php` (`$app->addMiddleware(SessionTimeoutMiddleware::class);`), individual controllers don't have to know that session timeouts even exist.
 
 #### Analyzing the Principles: The Power of the Pipeline
 This pattern is formally known as the **Pipeline Pattern**. 
@@ -865,79 +971,108 @@ When you want to send data back to the user, you use functions like `echo "Hello
 
 In the Magma framework, **we absolutely forbid the use of these raw global variables and functions.** 
 
-Instead, we encapsulate everything into two strict objects: the `HttpRequest` object and the `HttpResponse` object.
+Instead, we encapsulate everything into two strict objects: `Magma\http\Request` (`magma/http/Request.php`) and `Magma\http\Response` / `Magma\http\RedirectResponse` (`magma/http/Response.php`, `magma/http/RedirectResponse.php`).
 
 #### The Theory: Why Encapsulation Matters
 A fundamental rule of Object-Oriented Programming is that you should not rely on global state. 
 
-If your `OrderController` looks directly at `$_POST['quantity']`, it is relying on a global variable. This creates a massive problem for **Testability**. If you want to write a unit test for your controller, you have to artificially inject fake data into the `$_POST` array before running the test, which is clunky and can accidentally bleed into other tests.
+If your controller looks directly at `$_POST['email']`, it is relying on a global variable. This creates a massive problem for **Testability**. If you want to write a unit test for your controller, you have to artificially inject fake data into the `$_POST` array before running the test, which is clunky and can accidentally bleed into other tests.
 
-Furthermore, `$_POST` is untyped. Is the quantity an integer `5`, or the string `"5"`, or an array? 
+Furthermore, `$_POST` is untyped and ignores JSON request bodies.
 
 #### File Walkthrough: The `Request` Object
-At the very beginning of the Front Controller lifecycle, our application gathers all the global variables, packages them into a `Request` object, and then destroys the global variables (figuratively speaking) so no one else can use them.
+At the very beginning of the Front Controller lifecycle, `CoreServiceProvider` binds `RequestInterface::class` to `Request::createFromGlobals()` (`magma/http/Request.php`), which gathers `$_GET`, `$_POST`, `$_COOKIE`, `$_FILES`, `$_SERVER`, and `php://input` via `Request::build(...)`.
 
 This `Request` object is what gets passed through the Middleware and eventually into the Controller.
 
 ```php
-namespace core\http;
+<?php
 
-class Request 
+declare(strict_types=1);
+
+namespace Magma\http;
+
+// Excerpt from magma/http/Request.php
+class Request implements RequestInterface
 {
-    private array $postData;
-    private array $queryData;
-
-    public function __construct(array $post, array $query) 
+    public static function createFromGlobals(): self
     {
-        $this->postData = $post;
-        $this->queryData = $query;
+        if (self::$cachedRawBody === null) {
+            $input = file_get_contents('php://input');
+            self::$cachedRawBody = $input !== false ? $input : null;
+        }
+        return self::build($_GET, $_POST, $_COOKIE, $_FILES, $_SERVER, self::$cachedRawBody);
     }
 
-    // We control exactly how the data is accessed!
-    public function getPostString(string $key, string $default = ''): string 
+    public function query(?string $key = null, mixed $default = null): mixed
     {
-        $value = $this->postData[$key] ?? $default;
-        return is_string($value) ? htmlspecialchars($value) : $default;
+        return $key === null ? $this->get : ($this->get[$key] ?? $default);
     }
 
-    public function getPostInt(string $key, int $default = 0): int 
+    public function request(?string $key = null, mixed $default = null): mixed
     {
-        return (int) ($this->postData[$key] ?? $default);
+        return $key === null ? $this->requestData : ($this->requestData[$key] ?? $default);
+    }
+
+    public function cookie(?string $key = null, mixed $default = null): mixed
+    {
+        return $key === null ? $this->cookies : ($this->cookies[$key] ?? $default);
     }
 }
 ```
 
-Look at how powerful this is! By forcing the Controller to use `$request->getPostInt('quantity')`, we guarantee that the Controller receives an actual integer, completely satisfying our strict typing requirements. We can also build automatic security features (like `htmlspecialchars()`) directly into the object.
+Look at how clean this boundary is! By accessing `$request->query('sso')`, `$request->request('email')`, or `$request->cookie('remember_user')`, controllers and middleware never touch PHP superglobals directly—and `$request->request()` seamlessly unifies `application/json` payloads and standard form POST data! (Typed casting and validation are then enforced by `FormRequest` and `readonly` DTOs, covered in Module 9.)
 
-#### File Walkthrough: The `Response` Object
-Similarly, a Controller should never use `echo`. Why? Because `echo` immediately flushes data to the browser. If a Middleware layer on the "way out" wanted to compress that data, it's too late! The data is already gone.
+#### File Walkthrough: The `Response` & `RedirectResponse` Objects
+Similarly, a Controller should never use `echo` or call `header('Location: ...')` directly. Why? Because `echo` immediately flushes data to the browser. If a Middleware layer on the "way out" wanted to attach security headers or cookies, it's too late—headers are already sent!
 
-Instead, a Controller always returns a `Response` object. 
+Instead, a Controller always returns a `Response` (or `RedirectResponse`) object.
 
 ```php
-namespace core\http;
+<?php
 
-class Response 
+declare(strict_types=1);
+
+namespace Magma\http;
+
+// Excerpt from magma/http/Response.php
+class Response
 {
-    private string $content;
-    private int $statusCode;
-
-    public function __construct(string $content, int $statusCode = 200) 
-    {
-        $this->content = $content;
-        $this->statusCode = $statusCode;
-    }
+    public function __construct(
+        private string $content = '',
+        private int $statusCode = 200,
+        private array $headers = []
+    ) {}
 
     // The ONLY place in the application where output actually happens
-    public function send(): void 
+    public function send(): void
     {
         http_response_code($this->statusCode);
+
+        foreach ($this->headers as $name => $value) {
+            header("{$name}: {$value}", false);
+        }
+
+        // ... emits buffered cookies via setcookie(...) ...
         echo $this->content;
     }
 }
 ```
 
-The Application kernel receives this `Response` object from the Controller, passes it outward through the Middleware (allowing them to modify `$response->content` if they wish), and finally, the kernel calls `$response->send()` at the very end of the lifecycle.
+And for redirects, `Magma\http\RedirectResponse` (`magma/http/RedirectResponse.php`) extends `Response`:
+
+```php
+// Excerpt from magma/http/RedirectResponse.php
+class RedirectResponse extends Response
+{
+    public function __construct(string $url, int $status = 302)
+    {
+        parent::__construct('', $status, ['Location' => $url]);
+    }
+}
+```
+
+The `Application` kernel receives this `Response` (or `RedirectResponse`) object from the `Router`, passes it outward through the Middleware (allowing layers like `SecurityHeadersMiddleware` to add headers or `AppliesAuthenticationCookiesTrait` to attach cookies), and finally calls `$response->send()` at the very end of the lifecycle.
 
 #### Analyzing the Principles
 By utilizing Request and Response objects, we enforce **Immutability and Control**. The flow of data is no longer a chaotic free-for-all of global variables. It is a strictly typed, trackable package moving through an organized pipeline.
@@ -946,7 +1081,7 @@ By utilizing Request and Response objects, we enforce **Immutability and Control
 
 > **Q: How does requiring a Request object (rather than looking directly at `$_POST`) make writing automated unit tests for a Controller significantly easier and cleaner?**
 > 
-> **A:** If everything passes through our Request object checkpoint, we can easily test the controller without a real browser. We simply write `$request = new Request(['quantity' => 5], []);` and pass it to our Controller. We don't have to hack the global `$_POST` array, meaning our tests are perfectly isolated, predictable, and we can test the data against any rule we choose from one location.
+> **A:** If everything passes through our Request object checkpoint, we can easily test the controller without a real browser. We simply write `$request = Request::build(post: ['email' => 'user@example.com'], server: ['REQUEST_METHOD' => 'POST']);` and pass it to our Controller. We don't have to hack the global `$_POST` array, meaning our tests are perfectly isolated and predictable.
 
 > **Q: If a controller uses `echo "Hello";`, the text is sent to the user instantly. If a controller instead returns `new Response("Hello");`, how does the "Middleware Onion" architecture benefit from this delay?**
 > 
@@ -991,176 +1126,207 @@ This historically led to what developers call "Fat Controllers." A fat controlle
 
 In the Magma Framework architecture, we view the Controller strictly as a **Delegator**. It is a middle-manager. It does not do the hard work; it simply organizes the work.
 
-#### The Theory: The Three Rules of a Controller
-To prevent "Fat Controllers," we enforce three absolute rules for any Controller class:
-1. **Never write Business Logic:** A controller should not calculate tax. It should not check inventory.
-2. **Never query the Database:** A controller should never contain SQL or interact directly with a database connection.
-3. **Always return a Response:** The controller's only purpose is to take the incoming `Request`, give the data to a "Service," and wrap the result in a `Response`.
+#### The Theory: Magma's Dual Dependency Injection Strategy & The Three Rules of a Controller
+Magma enforces a deliberate **Dual Dependency Injection Strategy** across its architectural layers:
+* **Core Framework Controllers (`/magma/controllers/*`, e.g., `Magma\controllers\LoginController`):** Use **Constructor Injection** (`__construct(AuthenticationService $authService, HtmlResponseBuilderInterface $html, PostLoginRedirectResolver $redirectResolver)`) to enforce rigid instantiation contracts inside the framework kernel.
+* **Application & Module Controllers (`/app/` and `/modules/`, e.g., `App\controllers\HomeController`, `Modules\Reviews\controllers\ReviewController`):** Use **Method Injection** so the Router's `RouteParameterResolver` resolves only the services needed for the matched route action, preventing constructor bloat as a controller grows.
 
-#### File Walkthrough: A Magma Controller
-Let's look at what a perfectly clean Controller looks like when a customer submits an order:
+To prevent "Fat Controllers," we enforce three absolute rules for any Controller class:
+1. **Never write Business Logic:** A controller should not hash passwords, calculate taxes, or enforce domain invariants.
+2. **Never query the Database:** A controller should never contain SQL or interact directly with a PDO connection.
+3. **Always return a Response:** The controller's only purpose is to accept the validated `Request`/`FormRequest`, delegate to a Service, and return a `Response` (or `RedirectResponse`).
+
+#### File Walkthrough: Real Magma Controllers
+First, look at a downstream application controller in `app/controllers/HomeController.php`:
 
 ```php
-namespace app\controllers;
+<?php
+declare(strict_types=1);
 
-use core\http\Request;
-use core\http\Response;
-use app\services\OrderService;
+namespace App\controllers;
 
-class CheckoutController 
+use App\services\SystemDiagnosticsServiceInterface;
+
+class HomeController
 {
-    // 1. Dual Dependency Injection Strategy: Application controllers use Method Injection!
-    // The Router injects the OrderService exactly when this specific route is hit, keeping the class lightweight.
-    public function process(Request $request, OrderService $orderService): Response 
-    {
-        // 2. Extract the clean data from the Request object
-        $productId = $request->getPostInt('product_id');
-        $quantity = $request->getPostInt('quantity');
+    // Method Injection: RouteParameterResolver injects only what this action needs
+    public function index(
+        SystemDiagnosticsServiceInterface $diagnosticsService,
+        \Magma\view\HtmlResponseBuilderInterface $html
+    ): \Magma\http\Response {
+        $diagnostics = $diagnosticsService->getDiagnostics();
 
-        try {
-            // 3. Delegate the actual work to the Service!
-            $success = $orderService->placeOrder($productId, $quantity);
+        return $html->render('welcome', [
+            'title'       => \App\constants\AppConstants::HOME_TITLE,
+            'diagnostics' => $diagnostics,
+        ]);
+    }
+}
+```
 
-            // 4. Return the appropriate Response
-            return new Response("Order Placed Successfully!");
+And look at a modular feature controller in `modules/Reviews/controllers/ReviewController.php`:
 
-        } catch (\Exception $e) {
-            // 5. Handle failures gracefully
-            return new Response("Error: " . $e->getMessage(), 400);
-        }
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\Reviews\controllers;
+
+use Magma\http\Response;
+use Magma\http\RedirectResponse;
+use Modules\Reviews\interfaces\ReviewSubmissionServiceInterface;
+use Modules\Reviews\requests\ReviewRequest;
+
+class ReviewController
+{
+    // Method Injection with automatic FormRequest validation
+    public function submitReview(
+        ReviewRequest $reviewRequest,
+        \Magma\security\TenantContext $tenantContext,
+        ReviewSubmissionServiceInterface $reviewSubmissionService,
+        \Magma\http\SessionInterface $session
+    ): Response {
+        $dto = $reviewRequest->toDTO();
+        $tenantId = $tenantContext->getTenantId();
+        $reviewSubmissionService->submit($dto, $tenantId);
+
+        $session->set(
+            \App\constants\AppConstants::SESSION_SUCCESS_MESSAGE,
+            \Modules\Reviews\constants\ReviewConstants::MSG_REVIEW_SUBMITTED
+        );
+        return new RedirectResponse('/');
     }
 }
 ```
 
 #### Analyzing the Principles
-This class perfectly adheres to the **Single Responsibility Principle (SRP)**. Its *only* responsibility is translating HTTP traffic into PHP method calls. 
-
-Notice how small the `process()` method is. If the logic for calculating tax on an order changes tomorrow, we do not need to touch the `CheckoutController`. The Controller doesn't care how an order is placed, it only cares *that* an order is placed. 
-
-By pushing the complex logic down into the `OrderService` (which we will cover next), we keep our HTTP layer incredibly thin and easy to read.
+Both controllers perfectly adhere to the **Single Responsibility Principle (SRP)**. Their *only* responsibility is translating HTTP traffic into typed domain calls and returning a `Response`. Notice how `HomeController::index()` delegates diagnostics to `SystemDiagnosticsServiceInterface` and HTML rendering to `HtmlResponseBuilderInterface`, while `ReviewController::submitReview()` delegates input validation to `ReviewRequest` and business logic to `ReviewSubmissionServiceInterface`.
 
 #### Common Questions and Answers
 
-> **Q: Imagine the business decides to launch a mobile app next year that communicates with our server via an API, not a web browser. If we had written all of our tax calculation and database logic directly inside the `CheckoutController`, why would building this new API be incredibly painful?**
+> **Q: Imagine we launch a mobile app or JSON API next year alongside our web routes. If we had written all of our review validation and persistence rules directly inside `ReviewController`, why would building this new API be painful?**
 > 
-> **A:** Because we would have to rewrite and duplicate every single business rule (like calculating taxes) for the API! By keeping the Controller as just a "Traffic Cop" and pushing the logic into a Service, our new `ApiController` can simply inject the exact same `OrderService` and reuse 100% of the business logic.
+> **A:** Because we would have to duplicate every single business rule for the API! By keeping the Controller as just a "Traffic Cop" and pushing orchestration into `ReviewSubmissionService` (`modules/Reviews/services/ReviewSubmissionService.php`), a new API controller can inject the exact same `ReviewSubmissionServiceInterface` and reuse 100% of the business logic.
 
-> **Q: In our example, the Controller asks the `OrderService` to do the work. If the `OrderService` discovers that a module is out of stock, should the `OrderService` be the one to generate the `new Response("Out of stock", 400)` object?**
+> **Q: In our architecture, a Controller delegates work to a Service. If `RegistrationService` discovers that an email is already registered, should `RegistrationService` return `new RedirectResponse('/register')`?**
 > 
-> **A:** No! This is a critical distinction in Separation of Concerns. A `Response` is an HTTP concept (it belongs to the web layer). The `OrderService` is pure business logic; it doesn't know what the internet is. If it's out of stock, the Service should throw an `OutOfStockException` (or return a boolean/result object). The *Controller* catches that exception and builds the HTTP `Response`. This keeps the Service layer perfectly isolated from the web layer!
+> **A:** No! This is a critical distinction in Separation of Concerns. A `Response` or `RedirectResponse` is an HTTP concept (it belongs to the web layer). `RegistrationService` is pure business logic; it throws `ValidationException` (caught at the HTTP boundary by `ErrorHandler`). This keeps the Service layer completely isolated from the web layer!
 
 ---
 
 ### Chapter 5.2: The Service Layer - Where the Work Happens
 
 #### Subject & Intent: The Brain of the Application (The Evolutionary Starting Point)
-If the Controller is the Traffic Cop, the **Service** is the highly-trained mechanic inside the garage. 
+If the Controller is the Traffic Cop, the **Service** is the highly-trained mechanic inside the garage.
 
-*A Historical Note on Architecture:* When the initial framework was first built, the Service Layer was where 100% of your business rules lived. If a developer asked, *"How does the business calculate tax?"*, they would open the relevant Service class. This pattern is known as the **Transaction Script**. 
-
-We teach this pattern here because it is crucial to understand *how* logic is isolated from Controllers and Databases. However, as you will see in **Module 10 (Domain-Driven Design)**, this approach eventually breaks down as an application grows into an enterprise platform. The code examples below represent the *starting point* of our framework's evolution, not its final destination.
+*A Historical Note on Architecture:* When an application first starts, the Service Layer often holds most of the business rules (a pattern known as the **Transaction Script**). We teach this pattern here because it is crucial to understand *how* orchestration is isolated from Controllers and Databases. As you will see in **Module 10 (Domain-Driven Design)**, domain invariants evolve inward into Rich Domain Entities, keeping Services focused purely on orchestration.
 
 #### The Theory: Services Orchestrate
-A Service's job is **Orchestration**. It rarely does everything by itself. Instead, it coordinates other specialized classes.
+A Service's job is **Orchestration**. It coordinates specialized collaborators:
+1. Constructing or mutating domain objects (`UserRegistration`, `Review`).
+2. Wrapping database writes inside atomic transactions (`TransactionManagerInterface::transactional()`).
+3. Calling Command/Query repository interfaces (`UserCommandInterface`, `SiteReviewCommandInterface`).
+4. Dispatching Domain Events (`EventDispatcherInterface::dispatch()`) so side-effects like emails happen decoupled from the core workflow.
 
-For example, when a user places an order, the `OrderService` must:
-1. Ask the `InventoryRepository` if the module is in stock.
-2. Ask the `PricingService` to calculate the tax and total.
-3. Ask the `PaymentGateway` to charge the credit card.
-4. Ask the `OrderRepository` to save the final receipt to the database.
-5. Ask the `MailerService` to email the customer.
-
-Because the Service is doing all this heavy lifting, it is *heavily* dependent on Dependency Injection.
-
-#### File Walkthrough: The `OrderService`
-Let's look at what the `placeOrder` method actually looks like inside `magma/services/OrderService.php`:
+#### File Walkthrough: `RegistrationService` (`magma/services/RegistrationService.php`)
+Let's look at the actual `registerUser()` workflow in `magma/services/RegistrationService.php`:
 
 ```php
-namespace magma\services;
+<?php
 
-use magma\repositories\InventoryRepository;
-use magma\repositories\OrderRepository;
-use core\interfaces\PaymentGatewayInterface;
-use core\interfaces\MailerInterface;
-use magma\exceptions\OutOfStockException;
+declare(strict_types=1);
 
-class OrderService 
+namespace Magma\services;
+
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\validation\ValidationException;
+use Magma\interfaces\EventDispatcherInterface;
+use Magma\domain\events\UserRegisteredEvent;
+use Magma\database\TransactionManagerInterface;
+
+class RegistrationService
 {
-    // Look at all these dependencies! 
-    // The DI Container (Module 3) wires all of these up automatically.
+    protected UserCommandInterface $userCommandRepository;
+    protected EventDispatcherInterface $dispatcher;
+    protected TransactionManagerInterface $transactionManager;
+
     public function __construct(
-        private InventoryRepository $inventoryRepo,
-        private OrderRepository $orderRepo,
-        private PaymentGatewayInterface $paymentGateway,
-        private MailerInterface $mailer
-    ) {}
+        UserCommandInterface $userCommandRepository,
+        EventDispatcherInterface $dispatcher,
+        TransactionManagerInterface $transactionManager
+    ) {
+        $this->userCommandRepository = $userCommandRepository;
+        $this->dispatcher = $dispatcher;
+        $this->transactionManager = $transactionManager;
+    }
 
-    public function placeOrder(int $productId, int $quantity, string $creditCardToken): bool 
+    public function registerUser(\Magma\dto\RegistrationDTO $dto): int
     {
-        // 1. Check Inventory (Business Logic!)
-        if (!$this->inventoryRepo->hasStock($productId, $quantity)) {
-            // Notice: We throw an exception, NOT an HTTP Response!
-            throw new OutOfStockException("Module is sold out.");
-        }
+        $hashedPassword = password_hash($dto->password, PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536,
+            'time_cost'   => 4,
+            'threads'     => 1,
+        ]);
 
-        // 2. Charge the card
-        $paymentSuccess = $this->paymentGateway->charge($creditCardToken, 50.00);
-        
-        if (!$paymentSuccess) {
-            return false;
-        }
+        $registration = new \Magma\domain\UserRegistration($dto->name, $dto->email, $hashedPassword);
 
-        // 3. Save to Database
-        $orderId = $this->orderRepo->createOrder($productId, $quantity);
+        $result = $this->transactionManager->transactional(function () use ($registration) {
+            try {
+                $userId = $this->userCommandRepository->create($registration);
 
-        // 4. Send Email
-        $this->mailer->sendReceipt($orderId);
+                if ($userId) {
+                    $this->dispatcher->dispatch(new UserRegisteredEvent($registration, $userId));
+                }
 
-        return true;
+                return $userId;
+            } catch (\Magma\domain\exceptions\DuplicateResourceException $e) {
+                throw new ValidationException(['email' => 'This email is already registered.']);
+            }
+        });
+
+        return is_scalar($result) ? (int) $result : 0;
     }
 }
 ```
 
 #### Analyzing the Principles: The Power of Isolation
-Look closely at that file. Notice what is missing?
+Look closely at `RegistrationService`. Notice what is missing?
 
-* **No `$_POST` or `Request` objects.** The Service doesn't know it's a web app. It just takes standard PHP variables (`int $productId`).
-* **No `Response` objects.** It returns a boolean (`true`/`false`) or throws an Exception.
-* **No `SQL` strings.** It asks the Repositories to handle the database saving.
-* **No `new` keywords.** It uses interfaces (`MailerInterface`, `PaymentGatewayInterface`) so we can swap providers easily.
+* **No `$_POST`, `Request`, or `Session` objects.** The Service doesn't know it's a web app. It takes a strictly typed `RegistrationDTO`.
+* **No `Response` objects.** It returns an `int` user ID or throws a `ValidationException`.
+* **No `SQL` strings.** It delegates persistence to `UserCommandInterface`.
+* **No concrete infrastructure couplings.** It uses interfaces (`UserCommandInterface`, `EventDispatcherInterface`, `TransactionManagerInterface`) so we can swap or test implementations easily, and delegates welcome emails to listeners subscribed to `UserRegisteredEvent`.
 
-Because the `OrderService` is perfectly isolated, we can write a CLI script (a terminal command) that uses this exact same service to create test orders, and it works perfectly!
-
-This isolation makes **Unit Testing** a dream. We can test the `placeOrder` logic by passing a "fake" `PaymentGateway` into the constructor that always returns `true`. We can instantly verify that the email logic triggers correctly without actually charging a real credit card.
+Because `RegistrationService` is perfectly isolated, a CLI seeder script can invoke the exact same service to create users without needing an HTTP request!
 
 #### Common Questions and Answers
 
-> **Q: Imagine we wrote a command-line script to automatically generate 10 test orders for our developers. Why is it structurally impossible for that CLI script to use the `CheckoutController` to create the orders, and why does it *have* to use the `OrderService`?**
+> **Q: Imagine we write a CLI script to provision users from the terminal. Why is it structurally impossible for that CLI script to use a web Controller directly, and why does it use a Service instead?**
 > 
-> **A:** The Controller only deals with HTTP concepts; it requires an `HttpRequest` object and returns an `HttpResponse` object. A command-line script doesn't have an HTTP request! By using the `OrderService` directly, the CLI script bypasses the web layer entirely and utilizes the pure PHP logic.
+> **A:** Controllers deal with HTTP concepts (`Request`, `FormRequest`, `Response`, `RedirectResponse`). A command-line script doesn't have an HTTP request! By using a Service (`RegistrationService`) directly with a DTO, the CLI script bypasses the web layer entirely and reuses the pure PHP business logic.
 
-> **Q: The `OrderService` asks the `MailerInterface` to send an email. Why didn't we just write the `mail()` logic directly inside the `OrderService`?**
+> **Q: Why does `RegistrationService` dispatch `UserRegisteredEvent` via `EventDispatcherInterface` instead of directly calling `MailerService` to send a welcome email?**
 > 
-> **A:** It violates the Single Responsibility Principle (SRP). The `OrderService` is responsible for orchestrating the order flow, not for dealing with SMTP protocols, email headers, and connection timeouts. By delegating to a `MailerInterface`, the service remains clean and focused.
+> **A:** It protects the Single Responsibility Principle (SRP). `RegistrationService` orchestrates user registration and transaction boundaries; it should not be coupled to SMTP transports or email templates. Listeners subscribed to `UserRegisteredEvent` handle welcome emails cleanly without bloating the registration workflow.
 
-> **Q: Would `OrderService` eventually become monolithic and unwieldy? Eventually, will this class have to be extrapolated into multiple services that handle an order?**
+> **Q: How does Magma prevent a Service from becoming a monolithic "God Class" as features multiply?**
 > 
-> **A:** Absolutely correct! This is a phenomenon known as the "God Class" anti-pattern. If `OrderService` grows to 2,000 lines because it handles taxes, fraud detection, shipping calculations, and inventory reservations, it violates SRP again. 
-> To solve this, enterprise applications extrapolate logic into smaller services (e.g., injecting an `OrderTaxService` and a `FraudDetectionService` into the `OrderService`). Alternatively, they use **Domain Events**—instead of the `OrderService` calling the Mailer directly, it simply broadcasts an event: `"OrderPlaced"`. The Mailer, completely separately, listens for that event and sends the email without the `OrderService` even knowing it exists!
+> **A:** First, we split distinct workflows into cohesive services (e.g., `RegistrationService`, `AuthenticationService`, `PasswordResetRequestService`, `ReviewSubmissionService`). Second, we push data invariants into pure Domain Entities (Module 10) and offload side-effects via **Domain Events** (`EventDispatcherInterface`) and background jobs (Modules 11–12).
 
 ---
 
 
 ### Chapter 5.3: Declarative Auto-Wiring & FormRequests
 
-How do we validate data without cluttering the controller? We use **FormRequests**.
+How do we validate data without cluttering the controller? We use **FormRequests** (`Magma\validation\FormRequest`).
 
-When the Router detects that a controller method requires a `ProductCreateRequest`, it intercepts the pipeline *before* the controller is executed. 
+When `RouteParameterResolver` detects that a controller method requires a `FormRequest` subclass such as `Modules\Reviews\requests\ReviewRequest` (`modules/Reviews/requests/ReviewRequest.php`) or `Magma\requests\LoginRequest` (`magma/requests/LoginRequest.php`), it intercepts the pipeline *before* the controller is executed:
 
-1. The Router instantiates the `ProductCreateRequest`.
-2. It executes the declarative validation rules (e.g., `'price' => 'numeric|min:0'`).
-3. If validation fails, it automatically throws a `ValidationException`, bouncing the user back with error messages.
-4. If it succeeds, the beautifully clean, perfectly validated `ProductCreateRequest` object is injected straight into the Controller's method signature (Method Injection).
+1. The Router instantiates the `FormRequest` (e.g., `ReviewRequest`) with the current `Request` and `Validator`.
+2. It executes the declarative `rules()` validation automatically (for `LoginRequest`: `'email' => 'required|email'`, `'password' => 'required|max:100'`).
+3. If validation fails, it automatically throws a `ValidationException`, which `ErrorHandler` catches to return JSON errors (`422`) or flash errors/old input and redirect back.
+4. If it succeeds, the validated `FormRequest` object is injected straight into the Controller's method signature (Method Injection), ready for `$reviewRequest->toDTO()` or `$loginRequest->toDTO()`.
 
 The Controller never even sees invalid data. It operates with absolute trust.
 ## Module 6: Data Persistence & Multi-Tenancy
@@ -1184,194 +1350,253 @@ A Repository acts as an intermediary collection. To the `OrderService`, the `Ord
 #### The Theory: The Contract of the Repository
 Because we want to protect against Vendor Lock-in (Problem 1), we don't just inject a concrete Repository into our Service. We inject an **Interface**.
 
-```php
-namespace core\interfaces;
+For example, in the Reviews module (`modules/Reviews/interfaces/cqrs/SiteReviewQueryInterface.php` and `SiteReviewCommandInterface.php`), read and write contracts are separated cleanly:
 
-interface OrderRepositoryInterface 
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Modules\Reviews\interfaces\cqrs;
+
+use Modules\Reviews\domain\Review;
+
+interface SiteReviewQueryInterface
 {
-    public function findById(int $orderId): ?array;
-    public function createOrder(int $productId, int $quantity): int;
+    public const DEFAULT_LIMIT = 10;
+
+    /** @return iterable<\Modules\Reviews\dto\ReviewDTO> */
+    public function getApprovedReviews(int $tenantId, int $limit = self::DEFAULT_LIMIT, ?int $lastId = null): iterable;
+}
+
+interface SiteReviewCommandInterface
+{
+    public function addReview(Review $review): bool;
 }
 ```
 
-By defining this contract, our `OrderService` knows *what* it can ask for, without caring *how* it gets done.
+By defining these contracts, `ReviewSubmissionService` knows *what* it can ask for without caring *how* PostgreSQL executes the SQL.
 
-#### File Walkthrough: The Concrete Implementation
-Now, let's look at the actual class that executes the SQL, located in `magma/repositories/PostgresOrderRepository.php`.
-
-Notice how we inject the generic `DatabaseInterface` into the Repository!
+#### File Walkthrough: Concrete CQRS Implementations
+Now let's look at the actual read repository in `modules/Reviews/repositories/SiteReviewQueryRepository.php` (extending `Magma\models\AbstractQueryRepository` in `magma/models/AbstractQueryRepository.php`):
 
 ```php
-namespace magma\repositories;
+<?php
 
-use core\interfaces\OrderRepositoryInterface;
-use core\interfaces\DatabaseInterface;
+declare(strict_types=1);
 
-class PostgresOrderRepository implements OrderRepositoryInterface 
+namespace Modules\Reviews\repositories;
+
+use Modules\Reviews\interfaces\cqrs\SiteReviewQueryInterface;
+use Magma\models\AbstractQueryRepository;
+use Modules\Reviews\dto\ReviewDTO;
+use Modules\Reviews\domain\Review;
+
+class SiteReviewQueryRepository extends AbstractQueryRepository implements SiteReviewQueryInterface
 {
-    private DatabaseInterface $db;
+    public const TABLE_NAME = 'site_reviews';
 
-    public function __construct(DatabaseInterface $db) 
+    public function getApprovedReviews(int $tenantId, int $limit = SiteReviewQueryInterface::DEFAULT_LIMIT, ?int $lastId = null): iterable
     {
-        $this->db = $db;
+        $pagination = new \Magma\dto\PaginationDTO(limit: $limit, lastId: $lastId);
+
+        $sql = "SELECT id, comment, author, rating FROM \"" . self::TABLE_NAME . "\" WHERE status = :status AND tenant_id = :tenant_id";
+        $params = [
+            ':status' => Review::STATUS_APPROVED,
+            ':tenant_id' => $tenantId,
+        ];
+
+        $result = $this->cursorPaginate($sql, $params, $pagination, 'id', 'DESC');
+
+        foreach ($result['items'] as $row) {
+            yield new ReviewDTO(
+                author: $row['author'],
+                comment: $row['comment'],
+                rating: (int) $row['rating'],
+                id: (int) $row['id']
+            );
+        }
+    }
+}
+```
+
+Meanwhile, write repositories extend `Magma\models\AbstractCommandRepository` (`magma/models/AbstractCommandRepository.php`) to route mutations to the Primary Write connection and inject `Magma\contracts\ClockInterface` for deterministic timestamps instead of SQL `NOW()`. Look at `magma/repositories/UserCommandRepository.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Magma\repositories;
+
+use Magma\models\AbstractCommandRepository;
+use Magma\interfaces\cqrs\UserCommandInterface;
+use Magma\contracts\ClockInterface;
+use Magma\database\DatabaseConnectionManager;
+use Magma\security\TenantContext;
+use Magma\domain\UserRegistration;
+
+class UserCommandRepository extends AbstractCommandRepository implements UserCommandInterface
+{
+    protected ClockInterface $clock;
+
+    public function __construct(DatabaseConnectionManager $dbManager, ?TenantContext $tenantContext, ClockInterface $clock)
+    {
+        parent::__construct($dbManager, $tenantContext);
+        $this->clock = $clock;
     }
 
-    public function findById(int $orderId): ?array 
+    public function create(UserRegistration $registration): int
     {
-        // This is the ONLY place in the app where this SQL exists.
-        $sql = "SELECT * FROM orders WHERE id = :id LIMIT 1";
-        
-        $result = $this->db->fetchOne($sql, ['id' => $orderId]);
-        return $result ?: null;
-    }
-
-    public function createOrder(int $productId, int $quantity): int 
-    {
-        // ... implementation
+        $now = $this->clock->now()->format('Y-m-d H:i:s');
+        $data = [
+            'name' => $registration->getName(),
+            'email' => $registration->getEmail(),
+            'password' => $registration->getHashedPassword(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+        $tenantId = $this->getTenantId();
+        if ($tenantId !== null) {
+            $data['tenant_id'] = $tenantId;
+        }
+        return $this->insertAndGetId('users', $data);
     }
 }
 ```
 
 #### Analyzing the Principles: The Multi-Tenancy Shield
-Let's return to the most critical business requirement of the Magma framework: **Multi-Tenancy** (supporting multiple vendors on one platform).
+Let's return to the most critical business requirement of the Magma framework: **Multi-Tenancy** (supporting multiple tenants on one shared PostgreSQL database).
 
-If we share one database table for *all* vendors, the biggest risk is that "Vendor A" logs in and accidentally sees "Vendor B's" orders. This is a catastrophic failure.
+If we share one database table for *all* tenants, the biggest risk is that "Tenant A" logs in and accidentally sees "Tenant B's" data. This is a catastrophic failure.
 
-If developers are allowed to write SQL in controllers or services, it is almost guaranteed that someone will write `SELECT * FROM orders` and forget to add `WHERE vendor_id = 1`. 
+If developers are allowed to write SQL in controllers or services, it is almost guaranteed that someone will write `SELECT * FROM site_reviews` and forget to add `WHERE tenant_id = :tenant_id`.
 
-Because we use the Repository Pattern, we can enforce Multi-Tenancy centrally. We can inject the `TenantContext` directly into the Repository, and the Repository can *automatically* append the `vendor_id` to every single query it runs! 
-
-The developer writing the `OrderService` literally cannot make a mistake and query another vendor's data, because the Repository intercepts and scopes the query automatically.
+Because we use the Repository Pattern paired with `Magma\security\TenantContext`, both `AbstractQueryRepository` and `AbstractCommandRepository` receive `$tenantContext` in their constructors (`$this->getTenantId()`). Every SQL query lives inside the repository and explicitly binds `tenant_id` in its `WHERE` clause or `INSERT` payload.
 
 #### Common Questions and Answers
 
-> **Q: Our `OrderService` requires an `OrderRepositoryInterface`. If we want to unit-test the `OrderService` without actually connecting to a real database, how does the Repository Pattern allow us to do that? Do we just write test SQL?**
+> **Q: Our `ReviewSubmissionService` requires a `SiteReviewCommandInterface`. If we want to unit-test the service without actually connecting to PostgreSQL, how does the Repository Pattern allow us to do that?**
 > 
-> **A:** We don't write any SQL to test it at all! Because the Service only requires the `Interface`, we can write a fake class (like an `InMemoryOrderRepository`) that simply returns hardcoded PHP arrays. We inject that fake class into our Service during the test, completely bypassing the database layer. The Service never knows the difference, and our tests run instantly.
+> **A:** We don't write any SQL to test it at all! Because the Service depends only on the `Interface`, we can inject an in-memory test double implementing `SiteReviewCommandInterface` during unit tests, completely bypassing the database layer.
 
-> **Q: If a new privacy law passes requiring us to "soft delete" orders (mark them as `deleted = 1` rather than actually dropping the row from the database), how many files in our codebase would we have to modify to ensure that `findById()` no longer returns deleted orders?**
+> **Q: If a new privacy law passes requiring us to filter out archived reviews in `getApprovedReviews()`, how many files in our codebase do we modify?**
 > 
-> **A:** Just one: The Repository! Because all SQL is quarantined inside the repository, we update the query there, and every Service and Controller across the entire application instantly respects the new privacy law.
+> **A:** Just one: `SiteReviewQueryRepository`! Because all SQL is quarantined inside the repository, we update the query there, and every Service and Controller across the application respects the rule immediately.
 
 ---
 
 ### Chapter 6.2: Tenant Context - The Invisible Shield
 
 #### Subject & Intent: The Greatest Risk in SaaS
-As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many vendors share one database) is **Cross-Tenant Data Leakage**.
+As we mentioned in Chapter 6.1, the absolute greatest risk when building a Multi-Tenant platform (where many tenants share one database) is **Cross-Tenant Data Leakage**.
 
-If "Client A" logs into their dashboard, and due to a coding error, they see "Client B's" orders, you have a massive legal and security breach on your hands. 
+If "Sandbox Corp" logs into their dashboard, and due to a coding error, they see "Client B's" records, you have a massive legal and security breach on your hands.
 
-If we rely on developers to manually type `WHERE vendor_id = X` in every single repository method they ever write, human error *will* eventually cause a data leak. We need a systematic, invisible shield that protects the data automatically.
+If we rely on controllers to pass user-supplied `tenant_id` values around, human error or parameter tampering *will* eventually cause a data leak. We need a systematic, request-scoped context bound early in the pipeline.
 
 #### The Theory: The Context Object
-To build this shield, we use a concept called a **Context Object**.
-
-When a user logs into the application, or when we determine which vendor's subdomain is currently being accessed (e.g., `client.sandboxplatform.com`), our early Middleware creates a `TenantContext` object.
-
-This object holds the immutable ID of the current vendor.
+To build this shield, Magma uses `Magma\security\TenantContext` (`magma/security/TenantContext.php`). Early in the request lifecycle, `TenantSecurityMiddleware` resolves the tenant and binds it into this shared context object:
 
 ```php
-namespace core\context;
+<?php
 
-class TenantContext 
+declare(strict_types=1);
+
+namespace Magma\security;
+
+class TenantContext
 {
-    private int $vendorId;
+    private ?int $tenantId = null;
+    private ?int $venueId = null;
+    private ?TenantContextProviderInterface $provider;
 
-    public function __construct(int $vendorId) 
+    public function __construct(?TenantContextProviderInterface $provider = null)
     {
-        $this->vendorId = $vendorId;
+        $this->provider = $provider;
     }
 
-    public function getVendorId(): int 
+    public function setTenantId(int $tenantId): void
     {
-        return $this->vendorId;
+        $this->tenantId = $tenantId;
+    }
+
+    public function getTenantId(): int
+    {
+        if ($this->tenantId === null) {
+            throw new \RuntimeException(
+                'Tenant ID is not set in the current tenant context. This usually indicates unauthenticated access, missing tenant scoping middleware, or a cross-tenant boundary breach.'
+            );
+        }
+        return $this->tenantId;
+    }
+
+    public function hasTenantId(): bool
+    {
+        return $this->tenantId !== null;
     }
 }
 ```
 
-#### File Walkthrough: Injecting the Shield
-The magic happens when we combine this `TenantContext` with the Dependency Injection Container and our Repositories.
+Notice the fail-closed invariant: calling `getTenantId()` when no tenant has been bound immediately throws a `\RuntimeException` instead of silently returning `0` or `null`.
 
-Instead of passing the vendor ID around manually to every function, we inject the `TenantContext` directly into the Repository's constructor.
+#### File Walkthrough: Consuming the Shield & Auth Tenant Modes
+When a repository extends `AbstractQueryRepository` or `AbstractCommandRepository`, `DatabaseConnectionManager` and `TenantContext` are injected via the constructor, exposing `$this->getTenantId()` safely:
 
 ```php
-namespace magma\repositories;
-
-use core\interfaces\OrderRepositoryInterface;
-use core\interfaces\DatabaseInterface;
-use core\context\TenantContext;
-
-class PostgresOrderRepository implements OrderRepositoryInterface 
-{
-    private DatabaseInterface $db;
-    private TenantContext $tenant;
-
-    public function __construct(DatabaseInterface $db, TenantContext $tenant) 
-    {
-        $this->db = $db;
-        $this->tenant = $tenant;
-    }
-
-    public function getLatestOrders(): array 
-    {
-        // The developer doesn't have to 'remember' the vendor ID.
-        // It is inherently part of the repository's state!
-        
-        $sql = "SELECT * FROM orders WHERE vendor_id = :vendor_id ORDER BY created_at DESC";
-        
-        return $this->db->fetchAll($sql, [
-            'vendor_id' => $this->tenant->getVendorId()
-        ]);
-    }
+$tenantId = $this->getTenantId();
+if ($tenantId !== null) {
+    $data['tenant_id'] = $tenantId;
 }
+return $this->insertAndGetId('users', $data);
 ```
+
+In addition, `TenantSecurityMiddleware` supports two distinct operating modes via the backed/unit enum `Magma\security\AuthTenantMode` (`magma/security/AuthTenantMode.php`):
+*   `AuthTenantMode::TenantScoped` (default for white-label tenant domains): validates that an authenticated user belongs to the resolved domain's `tenant_id`.
+*   `AuthTenantMode::GlobalGateway` (for central portal gateways): rebinds `TenantContext` authoritatively from the authenticated user's `tenant_id`.
 
 #### Analyzing the Principles: Secure by Default
 Why is this architecture superior?
 
-1. **Secure by Default:** The `OrderService` simply calls `$this->orderRepo->getLatestOrders()`. The Service does not know about the `vendor_id`. The Repository handles it automatically. The data is fundamentally isolated at the lowest level.
-2. **Immutability:** Because the `TenantContext` is injected via the constructor, a malicious or buggy script cannot easily "swap" the tenant ID halfway through execution. The repository is locked to that tenant for the duration of the request.
-3. **No Global State:** We didn't use `$_SESSION['vendor_id']` inside the repository. Using the session superglobal inside a repository would make it impossible to use that repository in a background cron job (which doesn't have a session). By injecting a formal `TenantContext` object, our cron job can just manually create a `new TenantContext(1)` and use the exact same secure repository.
+1. **Fail-Closed Isolation:** `TenantContext::getTenantId()` refuses to proceed if no tenant has been established by middleware.
+2. **Scoped by Construction:** Both `AbstractQueryRepository` and `AbstractCommandRepository` accept `TenantContext` directly in their constructors, keeping tenant awareness available to every repository without touching `$_SESSION` or `$_POST`.
+3. **CLI & Worker Portability:** Background scripts (`bin/worker.php`) don't have an HTTP session, so they can bind `$tenantContext->setTenantId($id)` explicitly for each job and reuse the exact same CQRS repositories safely.
 
 #### Common Questions and Answers
 
-> **Q: We write a terminal command that runs every night at midnight to generate a sales report for *all* vendors on the platform. If our Repositories are strictly locked to a single injected `TenantContext`, how would a single script generate reports for multiple different vendors?**
+> **Q: We write a CLI job that needs to process data across *all* tenants on the platform. If our Repositories rely on an injected `TenantContext`, how can a single script process multiple tenants safely?**
 > 
-> **A:** The script would write a loop to fetch each tenant. For every iteration of the loop, it creates a *brand new* `TenantContext` object and uses it to build a new repository instance specifically for that tenant. We don't try to use a "master key" or bypass the security; we just sequentially put on the "hat" of each vendor, ensuring the strict data isolation is never broken.
+> **A:** The worker iterates over the list of tenants, calls `$container->flushInstances()` between jobs (or creates a fresh `TenantContext` / binds the active `$tenantId`), and executes the same CQRS repositories for each tenant sequentially—preserving strict isolation on every iteration.
 
-> **Q: Some ORMs use "Global Scopes," where the framework magically intercepts the SQL behind the scenes and adds `WHERE vendor_id = 1` before it hits the database. Based on our philosophy in Module 1, why might we prefer explicitly writing the `WHERE` clause in the Repository over using a framework's magical global scope?**
+> **Q: Some ORMs use "Global Scopes," where the framework magically intercepts SQL behind the scenes and injects `WHERE tenant_id = 1` before it hits the database. Why does Magma require explicit `WHERE tenant_id = :tenant_id` clauses in repositories instead?**
 > 
-> **A:** You have to know what is going on behind the scenes to properly code new functions. Relying on "magic" can backfire entirely if you don't actually know where the data you are receiving is coming from, or if you encounter an edge case where you *need* to bypass the magic but can't figure out how. By explicitly injecting the context and writing the `WHERE` clause in the repository, the mechanism is completely transparent, readable, and debuggable.
+> **A:** You have to know what is going on behind the scenes to debug and audit security boundaries safely. Relying on hidden SQL rewriting can backfire when you encounter joins, subqueries, or global gateway queries. By explicitly injecting `TenantContext` and writing `WHERE tenant_id = :tenant_id` in each repository, the isolation boundary is transparent, auditable, and crystal clear.
 
 #### Domain-Based Tenant Resolution (White Labeling)
-As a platform grows, tenants may want their own dedicated URLs (e.g., `client.sandboxplatform.com` or entirely custom domains like `www.mybakery.com`). To securely support this "White Label" service without polluting the core logic, Magma utilizes the **Strategy Pattern** at the Middleware layer.
-
-Instead of hardcoding domain logic, the `TenantSecurityMiddleware` injects a `DomainTenantContextProvider`. This provider inspects the incoming HTTP request's host, securely queries a `tenant_domains` mapping table using a read-replica connection, and explicitly binds the corresponding `TenantContext`. The Magma core remains beautifully agnostic—it doesn't care if the tenant is resolved via a domain, an API token, or a user session; the downstream Repositories and Error Handlers simply consume the active `TenantContext` to load the correct themes and isolate data.
+As a platform grows, tenants may want their own dedicated URLs (e.g., `client.sandboxplatform.com` or custom white-label domains). To support this without polluting business logic, `TenantSecurityMiddleware` delegates host resolution to `DomainTenantContextProvider` (`TenantContextProviderInterface`), which resolves the incoming host via `TenantQueryInterface` (backed by the read-replica and cache) and binds the resulting `TenantContext`. The rest of Magma remains agnostic to whether the tenant came from a custom domain or an authenticated session.
 
 ---
 
-
 ### Chapter 6.3: The Evolution to CQRS & SERIALIZABLE ACID Compliance
 
-The most profound architectural evolution in the Magma Framework is its advanced approach to persistence. As systems scale, a unified Repository often becomes a bottleneck. Magma evolved to use **CQRS (Command Query Responsibility Segregation)**.
+The most profound architectural evolution in the Magma Framework is its persistence layer. As systems scale, a unified Repository becomes a bottleneck. Magma evolved to use **CQRS (Command Query Responsibility Segregation)**.
 
 In Magma, read operations and write operations are physically and conceptually segregated:
-*   **AbstractQueryRepository:** Used purely for fetching data. It is injected with a **Read-Replica** PDO connection. It returns Data Transfer Objects (DTOs), preventing any accidental writes or lazy-loading side effects in the presentation layer.
-*   **AbstractCommandRepository:** Used purely for mutations (Insert, Update, Delete). It is injected with the **Write-Master** database connection.
+*   **`AbstractQueryRepository` (`magma/models/AbstractQueryRepository.php`):** Used purely for fetching data via `$this->dbManager->getReadConnection()`. It returns DTOs (or yields them via Generators), preventing accidental writes or lazy-loading side effects in the presentation layer.
+*   **`AbstractCommandRepository` (`magma/models/AbstractCommandRepository.php`):** Used purely for mutations (`INSERT`, `UPDATE`, `DELETE`) via `$this->dbManager->getWriteConnection()`.
 
 #### Extreme ACID Compliance (Eliminating Phantom Reads)
-Data integrity is the absolute highest priority. PostgreSQL defaults to the `READ COMMITTED` isolation level. While fast, it is vulnerable to phantom reads under extreme concurrency.
+Data integrity is the absolute highest priority. PostgreSQL defaults to `READ COMMITTED`, which can allow phantom reads under high concurrency.
 
-Magma's `DatabaseTransactionManager` forces the connection into `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`. This mathematically guarantees that concurrent transactions behave as if they were executed sequentially, completely eliminating race conditions.
+Magma's `DatabaseTransactionManager` (`magma/database/DatabaseTransactionManager.php`) executes `SET TRANSACTION ISOLATION LEVEL SERIALIZABLE` when starting transactions, guaranteeing that concurrent transactions behave as if executed serially and eliminating race conditions.
 
 #### Write-Master Redirection
-Crucially, when a transaction begins, the `DatabaseTransactionManager` intercepts the read-replica connection and routes *all* active queries during that transaction to the write-master. This avoids replication-lag bugs! If you create a user on the master and immediately query them from a replica inside the same transaction, they might not exist yet. Dynamic routing solves this.
+Crucially, when a transaction begins, `DatabaseConnectionManager` / `DatabaseTransactionManager` ensures queries inside an active transaction see the primary write-master state rather than lagging read replicas—eliminating replication-lag read-your-own-writes bugs.
 
 #### The Liskov Substitution Principle (LSP) Firewall
 If an abstract base class declares `protected function update(string $table, array $data)`, any concrete subclass trying to implement a domain interface with `public function update(int $id, array $data)` will crash PHP with a signature mismatch.
 
-Magma solves this by strictly segregating internal framework methods (e.g., `executeInsert`) from common domain CRUD terminologies. The base classes act as an **LSP Firewall**, ensuring domain repositories can freely implement `create()`, `update()`, and `delete()` without colliding with the underlying SQL engines.
+Magma solves this by naming internal base helpers `insertAndGetId()`, `executeUpdate()`, `executeDelete()`, and `execute()` inside `AbstractCommandRepository`, acting as an **LSP Firewall** so concrete repositories can freely implement domain method names (`create()`, `update()`, `delete()`, `addReview()`) without colliding with base class signatures.
 ## Module 7: Views and the Template Engine
 
 ### Chapter 7.1: The Final Boundary - HTML & Logic
@@ -1410,98 +1635,99 @@ Our philosophy is that **Views should be incredibly "dumb".**
 
 A View is simply an HTML template with "holes" cut out of it. It does not calculate anything. It does not query the database. It is entirely passive. It simply waits for the Controller to hand it a pre-packaged array of variables, and then it blindly loops through those variables and outputs them into the HTML holes.
 
-If there is a business rule (e.g., "Is this module considered expensive?"), that rule belongs in the `PricingService` or the `CakeEntity` itself, *never* in the View.
+If there is a business rule (e.g., validating a review status or calculating diagnostic status), that rule belongs in a Service or Domain Entity such as `Modules\Reviews\domain\Review`, *never* in the View.
 
 #### File Walkthrough: Passing Data to the View
-Let's trace how data actually reaches the View. Remember our Controller from Module 5? Let's look at it again, focusing on the return statement:
+Let's trace how data reaches the View in the real `app/controllers/HomeController.php`:
 
 ```php
-namespace magma\controllers;
+<?php
 
-use core\http\Response;
-use core\view\ViewRenderer;
-use magma\services\OrderService;
+declare(strict_types=1);
 
-class StorefrontController 
+namespace App\controllers;
+
+use App\services\SystemDiagnosticsServiceInterface;
+
+class HomeController
 {
-    public function __construct(
-        private OrderService $orderService,
-        private ViewRenderer $view
-    ) {}
+    public function index(
+        SystemDiagnosticsServiceInterface $diagnosticsService,
+        \Magma\view\HtmlResponseBuilderInterface $html
+    ): \Magma\http\Response {
+        $diagnostics = $diagnosticsService->getDiagnostics();
 
-    public function index(): Response 
-    {
-        // 1. Ask the Service for the data
-        $modules = $this->orderService->getAvailableCakes();
-
-        // 2. Render the View, passing the data as a clean array!
-        $html = $this->view->render('storefront/index.html.php', [
-            'modules' => $modules,
-            'pageTitle' => 'Welcome to the Dashboard'
+        return $html->render('welcome', [
+            'title'       => \App\constants\AppConstants::HOME_TITLE,
+            'diagnostics' => $diagnostics,
         ]);
-
-        // 3. Return the fully baked HTML inside the HTTP Response
-        return new Response($html);
     }
 }
 ```
 
-Notice that the Controller does not echo the HTML! It asks the `ViewRenderer` to compile the HTML string using the provided data, and then it wraps that compiled string in the standard `Response` object.
+Notice that `HomeController` receives `\Magma\view\HtmlResponseBuilderInterface` (`magma/view/HtmlResponseBuilder.php`) via Method Injection and does not `echo` any HTML! Under the hood, `HtmlResponseBuilder::render()` automatically injects `csrfField` and `csrfToken`, delegates rendering to `Magma\view\TemplateEngine` (`magma/view/TemplateEngine.php`), and wraps the compiled string inside a `Magma\http\Response`. Meanwhile, `ViewShareMiddleware` (`magma/middleware/ViewShareMiddleware.php`) shares request-wide globals (`tenant`, `tagline`, `user`, `errors`, `old`), and `AssetVersionManager` (`magma/assets/AssetVersionManager.php`) provides cache-busted asset URLs.
 
 #### The Template Engine (The Compiler)
-What does that `storefront/index.html.php` file actually look like?
-
-In our framework, we use a basic, native PHP templating engine. We intentionally limit what PHP functions can be used inside these template files.
+Every view file in `app/views/` (like `app/views/404.php` or `app/views/welcome.php`) starts with a mandatory docblock specifying `Purpose`, `Teaching notes`, and `@var` parameter types, and escapes all dynamic values explicitly:
 
 ```php
-<!-- magma/views/storefront/index.html.php -->
-<html>
+<?php
+/**
+ * Title: Not Found Error View Template
+ *
+ * Purpose:
+ * - Renders a clean, user-friendly fallback error page when a requested URL or resource is not found (404).
+ *
+ * Teaching notes:
+ * - This template acts as an excellent standalone presentation layer fallback.
+ *
+ * @var string|null $message Safe error description.
+ * @var int|null $code HTTP status code (404).
+ * @var array{theme?: array<string, string|null>, tenant?: \Magma\dto\TenantDTO|null} $data
+ */
+$tenant = $data['tenant'] ?? null;
+$appName = $tenant->name ?? (getenv('APP_NAME') ?: 'Magma Framework');
+?>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <meta charset="UTF-8">
+    <title>404 Not Found | Magma</title>
 </head>
 <body>
-    <h1>Menu</h1>
-    
-    <ul>
-        <!-- The view only loops and displays. No logic! -->
-        <?php foreach ($modules as $module): ?>
-            <li>
-                <?= htmlspecialchars($module->getName()) ?> - 
-                £<?= number_format($module->getPrice(), 2) ?>
-            </li>
-        <?php endforeach; ?>
-    </ul>
+    <h1><?= htmlspecialchars((string) ($code ?? 404), ENT_QUOTES, 'UTF-8') ?></h1>
+    <p><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></p>
 </body>
 </html>
 ```
 
 #### Analyzing the Principles: The XSS Vulnerability
-You might have noticed something critical in the template above: we wrap everything we output in `htmlspecialchars()`.
+You might have noticed something critical in the template above: we wrap dynamic text in `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`.
 
 This is the most critical security rule of the View layer. **Cross-Site Scripting (XSS)** occurs when an attacker types malicious JavaScript into a form (e.g., setting their username to `<script>stealCookies();</script>`). If the View layer blindly outputs that username directly into the HTML using `echo $username;`, the browser will execute the attacker's script!
 
-By wrapping every variable in `htmlspecialchars()`, we neutralize the threat. It converts the literal `<` bracket into the safe HTML entity `&lt;`, rendering it harmless text on the screen.
+By wrapping every variable in `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')`, we neutralize the threat. It converts literal `<` and quote characters into safe HTML entities, rendering them harmless text on the screen.
 
 #### Common Questions and Answers
 
-> **Q: Imagine the team hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
+> **Q: Imagine Sandbox Corp hires a junior Front-End Web Designer who only knows HTML and CSS, and does not know PHP. How does enforcing the "Dumb View" architecture make their job significantly safer and easier compared to the "Spaghetti Code" era?**
 > 
-> **A:** The data received is sanitized and empty of any logic that might harm or break the app. It provides simply the necessary information, ready for the view. The designer can just write HTML without worrying about accidentally deleting a database table or breaking complex backend routines.
+> **A:** The data received is sanitized and empty of any logic that might harm or break the app. It provides simply the necessary information, ready for the view. The designer can focus on HTML and CSS without worrying about accidentally executing database queries or breaking complex backend routines.
 
-> **Q: The business wants to display a red "SALE!" badge next to any module that costs less than £10. A developer wants to write `<?php if ($module->getPrice() < 10) { echo "<span class='sale'>SALE!</span>"; } ?>` directly into the `index.html.php` View file. Why does this violate the "Dumb View" philosophy, and where *should* that "less than 10" logic actually live?**
+> **Q: The business wants to highlight reviews that are approved with a green badge. A developer wants to write raw SQL or status-transition calculations directly inside `app/views/welcome.php`. Why does this violate the "Dumb View" philosophy, and where *should* that logic live?**
 > 
-> **A:** Business logic should not be in the View. However, it shouldn't be in the Controller either! (Controllers are just Traffic Cops). That logic belongs deep in the **Service Layer** or the **Domain Model**. For instance, the `Module` object itself should have a method `$module->isOnSale()`. The View simply asks `if ($module->isOnSale())`—keeping the actual calculation ("is it less than £10?") safely hidden in the backend.
+> **A:** Business logic should not be in the View or in the Controller! (Controllers are just Traffic Cops). Domain rules belong in the **Service Layer** or the **Domain Model** (such as `Modules\Reviews\domain\Review` or a dedicated DTO property). The View simply checks the prepared boolean/state or renders the pre-formatted DTO field safely.
 
 ---
 
 
 ### Chapter 7.2: Multi-Directory Fallback & Resolution Caching
 
-Large SaaS applications store views across multiple directory structures (`views/layouts`, `views/partials`, `modules/Inventory/views`). 
+Large SaaS applications store views across multiple directory structures (`app/views` and namespaced `modules/*/views` directories automatically registered by `LocalFileViewLoader` inside `magma/providers/CoreServiceProvider.php`).
 
 Magma's `TemplateEngine` intelligently falls back across these directories to resolve layouts. However, under heavy load, checking `file_exists()` across multiple directories for every partial creates severe disk I/O bottlenecks. 
 
-To prevent this, the resolution paths are cached in-memory. The engine guarantees that the disk is only queried once per layout or partial per request lifecycle.
+To prevent this, the resolution paths are cached in-memory (`$resolvedLayoutCache`). The engine guarantees that the disk is only queried once per layout or partial per request lifecycle.
 
 Furthermore, to support fully decoupled, multi-tenant components without relying on legacy assumptions, Magma forces explicit layout rendering. The framework does not default to searching for a `'default'` layout wrapper; components render completely standalone unless a layout is specifically requested in the controller.
 
@@ -1509,7 +1735,7 @@ Furthermore, to support fully decoupled, multi-tenant components without relying
 
 Large applications require child views to inject their own specific assets (like unique CSS files or JavaScript modules) up into the master layout's `<head>` or before the closing `</body>` tag. 
 
-Magma's `TemplateEngine` provides native PHP stacks (similar to Laravel's `@push` and `@stack`) using `push(string $name)` and `stack(string $name)`. This uses nested output buffering to seamlessly capture and bubble these modular assets up to the master layout without polluting global variables.
+Magma's `TemplateEngine` provides native PHP stacks (similar to Laravel's `@push` and `@stack`) using `push(string $name)`, `endPush()`, and `stack(string $name)`. This uses nested output buffering (`$activeStacks` and `$stacks`) to seamlessly capture and bubble modular assets up to the master layout without polluting global variables.
 
 ### Chapter 7.4: Big-O DOM Interpolation Optimization
 
@@ -1526,63 +1752,70 @@ In default PHP, when a fatal error occurs (like trying to connect to a database 
 Both of these are unacceptable in a professional application. 
 
 In the Magma Framework, we enforce a global **Exception Handler** and absolute **Exception Boundaries** at the infrastructure level. 
-For example, our base `AbstractQueryRepository` and `AbstractCommandRepository` explicitly catch `PDOException` natively at the execution layer, translating them into `DatabaseException`. Similarly, our storage adapters (`LocalStorageService`, `S3StorageService`) throw `StorageException` upon network drops or disk permission failures, preventing silent boolean data loss. This mathematically guarantees raw database credentials, SQL syntax errors, or cloud storage secrets never bleed into the domain or HTTP application layers.
+For example, our base `AbstractQueryRepository` and `AbstractCommandRepository` explicitly catch `PDOException` natively at the execution layer, translating them into `DatabaseException`. Similarly, our storage adapter (`LocalStorageService` in `magma/infrastructure/storage/LocalStorageService.php`) throws `StorageException` upon disk permission failures or invalid paths, preventing silent boolean data loss. This mathematically guarantees raw database credentials, SQL syntax errors, or filesystem secrets never bleed into the domain or HTTP application layers.
 
-To further elevate our Site Reliability Engineering (SRE), deep within our `ErrorHandler`, we deploy **Regex Credential Sanitization** on `PDOException` traces before they hit our logs, stripping out DSN passwords and raw `VALUES(...)` insertions so they never reach external aggregation platforms. We also utilize a `CorrelationIdProvider` to attach a unique Trace ID to every request cycle, allowing developers to track complex asynchronous events perfectly across boundaries.
+To further elevate our Site Reliability Engineering (SRE), deep within our `ErrorHandler` and `NativeLogger` (`magma/logging/NativeLogger.php`), we protect sensitive payloads from hitting logs and utilize `CorrelationIdProvider` (`magma/logging/CorrelationIdProvider.php`) to attach a unique Trace ID to every request cycle, allowing developers to correlate events across boundaries.
 
 Furthermore, we enforce **Pre-Kernel Boot Safety Nets**. If a fatal error occurs in `www/index.php` or `bin/worker.php` *before* the application container and `ErrorHandler` are fully registered, an outermost `try/catch` wrapper intercepts the failure to emit a clean 500 status code, protecting the system from 0-day `.env` or container misconfiguration leaks.
 
 #### The Theory: Catching Everything
-Instead of sprinkling `try/catch` blocks randomly throughout every single file, we register a global listener at the very start of the application lifecycle (inside `bootstrap.php`).
+Instead of sprinkling `try/catch` blocks randomly throughout every single file, we register `ErrorHandlerInterface` (`Magma\error\ErrorHandler`) inside `Application::run()` (booted via `magma/config/bootstrap.php` and `CoreServiceProvider`).
 
-If an Exception is thrown anywhere in the application—whether deep inside a Repository or high up in a Middleware—and it is *not* caught by the local code, it bubbles all the way up to our global Error Handler.
+If a `\Throwable` is thrown anywhere in the application—whether deep inside a Repository or high up in a Middleware—and it is *not* caught locally, it bubbles all the way up to `ErrorHandler::handleException()`.
 
 #### File Walkthrough: The Error Handler
-Here is a simplified version of our core Error Handler:
+Here is the real constructor and flow in `magma/error/ErrorHandler.php`:
 
 ```php
-namespace core\error;
+<?php
 
-use Throwable;
-use core\http\Response;
+declare(strict_types=1);
 
-class ErrorHandler 
+namespace Magma\error;
+
+use Magma\http\RequestInterface;
+use Magma\http\Response;
+use Magma\view\TemplateEngine;
+use Magma\interfaces\JsonErrorPresenterInterface;
+use Magma\interfaces\DebugErrorPresenterInterface;
+
+class ErrorHandler implements ErrorHandlerInterface
 {
-    public function __construct(private LoggerInterface $logger) {}
+    public function __construct(
+        TemplateEngine $templateEngine,
+        \Magma\config\ConfigInterface $config,
+        JsonErrorPresenterInterface $jsonPresenter,
+        DebugErrorPresenterInterface $debugPresenter,
+        ?\Magma\container\Container $container = null,
+        ?bool $debug = null
+    ) {
+        // ... resolves $this->debug from $debug or APP_DEBUG / APP_ENV / ENVIRONMENT
+    }
 
-    public function handle(Throwable $e): void 
+    public function handleException(\Throwable $e, ?RequestInterface $request = null): Response
     {
-        // 1. ALWAYS log the exact technical error securely.
-        $this->logger->error($e->getMessage() . "\n" . $e->getTraceAsString());
-
-        // 2. Decide what to show the user based on the Environment
-        if (ENVIRONMENT === 'development') {
-            // In Dev: Show the ugly, detailed stack trace so we can fix it!
-            $response = new Response("<h1>Fatal Error</h1><pre>" . $e->getTraceAsString() . "</pre>", 500);
-        } else {
-            // In Production: NEVER show technical details. Show a polite apology.
-            $response = new Response("<h1>Whoops!</h1><p>Something went wrong on our end. We've been notified.</p>", 500);
-        }
-
-        // 3. Send the final response
-        $response->send();
-        exit(); // Immediately halt all further execution
+        // 1. Flush any partial output buffers (ob_end_clean)
+        // 2. Return 422 JSON or flash ValidationException errors & redirect
+        // 3. Log technical details securely
+        // 4. Content-negotiate JSON via JsonErrorPresenterInterface when expected
+        // 5. If $this->debug is true, render magma/error/templates/debug_error.php via DebugErrorPresenterInterface
+        // 6. Otherwise call $this->renderError($code, $message, null, $request) -> app/views/404.php or 500.php
     }
 }
 ```
 
-#### Analyzing the Principles: Security and UX
-This architecture perfectly separates concerns based on the environment. 
+#### Analyzing the Principles: Security, Content Negotiation, and Observability
+This architecture separates concerns across environments and client types:
 
-By tying the output to the `ENVIRONMENT` constant (which we defined way back in `index.php`), we ensure that an attacker can never purposefully crash the site just to read the stack trace to find vulnerabilities. 
+By tying debug diagnostics to `APP_DEBUG` and `ENVIRONMENT` (and isolating output rendering inside `DebugErrorPresenter` -> `magma/error/templates/debug_error.php` vs. production `app/views/404.php` and `app/views/500.php`), an attacker can never purposefully crash the site in production just to read a stack trace.
 
-Simultaneously, we ensure that the development team gets notified immediately via the `LoggerInterface`. Because we are injecting a `LoggerInterface`, we can swap where those logs go! In development, it might write to a text file. In production, it might send a Slack message or an alert to a service like Sentry or Datadog.
+Meanwhile, API clients (`Accept: application/json` or `/api/*` routes) automatically receive structured JSON payloads from `JsonErrorPresenterInterface`, while `NativeLogger` (`magma/logging/NativeLogger.php`) and `CorrelationIdProvider` (`magma/logging/CorrelationIdProvider.php`) preserve full technical diagnostics for engineers.
 
 #### Common Questions and Answers
 
-> **Q: If we didn't have a global Error Handler configured in `bootstrap.php`, and a developer forgot to write a `try/catch` block around a database query that failed, what are the *two* completely different ways the application might behave depending on the server's default configuration, and why are *both* terrible for a production site?**
+> **Q: If we didn't have a global `ErrorHandler` configured for `Application::run()`, and a developer forgot to write a `try/catch` block around a failing database query, what are the *two* completely different ways the application might behave depending on `php.ini`, and why are *both* terrible for production?**
 > 
-> **A:** It could show a full stack trace which looks ugly and presents a massive security risk (exposing file paths and potentially credentials), or it could show the White Screen of Death that tells the user absolutely nothing, providing a terrible User Experience (UX).
+> **A:** It could print a full raw stack trace (exposing file paths and internal queries—a severe security risk), or it could emit a blank White Screen of Death (a terrible user experience). With `Magma\error\ErrorHandler`, production users always receive a clean, tenant-themed error page or JSON payload while the full failure is logged safely.
 
 ---
 
@@ -1594,85 +1827,111 @@ Simultaneously, we ensure that the development team gets notified immediately vi
 #### Subject & Intent: The Strict Typing Friction
 Let's return to a problem we discussed in Pillar 4 (Strict Typing). 
 
-Our `OrderService` is incredibly strict:
-`public function placeOrder(int $productId, int $quantity): bool`
+Our domain services are strictly typed: for example, `AuthenticationService::attempt(string $email, string $password, bool $rememberMe)` or `ReviewSubmissionService::submit(ReviewDTO $dto, int $tenantId)`.
 
-But the web browser submits forms using text. The `Request` object catches this text. If we just pull the text out and pass it to the service, the application crashes because `"5"` (string) is not `5` (integer).
+But the web browser submits forms as strings inside HTTP POST arrays. If we pass raw `$_POST` arrays directly into services, we lose type safety, risk missing keys, and couple business logic to HTTP payloads.
 
-We need a translator.
+We need a translator and an immutable boundary object.
 
-#### The Theory: The DTO
-A Data Transfer Object (DTO) is a simple, dumb class. Its only job is to take the messy, untyped data from the outside world, validate it, and convert it into a strict, strongly-typed object that our core business logic can safely consume.
+#### The Theory: The FormRequest + DTO Pair
+A **FormRequest** validates incoming HTTP inputs, and a **Data Transfer Object (DTO)** is a simple, immutable `readonly class` carrying only strongly-typed properties into the service layer.
 
-#### File Walkthrough: The Bouncer
-Let's look at `magma/dto/OrderRequestDTO.php`:
+#### File Walkthrough: `LoginRequest` and `LoginDTO`
+Let's look at the real `magma/dto/LoginDTO.php`:
 
 ```php
-namespace magma\dto;
+<?php
 
-class OrderRequestDTO 
+declare(strict_types=1);
+
+namespace Magma\dto;
+
+readonly class LoginDTO
 {
-    public readonly int $productId;
-    public readonly int $quantity;
+    public function __construct(
+        public string $email,
+        public string $password,
+        public bool $rememberMe
+    ) {}
+}
+```
 
-    // The constructor forces strict typing immediately!
-    public function __construct(int $productId, int $quantity) 
+And here is `magma/requests/LoginRequest.php`, which validates the payload and transforms it into `LoginDTO`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Magma\requests;
+
+use Magma\validation\FormRequest;
+
+class LoginRequest extends FormRequest
+{
+    public function rules(): array
     {
-        if ($quantity <= 0) {
-            throw new \InvalidArgumentException("Quantity must be at least 1.");
-        }
-
-        $this->productId = $productId;
-        $this->quantity = $quantity;
+        return [
+            'email'    => 'required|email',
+            'password' => 'required|max:100',
+        ];
     }
 
-    // A static factory method to build the DTO from the messy Request
-    public static function fromRequest(\core\http\Request $request): self 
+    public function toDTO(): \Magma\dto\LoginDTO
     {
-        return new self(
-            $request->getPostInt('product_id'),
-            $request->getPostInt('quantity')
+        $data = $this->request->request();
+        $email = is_array($data) && isset($data['email']) && is_string($data['email']) ? $data['email'] : '';
+        $password = is_array($data) && isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
+        $rememberMe = is_array($data) && !empty($data['remember_me']);
+
+        return new \Magma\dto\LoginDTO(
+            email: trim($email),
+            password: $password,
+            rememberMe: $rememberMe
         );
     }
 }
 ```
 
-Now, look at how beautiful and safe our Controller becomes:
+Now look at how clean `Magma\controllers\LoginController::authenticate()` (`magma/controllers/LoginController.php`) becomes:
 
 ```php
-public function process(Request $request): Response 
+public function authenticate(LoginRequest $loginRequest, Request $request): Response
 {
-    try {
-        // 1. The DTO translates the messy request into a strict object
-        $orderData = OrderRequestDTO::fromRequest($request);
+    // Validation is automatically handled by RouteParameterResolver for LoginRequest.
+    $dto = $loginRequest->toDTO();
 
-        // 2. The Service now only accepts the strict DTO!
-        $this->orderService->placeOrder($orderData);
+    $result = $this->authService->attempt($dto->email, $dto->password, $dto->rememberMe);
 
-        return new Response("Success!");
-    } catch (\InvalidArgumentException $e) {
-        // The DTO validation failed! (e.g. quantity was 0)
-        return new Response($e->getMessage(), 400);
+    if (!$result->isSuccessful()) {
+        return $this->redirectResolver->redirectAfterFailedLogin($dto->email, 'Invalid credentials');
     }
+
+    $user = $result->getUser();
+    if ($user !== null) {
+        return $this->applyAuthResult($result, $this->redirectResolver->redirectAfterAuthentication($user, $request), $request);
+    }
+
+    return new RedirectResponse('/login');
 }
 ```
 
-By using DTOs, our `OrderService` never has to worry about receiving a string when it expected an integer. The DTO acts as the bouncer at the club, ensuring only properly dressed data gets through the door.
+Another practical DTO in Magma is `Magma\dto\TenantDTO` (`magma/dto/TenantDTO.php`), which encapsulates tenant metadata and exposes type-safe white-label helpers such as `$tenant->setting(string $key, string $default = '')`, `settingBool()`, `settingArray()`, and `hasSetting()` instead of raw nested array lookups.
 
 #### Common Questions and Answers
 
-> **Q: Our `OrderRequestDTO` has a validation check: `if ($quantity <= 0) throw Exception;`. Why is it architecturally better to put this specific validation inside the DTO, rather than putting it inside the `OrderService` or the `CheckoutController`?**
+> **Q: Why is it architecturally better to put input rule checking and type extraction inside `LoginRequest` + `LoginDTO` rather than inside `AuthenticationService` or `LoginController`?**
 > 
-> **A:** The DTO's job is to make sure everything matches the required type and format. By keeping "grammar" validation (like ensuring a quantity is a positive number, or an email looks like an email) inside the DTO, the Service can focus purely on cleaner *business logic* (like checking if we actually have enough flour in stock to fulfill that quantity).
+> **A:** `LoginRequest` handles HTTP input grammar (`required|email`, `max:100`), while `LoginDTO` guarantees an immutable, strictly-typed contract (`string $email`, `string $password`, `bool $rememberMe`). That leaves `LoginController` as a thin Traffic Cop and lets `AuthenticationService` stay 100% agnostic of HTTP forms.
 
 ---
 
 
 ### Chapter 9.2: Engine-Enforced Immutability
 
-If a developer accidentally mutates a DTO mid-flight (e.g., `$dto->price = 0;`), it can introduce catastrophic, hard-to-trace bugs.
+If a developer accidentally mutates a DTO mid-flight (e.g., `$dto->email = '';`), it can introduce catastrophic, hard-to-trace bugs.
 
-Magma eliminates this entirely by utilizing PHP 8.2's native `readonly class` modifiers for all DTOs.
+Magma eliminates this entirely by utilizing PHP 8.2's native `readonly class` modifiers for all DTOs (such as `LoginDTO`, `TenantDTO`, `ReviewDTO`, and `PaginationDTO`).
 
 Once a DTO is instantiated, its properties are locked down perfectly at the engine layer. Any attempt to modify a property will throw a fatal engine error. This prevents rogue scripts or dynamic property injections from mutating state mid-flight, eliminating an entire class of side-effect bugs.
 ## Module 10: The Evolution - Domain-Driven Design (DDD)
@@ -1688,10 +1947,10 @@ While Transaction Scripts are excellent for medium-sized applications, as Magma 
 
 To solve this, our framework migrated to the current standard: **Domain-Driven Design (DDD)** and the creation of **Rich Domain Models**. This is how the Magma framework operates today.
 
-#### The Theory: Behavior Belongs to the Data
-In a Rich Domain Model, the objects that represent your business (Entities) are no longer "dumb." They contain the business logic that directly pertains to them.
+#### The Theory: Behavior Belongs to the Data (Conceptual DDD Illustration)
+In a Rich Domain Model, the objects that represent your business (Entities) are no longer "dumb." They contain the business logic that directly pertains to them. To illustrate the contrast conceptually (using a classic e-commerce `Order` example before looking at Magma's live entities):
 
-**The Transaction Script Way (Dumb Data, Smart Service):**
+**The Transaction Script Way (Conceptual Illustration — Dumb Data, Smart Service):**
 ```php
 // The Service holds all the knowledge
 class PricingService 
@@ -1772,11 +2031,13 @@ By using this hybrid approach, we prevent our Services from becoming bloated "Go
 
 ### Chapter 10.2: 100% Pure Domain Entities
 
-Many architectures corrupt their domain models by passing HTTP-specific objects (like a `Request` or a framework-specific DTO) directly into them. 
+Many architectures corrupt their domain models by passing HTTP-specific objects (like a `Request` or a framework-specific FormRequest) directly into them. 
 
 Magma enforces **100% Pure Domain Entities**. 
 
-Entities are completely agnostic of the application layer. They only accept raw scalars (strings, integers, booleans) or other pure domain Value Objects in their constructors. A `Product` entity has no idea that it lives on a web server, that it is being saved to PostgreSQL, or that an HTTP request triggered its creation.
+Entities are completely agnostic of the HTTP and persistence layers. For example:
+*   `Modules\Reviews\domain\Review` (`modules/Reviews/domain/Review.php`) accepts pure scalar fields (`int $tenantId`, `string $author`, `string $comment`, `int $rating`, `string $status`), validates domain invariants (`MIN_RATING = 1`, `MAX_RATING = 5`), and never touches a database connection or HTTP request.
+*   `Magma\domain\AuthUser` (`magma/domain/AuthUser.php`) is a `readonly class` encapsulating only safe session fields (`id`, `name`, `role`, `email`, `tenantId`), preventing password hashes from ever leaking into session payloads.
 ## Module 11: Decoupling with Event-Driven Architecture
 
 ### Chapter 11.1: The Pub/Sub Pattern (Publish/Subscribe)
@@ -1832,63 +2093,63 @@ Meanwhile, a separate PHP process running continuously in the background (the Wo
 This ensures the web tier remains lightning fast and completely isolated from the performance bottlenecks of third-party APIs or heavy background calculations.
 
 #### Self-Healing and Tenant Safety
-To guarantee that these background workers never crash your infrastructure, Magma implements **Self-Healing Workers**. The `QueueWorkerDaemon` wraps its Redis polling in a `try/catch` block. If the Redis server drops offline, the daemon doesn't fatally crash; it simply logs a critical alert to the PSR-3 `NativeLogger`, sleeps for 5 seconds, and cleanly retries. 
+To guarantee that these background workers never crash your infrastructure, Magma implements **Self-Healing Workers** in `QueueWorkerDaemon` (`magma/queue/QueueWorkerDaemon.php`, backed by `Magma\queue\ReliableQueueInterface` in `magma/queue/ReliableQueueInterface.php`). It wraps queue polling in a `try/catch` block so transient Redis or worker failures log via `NativeLogger` (`magma/logging/NativeLogger.php`) and recover cleanly instead of crashing the daemon.
 
-Additionally, because background workers run continuously within a single PHP process, they share the exact same Dependency Injection `Container`. This presents a massive data-leakage risk in multi-tenant SaaS architectures if "Singleton" state bleeds from Job A into Job B. To prevent this, Magma explicitly calls `$container->flushInstances()` at the beginning of *every single loop iteration*, ensuring every job executes in a completely pristine environment.
+Additionally, because background workers run continuously within a single PHP process, they share the same `Container`. This presents a data-leakage risk in multi-tenant SaaS architectures if singleton state bleeds from Job A into Job B. To prevent this, `QueueWorkerDaemon` calls `$container->flushInstances()` between jobs so every job runs in a fresh instance scope.
 
 ---
 
 
-### Chapter 12.2: The Transactional Outbox Pattern
+### Chapter 12.2: The Transactional Outbox Pattern & Idempotent Projections
 
 #### The Dual-Write Problem
 Synchronous background tasks kill web performance. The standard solution is to dispatch to a message queue. However, this introduces the **Dual-Write Problem**: What happens if the database transaction commits successfully, but the network connection to Redis fails? The system is now in an inconsistent state.
 
 Magma completely solves this using the **Transactional Outbox Pattern**.
 
-Instead of dispatching directly to a queue, the `OutboxJobRepository` records domain events *atomically* within the exact same database transaction that created the entity. If the transaction commits, the job is guaranteed to be in the database. If it rolls back, the job vanishes. Absolute consistency is guaranteed.
+Instead of dispatching directly to a queue, `OutboxJobRepository` (`magma/database/OutboxJobRepository.php`) records domain jobs *atomically* within the exact same database transaction as the domain mutation. If the transaction commits, the job is guaranteed to be in the database (`bin/outbox_publisher.php` publishes it safely); if it rolls back, the job vanishes.
 
-#### FOR UPDATE SKIP LOCKED
-A continuous background daemon polls the outbox table to execute the jobs. If you run multiple parallel workers, they will race each other to grab the same job.
+#### FOR UPDATE SKIP LOCKED & Idempotent Projections
+When multiple outbox publisher workers poll concurrently, `OutboxJobRepository::fetchAndLockPending()` uses PostgreSQL's native `SELECT ... FOR UPDATE SKIP LOCKED` locking primitive so concurrent workers skip locked rows and never block each other.
 
-Magma solves this elegantly by using Postgres's `FOR UPDATE SKIP LOCKED` clause. This allows dozens of workers to read from the outbox simultaneously; if Worker A locks rows 1-50, Worker B will instantly skip them and fetch rows 51-100 without blocking. This provides infinite horizontal scaling for background jobs without race conditions.
+Because distributed queues provide at-least-once delivery, downstream projection consumers guard against duplicate replay via `IdempotentProjectionGuard` (`magma/queue/IdempotentProjectionGuard.php`), which records processed event checkpoints in the `projection_checkpoints` table.
 
 ### Chapter 12.3: Mastering Concurrency and Race Conditions
 
 #### Subject & Intent: Designing for High Throughput
 As web applications scale horizontally, naive assumptions about code execution order break down. A race condition occurs when two or more threads (or web requests) attempt to read and write shared data at the exact same millisecond. Without strict synchronization mechanisms, this leads to corrupted data, duplicate actions, and catastrophic failures.
 
-Magma has undergone a rigorous, multi-pass **Concurrency Audit** to mathematically eliminate these architectural vulnerabilities from its core. By examining how we eradicated these patterns, you can learn to write truly thread-safe enterprise software.
+Magma has undergone a rigorous, multi-pass **Concurrency Audit** to mathematically eliminate these architectural vulnerabilities from its core.
 
 #### 1. TOCTOU (Time-Of-Check to Time-Of-Use) Races
-A common anti-pattern is checking if a condition exists, and then acting on it: `if (!$repo->exists()) { $repo->insert(); }`. Under concurrency, Worker A and Worker B both check `exists()` simultaneously, both receive `false`, and both execute the `insert()`, creating duplicate data.
+A common anti-pattern is checking if a condition exists, and then acting on it (`if (!$repo->exists()) { $repo->insert(); }`). Under concurrency, Worker A and Worker B both check simultaneously, both receive `false`, and both insert duplicate state.
 
-**The Magma Solution:** In our `IdempotentProjectionGuard`, we inverted the logic. We rely on the database's absolute truth by executing an atomic `INSERT ... ON CONFLICT DO NOTHING`. The database engine itself enforces the lock. If the insert succeeds, we proceed. If it returns false, we know another worker beat us to it, and we safely halt.
+**The Magma Solution:** `IdempotentProjectionGuard` relies on the database engine's atomic truth via `INSERT ... ON CONFLICT DO NOTHING`. If the insert claims the row, execution proceeds; otherwise another worker already processed the event and execution halts safely.
 
-#### 2. The Cache Stampede (Thundering Herd)
-When a highly-trafficked, cached dictionary (like system tax rates) expires, fifty concurrent web requests will experience a cache miss simultaneously. A naive cache decorator will allow all fifty requests to execute the heavy database query at the exact same millisecond, instantly overloading the connection pool.
+#### 2. Two-Phase Reliable Queue Recovery (Orphan Prevention)
+A naive Redis `BLPOP` removes a job from the list the instant a worker reads it. If that worker process suffers an OOM kill or hardware crash mid-job, the popped job vanishes forever.
 
-**The Magma Solution:** The `CachedRepositoryDecorator` utilizes an atomic `CacheInterface::add()` (which translates to a Redis `SETNX`) to create a distributed lock. Only the *first* request wins the lock and queries the database. The remaining 49 requests safely `usleep()` and poll until the first request populates the cache, protecting the database from the stampede.
+**The Magma Solution:** `ReliableQueueInterface` (`magma/queue/ReliableQueueInterface.php`) and `RedisQueue` implement two-phase reliable consumption (`popReliable()`, `acknowledge()`, and `recoverOrphaned()`), moving in-flight payloads into a processing list until acknowledged so crashed jobs are deterministically recovered.
 
 #### 3. Isolating Network I/O from Database Locks
-It is a cardinal sin to perform synchronous network I/O (like pushing to Redis, or calling a Stripe HTTP API) *inside* an open PostgreSQL transaction. If the Redis server experiences a 5-second latency spike, the PostgreSQL transaction is held open for 5 seconds, maintaining row locks and instantly exhausting the PgBouncer connection pool.
+Performing synchronous network I/O (pushing to Redis or calling an external HTTP API) *inside* an open PostgreSQL transaction holds row locks across network latency spikes and exhausts connection pools.
 
-**The Magma Solution:** In `outbox_publisher.php`, we removed the transaction wrapper entirely. The outbox uses a single, atomic `UPDATE ... RETURNING` statement to lock rows via a `locked_at = NOW()` application-level timestamp. Because the lock is recorded in the data itself rather than relying on a long-running SQL transaction, we can safely push to Redis over the network without hoarding database connections.
+**The Magma Solution:** `bin/outbox_publisher.php` claims batches atomically without holding a database transaction open across Redis network pushes, keeping PostgreSQL lock durations sub-millisecond.
 
 #### 4. Graceful Daemon Termination and Deadlocks
-Background workers run in infinite loops (`while ($this->running)`). When deploying new code, deployment scripts send a `SIGTERM` signal to restart the workers. However, if the worker is stuck in an infinite `BLPOP` waiting for Redis, it will never evaluate the shutdown flag, resulting in a deadlock that forces the deployment script to violently `SIGKILL` the worker (corrupting data).
+Background workers run in continuous loops (`while ($this->running)`). If a worker blocks indefinitely on Redis during deployment `SIGTERM`, orchestrators are forced to `SIGKILL` it mid-operation.
 
-**The Magma Solution:** `QueueWorkerDaemon` registers `pcntl_signal` hooks to intercept termination requests and uses a strict 3-second timeout on its Redis `pop()` command. This ensures the daemon regularly unblocks, checks its internal `$this->running` state, and gracefully exits before fetching the next job.
+**The Magma Solution:** `QueueWorkerDaemon` registers `pcntl_signal` handlers, uses bounded `popReliable()` timeouts so shutdown flags are evaluated promptly, disconnects database handles cleanly, and invokes `$container->flushInstances()` per job.
 
 #### 5. Cross-Tenant Rate Limit Starvation
-In a multi-tenant SaaS, rate limiters must strictly isolate traffic. If rate limit tracking keys are generated purely by the route name (e.g. `rate_limit:login`), a malicious actor spamming the login endpoint on Tenant A will max out the shared counter, effectively DoS-ing Tenant B.
+If rate-limit keys are scoped only by route or IP, a spike or attack on Tenant A can exhaust shared counters and starve Tenant B.
 
-**The Magma Solution:** Magma's `RedisRateLimiter` utilizes Dependency Injection to retrieve the `TenantContext`. It automatically prefixes every Redis key with `tenant_{id}:`, ensuring mathematically isolated rate limit buckets for every organization on the platform.
+**The Magma Solution:** `RedisRateLimiter` (`magma/security/RedisRateLimiter.php`) injects `TenantContext` and scopes Redis rate-limit keys per tenant, isolating rate-limit buckets across organizations.
 
 #### 6. Dual-Write Events and Exception Aggregation
-When an event (like `UserRegisteredEvent`) triggers multiple listeners (e.g., an Email Listener and a Metrics Listener), two major concurrency risks occur:
-1. **The Dual Write:** If a listener pushes an email directly to Redis during a database transaction, and the database subsequently rolls back, the user receives an email for an account that doesn't exist. Magma forces all side-effects through the `OutboxJobRepository` to tie network I/O strictly to the ACID commit.
-2. **Listener Isolation:** If the Metrics Listener throws an exception, the PHP `foreach` loop inside the Dispatcher breaks, and the Email Listener is silently skipped. Magma's `EventDispatcher` aggregates throwables natively, guaranteeing all independent listeners execute while still throwing an `EventDispatchException` at the very end to safely roll back the parent transaction.
+When an event such as `UserRegisteredEvent` triggers multiple listeners:
+1. **The Dual Write:** Side-effects are persisted through `OutboxJobRepository` inside the ACID transaction rather than firing raw network calls before commit.
+2. **Listener Isolation:** `EventDispatcher` (`magma/events/EventDispatcher.php`) aggregates listener throwables and throws `EventDispatchException` (`magma/events/EventDispatchException.php`) only after running remaining independent listeners, ensuring deterministic transaction rollback without silently skipping sibling listeners.
 ## Module 13: End of Cycle Considerations - Automated Testing
 
 ### Chapter 13.1: Reaping the Rewards of Architecture
@@ -1901,31 +2162,31 @@ If you write "Spaghetti Code" where controllers contain `new SmtpMailer()` or di
 Because we built the Magma framework using strict **Dependency Injection (Module 3)** and **Encapsulated Requests (Module 4)**, testing becomes trivial. 
 
 #### The Theory: Mocks and Fakes
-If you want to test the `OrderService`, you do not need a database. You simply write a test script that injects a fake `InMemoryOrderRepository` into the service. You can instantly verify the logic is flawless without ever booting up PostgreSQL. This is the ultimate validation of our architectural choices!
+If you want to test a service such as `RegistrationService`, you do not need a live PostgreSQL database. You inject in-memory fakes for `UserCommandInterface`, `EventDispatcherInterface`, and `TransactionManagerInterface`, verifying domain orchestration instantly without booting external infrastructure.
 
 ### Chapter 13.2: Deterministic Time (The Clock Interface)
 
 #### Subject & Intent: Eradicating Hidden Global State
-Time is inherently non-deterministic. Every time you call `time()`, `new DateTime()`, or SQL's `NOW()`, the output changes. If your application logic relies on these native functions (for instance, checking if a session token has expired), it becomes a hidden global dependency. This makes testing time-sensitive features incredibly flaky.
+Time is inherently non-deterministic. Every time you call `time()`, `new DateTime()`, or SQL's `NOW()`, the output changes. If your application logic relies on these native functions (for instance, checking if a remember-me or password-reset token has expired), it becomes a hidden global dependency. This makes testing time-sensitive features flaky.
 
-To resolve this, Magma implements a strict **`ClockInterface`**. Rather than calling native time functions, services inject the `ClockInterface`. 
-In production, the DI container binds this to a `SystemClock` that returns real time. 
-In testing (our `lava` testing infrastructure), we bind it to a `MockClock`. This allows test suites to instantly "freeze", "advance", or "rewind" the flow of time deterministically without ever pausing the CPU!
+To resolve this, Magma implements a strict **`Magma\contracts\ClockInterface`** (`magma/contracts/ClockInterface.php`). Rather than calling native time functions, repositories and services inject `ClockInterface`. 
+In production (`InfrastructureServiceProvider`), the DI container binds this to `Magma\infrastructure\time\SystemClock` (`magma/infrastructure/time/SystemClock.php`). 
+In testing, we bind it to `Magma\infrastructure\time\MockClock` (`magma/infrastructure/time/MockClock.php`). This allows test suites to freeze, advance, or rewind time deterministically without pausing the CPU!
 
 
 ## Module 14: Frontend Architecture: Deep Freeze & CSS Layers
 
 ### Chapter 14.1: Deeply Immutable Reactive State Store
 
-The client-side Vanilla ES6 architecture is as robust as the backend. Rather than relying on heavy frameworks like React or Vue, Magma implements a proprietary, lightweight `ObservableStore.js`.
+The client-side Vanilla ES6 architecture is as robust as the backend. Rather than relying on heavy frameworks like React or Vue, Magma implements a lightweight `ObservableStore.js`.
 
-It employs a recursive `_deepFreeze()` algorithm that physically locks deeply nested state objects from rogue frontend mutations. Developers must dispatch explicit actions to mutate state, enforcing strict unidirectional data flow.
+It employs a recursive `_deepFreeze()` algorithm that locks deeply nested state objects from rogue frontend mutations. Developers must dispatch explicit actions to mutate state, enforcing strict unidirectional data flow.
 
 ### Chapter 14.2: Defensive Garbage Collection
 
 In dynamic single-page applications, DOM elements are frequently created and destroyed. Standard event listeners create "zombie" memory leaks.
 
-Magma's global event delegators utilize defensive `isConnected` checks to gracefully unbind themselves if their target component is ripped from the DOM dynamically, ensuring perfect garbage collection.
+Magma's global event delegators utilize defensive `isConnected` checks to gracefully unbind themselves if their target component is ripped from the DOM dynamically, ensuring clean garbage collection.
 
 ### Chapter 14.3: CSS Cascade Layers
 
@@ -1937,9 +2198,9 @@ Specificity wars destroy maintainability. Magma enforces native CSS Cascade Laye
 
 Human code reviews are fallible. A developer might accidentally use a global `$_POST` variable inside a deeply nested Domain Service.
 
-Magma provides a powerful static analysis linter (`bin/audit_schema.php`) that parses the **Abstract Syntax Tree (AST)** of the codebase. It actively verifies that:
+Magma provides a static analysis linter (`bin/audit_schema.php`, powered by `TenantSecurityAuditor`) alongside static AST rules on the `lava` testing branch (such as `tests/PHPStan/SuperglobalBanRule.php`), verifying that:
 1. Multi-tenant foreign keys are correctly indexed.
-2. Direct superglobal usage is statically prohibited inside business services.
+2. Direct superglobal usage is statically prohibited inside business services and controllers.
 
 If boundaries are breached, the linter fails the CI/CD pipeline.
 
@@ -1947,47 +2208,47 @@ If boundaries are breached, the linter fails the CI/CD pipeline.
 
 Standard SQL pagination (`LIMIT 100 OFFSET 10000`) degrades linearly in performance (O(N)). 
 
-Magma utilizes **Keyset Seeking** (`WHERE id > :cursor_last_id`). By leveraging B-Tree indexes, the database jumps instantly to the correct row, delivering instantaneous O(1) performance regardless of table size.
+Magma utilizes **Keyset Seeking** (`WHERE id < :last_id` / `WHERE id > :cursor_last_id` in `AbstractQueryRepository::cursorPaginate()`). By leveraging B-Tree indexes, the database jumps directly to the cursor boundary, delivering predictable keyset performance regardless of table offset depth.
 
 ### Chapter 15.3: Memory-Streaming Generators
 
-Repositories returning large collections do not load the resulting array into memory. Instead, Magma streams the records directly from the database driver using PHP generators (`yield`). This keeps RAM consumption entirely flat, preventing OOM crashes during heavy analytical workloads.
+Repositories returning large collections do not load the entire dataset into memory as a massive array. Instead, repositories such as `SiteReviewQueryRepository` stream records using PHP generators (`yield`), keeping RAM consumption flat during heavy workloads.
 
-### Chapter 15.4: Zero-Trust Cross-Domain SSO Handoff
+### Chapter 15.4: Zero-Trust Cross-Domain SSO Handoff & Role Policy
 
-In a multi-tenant platform where each tenant has its own domain (e.g. `tenant-a.com` vs `tenant-b.com`), a critical vulnerability arises if global session cookies leak authentication state across boundaries.
+In a multi-tenant platform where each tenant has its own domain (e.g., `tenant-a.com` vs. `tenant-b.com`), global session cookies must never leak authentication state across boundaries.
 
-Magma solves this natively using **Zero-Trust Cross-Domain SSO**. When the `TenantSecurityMiddleware` detects that a logged-in user does not belong to the active domain's `tenant_id`, it immediately destroys the erroneous session. It then delegates to the `PersistentAuthenticationService` to securely generate a short-lived (60-second) SSO token, resolves the user's correct domain via a read-replica lookup, and seamlessly redirects them to their correct dashboard—achieving multi-tenant isolation without throwing abrasive 403 errors to the user.
+Magma solves this natively using **Zero-Trust Cross-Domain SSO**. When `TenantSecurityMiddleware` (`magma/middleware/TenantSecurityMiddleware.php`) detects that an authenticated user belongs to a different `tenant_id` than the active host domain in `AuthTenantMode::TenantScoped`, it issues a short-lived SSO token via `AuthenticationService::issueSsoToken()` (delegating to `RememberMeService::generateToken($userId, 60)` backed by `RememberTokenRepository` in `magma/repositories/RememberTokenRepository.php`), calls `$this->authService->logout()` to clear the mismatched session, resolves the user's true domain via `TenantContextProviderInterface::resolveDomainByTenantId()`, and redirects them cleanly with `?sso=...`. Downstream authorization checks remain decoupled from raw strings via `RolePolicyInterface` and `ConfigRolePolicy` (`magma/security/ConfigRolePolicy.php`).
 
 ## Module 16: The Lava Hardening Phase - Enterprise Quality Control
 
 ### Chapter 16.1: The Eradication of Legacy Facades and "Magic"
-Enterprise software accumulates technical debt primarily through backward compatibility. To achieve true architectural purity, Magma underwent a "Lava" hardening phase where all legacy facades were systematically eliminated. 
+Enterprise software accumulates technical debt primarily through backward compatibility. To achieve architectural purity, Magma underwent a "Lava" hardening phase where legacy facades and unused abstractions were systematically eliminated. 
 
-The framework entirely abandoned primitive tuple arrays in the Routing engine in favor of strongly-typed `RouteDefinition` Value Objects. Backward-compatible interfaces and legacy middleware were completely purged. The result is a framework that forces modern, object-oriented contracts at every layer.
+The framework entirely abandoned primitive tuple arrays in the Routing engine in favor of strongly-typed `RouteDefinition` Value Objects. Backward-compatible wrappers and legacy shims were purged, forcing modern, object-oriented contracts at every layer.
 
-### Chapter 16.2: Mathematical Type Safety via PHPStan Level 9
-Type safety is the ultimate defense against runtime defects. The Magma core implements **PHPStan Level 9**, the most stringent static analysis level available. 
+### Chapter 16.2: Mathematical Type Safety via PHPStan Level 9 & `strict_types`
+Type safety is the ultimate defense against runtime defects. The Magma core targets **PHPStan Level 9** (run on the `lava` testing branch alongside `tests/PHPStan/SuperglobalBanRule.php`) and enforces `declare(strict_types=1);` across `100%` of core PHP files in `magma/`.
 
-By enforcing strict scalar types (`declare(strict_types=1)`), demanding explicit array shapes, and mathematically proving the impossibility of `mixed` types passing through boundaries, the framework eliminates silent type-coercion bugs entirely. Any code that cannot be statically proven to be safe will instantly fail the CI/CD pipeline.
+By enforcing strict scalar types, demanding explicit array shapes, and preventing `mixed` types from leaking through boundaries, the framework eliminates silent type-coercion bugs before code ever reaches production.
 
 ### Chapter 16.3: Advanced Cryptography and Boundary Enforcement
 Security is not bolted on; it is embedded into the core. 
-1. **Argon2id Hashing:** We replaced legacy Bcrypt with Argon2id—the most robust, memory-hard hashing algorithm available, defending against GPU-based brute-force attacks.
-2. **Transparent Rehashing:** The `AuthenticationService` actively listens for legacy hashes during successful logins and transparently upgrades them to Argon2id via the `UserCommandRepository`.
-3. **Strict Headers:** The injection of `Permissions-Policy` disables intrusive browser features (camera, microphone, geolocation) by default, dramatically reducing the application's attack surface.
+1. **Argon2id Hashing:** `AuthenticationService` and `RegistrationService` use `PASSWORD_ARGON2ID`—a memory-hard hashing algorithm that defends against GPU-based brute-force attacks.
+2. **Transparent Rehashing:** `AuthenticationService` detects outdated password hashes during successful logins and transparently upgrades them to Argon2id via `UserCommandRepository::updatePassword()`.
+3. **Strict Headers:** `SecurityHeadersMiddleware` injects `Permissions-Policy` and defensive security headers by default, reducing the application's attack surface.
 
 ### Chapter 16.4: The Lava Testing Infrastructure - Zero Cross-Tenant Leakage
-While Magma represents the theoretical core architecture, the **Lava** branch represents its hardened, tested realization before being pulled downstream. The Lava infrastructure provides mathematically proven Database Integration testing environments for downstream modules. 
-By wrapping PHPUnit tests in isolated PostgreSQL `BEGIN/ROLLBACK` transactions, Lava prevents database pollution while guaranteeing fast Execution Times. Downstream developers must extend `DatabaseIntegrationTestCase` to mathematically prove their newly ported CQRS repositories enforce the multi-tenant `tenant_id` boundaries without ever leaking data cross-tenant.
+While Magma represents the dependency-free core architecture, the **Lava** branch represents its hardened, tested realization before being pulled downstream. Lava provides Database Integration test suites for downstream modules (`tests/Integration/Persistence/DatabaseIntegrationTestCase.php`).
+By wrapping PHPUnit tests in isolated PostgreSQL `BEGIN/ROLLBACK` transactions, Lava prevents database pollution while keeping execution fast. Downstream developers extend `DatabaseIntegrationTestCase` to prove their CQRS repositories enforce `tenant_id` boundaries with zero cross-tenant leakage.
 
 ### Chapter 16.5: Deterministic Time, Factories, and Headless Execution
-To support immense systems, Lava introduces crucial industry-agnostic infrastructure:
-1. **The Chronos MockClock:** A pure Vanilla PHP `DateTimeImmutable` architecture replacing `date()` and `time()`. It enables tests to utilize `$this->travelTo('2026-12-25 08:00:00')` to deterministically test scheduling boundaries without external libraries.
-2. **Agnostic Factories:** `AbstractModelFactory` provides a strict, generic hydration engine allowing downstream projects to seed nested relational data directly via `$this->recipeFactory()->create(...)` without manual SQL queries.
-3. **Async Event Marshalling & Headless HTTP:** Lava enables developers to synchronously drain the Transactional Outbox (simulating Redis queue execution instantly) using `AsyncIntegrationTestCase`. Similarly, `HttpIntegrationTestCase` allows fake PSR-7 HTTP requests to penetrate the middleware onion (e.g., verifying `TenantSecurityMiddleware`) without ever spinning up a physical web server.
+Lava pairs core contracts with industry-agnostic test harnesses:
+1. **Deterministic `MockClock`:** `Magma\infrastructure\time\MockClock` replaces non-deterministic `time()` calls so tests can freeze, advance, or rewind wall-clock timestamps deterministically without sleeping.
+2. **Agnostic Factories:** `AbstractModelFactory` (`tests/Integration/Persistence/Factories/AbstractModelFactory.php`) and `GenericTenantFactory` (`tests/Integration/Persistence/Factories/GenericTenantFactory.php`) hydrate relational test fixtures cleanly without repetitive boilerplate SQL.
+3. **Async Event Marshalling & Headless HTTP:** `AsyncIntegrationTestCase` (`tests/Integration/Persistence/AsyncIntegrationTestCase.php`) drains the Transactional Outbox synchronously in tests, while `HttpIntegrationTestCase` (`tests/Integration/Http/HttpIntegrationTestCase.php`) dispatches simulated `Request` instances directly through `Application::handle()` and `TenantSecurityMiddleware` without spinning up a web server.
 
 ### Chapter 16.6: CI/CD Gates and AST Enforcement
-The final layer of Lava's defense is the pipeline. GitHub Actions strictly boots Postgres and Redis services to execute the tests on every commit. More importantly, Lava introduces custom PHPStan rules that parse the PHP Abstract Syntax Tree (AST) to strictly **ban direct superglobal access** (`$_POST`, `$_GET`, `$_SESSION`) across the framework, ensuring developers strictly use proper DTOs and Request abstractions.
+GitHub Actions (`.github/workflows/ci.yml` and `.github/workflows/enforce-main-purity.yml`) boots PostgreSQL and Redis services to execute the full suite on every commit while physically guarding `main` purity. Lava also runs custom PHPStan AST rules (`tests/PHPStan/SuperglobalBanRule.php`) at **Level 9** to ban direct superglobal access (`$_POST`, `$_GET`, `$_SESSION`) outside designated boundary adapters.
 
-> **CRITICAL WARNING FOR LAVA BRANCH:** The Lava branch contains testing libraries (PHPUnit, PHPStan) and CI/CD logic. **NEVER** merge the `lava` branch back into `main`. The `main` branch must remain 100% pure, dependency-free Magma Core. Lava is a downstream layer. Downstream applications should branch *from* Lava, not merge back into Main.
+> **CRITICAL WARNING FOR LAVA BRANCH:** The `lava` branch contains testing libraries (`PHPUnit`, `PHPStan`) and CI/CD configuration. **NEVER** merge `lava` back into `main`. The `main` branch must remain 100% pure, dependency-free Magma Core.
