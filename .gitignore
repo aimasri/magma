@@ -6,3 +6,4 @@ node_modules/
 /.vscode
 /.phpunit.cache/
 /magma/config/routes.cache.php
+/AGENTS.md
