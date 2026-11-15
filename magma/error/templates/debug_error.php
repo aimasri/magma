@@ -72,7 +72,19 @@ $renderProps = static function (array $props) use ($esc): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $statusCode ?> | <?= $esc($exceptionClass) ?> — <?= $esc($appName) ?></title>
-    <style><?= $stylesheetCss ?>:root{--color-primary:<?= $esc($palette['primary']) ?>;--color-primary-hover:<?= $esc($palette['primaryHover']) ?>;--color-secondary:<?= $esc($palette['secondary']) ?>;--color-secondary-light:<?= $esc($palette['secondaryLight']) ?>;--color-dark:<?= $esc($palette['dark']) ?>;--color-text-dark:<?= $esc($palette['textDark']) ?>;--color-bg-canvas:<?= $esc($palette['bgCanvas']) ?>;--color-logo-bg:<?= $esc($palette['logoBg']) ?>;--color-border-subtle:<?= $esc($palette['borderSubtle']) ?>;}</style>
+    <style><?= $stylesheetCss ?>
+        :root {
+            --color-primary: <?= $esc($palette['primary']) ?>;
+            --color-primary-hover: <?= $esc($palette['primaryHover']) ?>;
+            --color-secondary: <?= $esc($palette['secondary']) ?>;
+            --color-secondary-light: <?= $esc($palette['secondaryLight']) ?>;
+            --color-dark: <?= $esc($palette['dark']) ?>;
+            --color-text-dark: <?= $esc($palette['textDark']) ?>;
+            --color-bg-canvas: <?= $esc($palette['bgCanvas']) ?>;
+            --color-logo-bg: <?= $esc($palette['logoBg']) ?>;
+            --color-border-subtle: <?= $esc($palette['borderSubtle']) ?>;
+        }
+    </style>
 </head>
 <body>
     <header class="page-header">
